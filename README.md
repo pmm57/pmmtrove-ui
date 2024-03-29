@@ -1,6 +1,8 @@
-# pmmtroveui
+# pMy Vite Template
 
 This template should help get you started developing with Vue 3 in Vite.
+It has Vite, Vue 3, Router, Pinia and Bootstrap.
+Use Duplicating a Repository too use
 
 ## Recommended IDE Setup
 
