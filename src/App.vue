@@ -1,84 +1,132 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+  import { watch } from 'vue'
+  import NavBar from '@/components/NavBar.vue'
+  import { useErrorsArrayStore } from '@/stores/errorsarray'
+  const errorsStore = useErrorsArrayStore()
+  import { useUserDataStore } from '@/stores/userdata'
+  const userDataStore = useUserDataStore()
+  import { useNavBarStore } from '@/stores/navbar'
+  const navBarStore = useNavBarStore()
+  var eventSourceUserCache = null
+//
+// This code handles the following SSE events from the server
+//    sseUserLists
+//    sseUserListsCounts
+//    sseUserListsArticles
+//    sseMetaData
+//
+  function handleMessage(e) {
+      var sseRetrieve = JSON.parse(e.data);
+      console.log('App.vue SSE tiggered: ', userDataStore.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
+      if (sseRetrieve.sseUser == userDataStore.troveUserId) {
+        switch (sseRetrieve.event) {
+          case 'sseUserLists':
+            console.log(sseRetrieve.event);
+            // console.log (JSON.stringify(sseRetrieve))
+            userDataStore.clearStore
+            userDataStore.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
+            userDataStore.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
+            userDataStore.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
+            userDataStore.userLists = sseRetrieve.cacheUserLists
+            break
+          case 'sseUserListsArticles':
+            // console.log(sseRetrieve.event);
+            // console.log (JSON.stringify(sseRetrieve))
+            userDataStore.userListsReady = true
+            break
+          case 'sseUserListsCounts':
+            // console.log(sseRetrieve.event);
+            userDataStore.userLists = sseRetrieve.cacheUserLists
+            break
+          case 'sseMetaData':
+            // console.log (JSON.stringify(sseRetrieve))
+            userDataStore.metadataValueTotal = sseRetrieve.cacheMetadataValueTotal
+            userDataStore.metadataTypeByMetadata = sseRetrieve.cacheMetadataTypeByMetadata
+            navBarStore.disableMetadataList = false
+            break
+          default:
+            console.log('App.vue SSE tiggered unknown action: ', sseRetrieve.event);
+        }
+      }
+  }
+  function handleError(e) {
+      if (e.target.readyState == EventSource.CLOSED) {
+          console.log("Disconnected sourceUserCache");
+      }
+      else if (e.target.readyState == EventSource.CONNECTING) {
+          console.log("Connecting sourceUserCache...");
+      }
+  }
+  function  setupUserSse() {
+      if (!!window.EventSource) {
+          var streamId = 'userSSE' + userDataStore.troveUserId
+          var streamName = 'https://localhost:3000/streamTrove/userSSE/' + streamId;
+          eventSourceUserCache = new EventSource(streamName, { withCredentials: true });
+          console.log('Appvue start ' + streamName);
+          eventSourceUserCache.addEventListener(streamId, (e) => handleMessage(e), false);
+          eventSourceUserCache.addEventListener('error', (e) => handleError(e), false);
+      } else {
+          errorsStore.errors.push({msg : `Your browser doesn't support SSE`, param : ''});
+          console.log("Your browser doesn't support SSE")
+      }
+  }
+  //
+  // When HomeView has verified a User Id it is saved and triggers this watcher
+  //
+  watch (
+    () => userDataStore.troveUserId,
+    (troveUserId) => {
+      setupUserSse()
+    }
+  )
+  //
+  // Verify that the server is available
+  //
+  async function verifyServerUp () {
+    const url = "https://localhost:3000/check";
+    const options = {                
+              method: "get",
+              mode: "cors", 
+              credentials : "include", // to send HTTP only cookies
+              headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+              }
+          };
+    const request = new Request(url, options);
+    const fetchPromise = fetch(request);
+    const response = await fetchPromise
+        .catch (error => {
+            errorsStore.errors.push({msg : 'Server not available', param : ''});
+            console.log('verifyServerUp: Error in event handler::', error);
+            return
+        });
+    // console.log (response);
+    // iterate over all headers
+    // for (let [key, value] of response.headers) {
+    // console.log(`${key} = ${value}`);
+    // }
+    console.log("verifyServerUp: response.status =", response.status);
+    if (response.status == 200) {
+      const data = await response.json();
+      console.log ('data ', data)
+    } else {
+        errorsStore.errors = data
+    }             
+  }
+  //
+  verifyServerUp ()
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="Hello, Bootstrap and Vite!" />
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
+  <main>
+    <NavBar />
+    <div class="container-fluid w-auto"> 
+      <!-- <RouterView @setup-user-sse="setupUserSse"/> -->
+      <RouterView />
     </div>
-  </header>
-
-  <RouterView />
+</main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
 </style>

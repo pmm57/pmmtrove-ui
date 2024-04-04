@@ -10,6 +10,47 @@ const router = createRouter({
       component: HomeView
     },
     {
+      path: '/usertrovelists',
+      name: 'userTroveLists',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/UserTroveListsView.vue')
+    },
+    { 
+      path: '/userListPage/:listId',
+      name: 'userListPage',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/UserListView.vue'),
+      props: true
+    },
+    {
+      path: '/usermetadatalist',
+      name: 'userMetadataList',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/UserMetadataListView.vue')
+    },
+    {
+      path: '/userpersonlist',
+      name: 'userPersonList',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/UserPersonListView.vue')
+    },
+    {
+      path: '/searchtrove',
+      name: 'searchTrove',
+      // route level code-splitting
+      // this generates a separate chunk (About.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import('../views/SearchTroveView.vue')
+    },
+    {
       path: '/about',
       name: 'about',
       // route level code-splitting
