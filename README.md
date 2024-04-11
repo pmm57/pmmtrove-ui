@@ -1,22 +1,6 @@
-# My Vite Template
+# PMM Trovedata UI
 
-This template should help get you started developing with Vue 3 in Vite.
-It has Vite, Vue 3, Router, Pinia and Bootstrap.
-Use Duplicating a Repository too use
-
-## Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
+This UI uses Vite, Vue 3, Router, Pinia and Bootstrap.
 
 ### Compile and Hot-Reload for Development
 

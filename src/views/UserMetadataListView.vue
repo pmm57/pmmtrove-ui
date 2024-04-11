@@ -1,19 +1,19 @@
 <script setup>
   import { useUserDataStore } from '@/stores/userdata'
-  const userDataStore = useUserDataStore()
+  const userData = useUserDataStore()
   //
   //
 </script>
 //
 <template>
   <div class="container-fluid">
-    <h1>Metadata Items for User {{ userDataStore.troveUserId}}
+    <h1>Metadata Items for User {{ userData.troveUserId}}
     </h1>
     <br> 
-    <p>This is a table of the {{ userDataStore.metadataTypeByMetadata.length }} Metadata Types that {{ userDataStore.metadataValueTotal }} Metadata Items classify Articles
+    <p>This is a table of the {{ userData.metadataTypeByMetadata.length }} Metadata Types that {{ userData.metadataValueTotal }} Metadata Items classify Articles
     </p>
     <div id="accordion">
-      <div v-for="type in userDataStore.metadataTypeByMetadata" :key="type.metadataType" class="card h-50" >
+      <div v-for="type in userData.metadataTypeByMetadata" :key="type.metadataType" class="card h-50" >
         <div class="card-header">
           <button class="btn btn-link" data-toggle="collapse" data-target="#collapse{{ type.metadataType }}" aria-expanded="false" aria-controls="collapse{{ type.metadataType }}">
             {{ type.metadataType }} [{{ type.arrayMetadata.length }}]

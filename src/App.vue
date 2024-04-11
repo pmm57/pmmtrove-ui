@@ -4,7 +4,7 @@
   import { useErrorsArrayStore } from '@/stores/errorsarray'
   const errorsStore = useErrorsArrayStore()
   import { useUserDataStore } from '@/stores/userdata'
-  const userDataStore = useUserDataStore()
+  const userData = useUserDataStore()
   import { useNavBarStore } from '@/stores/navbar'
   const navBarStore = useNavBarStore()
   var eventSourceUserCache = null
@@ -17,32 +17,40 @@
 //
   function handleMessage(e) {
       var sseRetrieve = JSON.parse(e.data);
-      console.log('App.vue SSE tiggered: ', userDataStore.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
-      if (sseRetrieve.sseUser == userDataStore.troveUserId) {
+      var listIdx = 0
+      console.log('App.vue SSE tiggered: ', userData.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
+      if (sseRetrieve.sseUser == userData.troveUserId) {
         switch (sseRetrieve.event) {
           case 'sseUserLists':
             console.log(sseRetrieve.event);
             // console.log (JSON.stringify(sseRetrieve))
-            userDataStore.clearStore
-            userDataStore.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
-            userDataStore.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
-            userDataStore.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
-            userDataStore.userLists = sseRetrieve.cacheUserLists
+            userData.clearStore
+            userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
+            userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
+            userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
+            userData.userLists = sseRetrieve.cacheUserLists
             break
           case 'sseUserListsArticles':
             // console.log(sseRetrieve.event);
             // console.log (JSON.stringify(sseRetrieve))
-            userDataStore.userListsReady = true
+            userData.userListsReady = true
             break
           case 'sseUserListsCounts':
             // console.log(sseRetrieve.event);
-            userDataStore.userLists = sseRetrieve.cacheUserLists
+            userData.userLists = sseRetrieve.cacheUserLists
             break
           case 'sseMetaData':
             // console.log (JSON.stringify(sseRetrieve))
-            userDataStore.metadataValueTotal = sseRetrieve.cacheMetadataValueTotal
-            userDataStore.metadataTypeByMetadata = sseRetrieve.cacheMetadataTypeByMetadata
+            userData.metadataValueTotal = sseRetrieve.cacheMetadataValueTotal
+            userData.metadataTypeByMetadata = sseRetrieve.cacheMetadataTypeByMetadata
             navBarStore.disableMetadataList = false
+            break
+          case 'sseUserListWithArticles':
+            // console.log (JSON.stringify(sseRetrieve))
+            listIdx = userData.userLists.findIndex((item) => item.TroveListId === sseRetrieve.listId);
+            userData.userLists[listIdx] = sseRetrieve.cacheUserListWithArticles
+            userData.viewedArticles = sseRetrieve.cacheViewedArticles
+            // navBarStore.disableMetadataList = false
             break
           default:
             console.log('App.vue SSE tiggered unknown action: ', sseRetrieve.event);
@@ -57,9 +65,9 @@
           console.log("Connecting sourceUserCache...");
       }
   }
-  function  setupUserSse() {
+  function setupUserSse() {
       if (!!window.EventSource) {
-          var streamId = 'userSSE' + userDataStore.troveUserId
+          var streamId = 'userSSE' + userData.troveUserId
           var streamName = 'https://localhost:3000/streamTrove/userSSE/' + streamId;
           eventSourceUserCache = new EventSource(streamName, { withCredentials: true });
           console.log('Appvue start ' + streamName);
@@ -74,7 +82,7 @@
   // When HomeView has verified a User Id it is saved and triggers this watcher
   //
   watch (
-    () => userDataStore.troveUserId,
+    () => userData.troveUserId,
     (troveUserId) => {
       setupUserSse()
     }
@@ -111,7 +119,7 @@
       const data = await response.json();
       console.log ('data ', data)
     } else {
-        errorsStore.errors = data
+        errorsStore.errors = response.error
     }             
   }
   //

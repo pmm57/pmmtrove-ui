@@ -1,24 +1,24 @@
 <script setup>
   import { useUserDataStore } from '@/stores/userdata'
-  const userDataStore = useUserDataStore()
+  const userData = useUserDataStore()
   //
   function haveListLink (list) {
-    var haveLink = userDataStore.userListsReady
+    var haveLink = userData.userListsReady
     if (list.TroveListItemCount == 0) haveLink = false;
-    if (userDataStore.userDuplicateListIds.indexOf(Number(list.TroveListId)) > -1) haveLink = false;
+    if (userData.userDuplicateListIds.indexOf(Number(list.TroveListId)) > -1) haveLink = false;
     return haveLink
   }
   //
 </script>
 <template>
   <div>
-    <h1>Trove Lists for User {{ userDataStore.troveUserId }}
+    <h1>Trove Lists for User {{ userData.troveUserId }}
       <!-- <%= troveDetails.troveUserId ? troveDetails.troveUserId : strLoading %> -->
     </h1>
     <br> 
     <div class="card">
       <div class="card-body">
-        <p>This is a table of the {{ userDataStore.troveQueryTotal }} lists currently stored in Your Lists in Trove that have {{ userDataStore.troveQueryArticleTotal }} Articles linked
+        <p>This is a table of the {{ userData.troveQueryTotal }} lists currently stored in Your Lists in Trove that have {{ userData.troveQueryArticleTotal }} Articles linked
         </p>
         <table class="table w-100">
           <tr>
@@ -28,7 +28,7 @@
             <th style="text-align:center">Article Status</th>
             <th style="text-align:center" class="text-nowrap">Link to Trove</th>
           </tr>
-          <tr v-for="list in userDataStore.userLists" :key="list.TroveListId" class="align-top">
+          <tr v-for="list in userData.userLists" :key="list.TroveListId" class="align-top">
             <td class="text-nowrap">
               <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"  class="active link-primary">{{ list.TroveListName }}</router-link>
               <p v-else>

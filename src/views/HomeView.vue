@@ -6,7 +6,7 @@
     import { useUserDataStore } from '@/stores/userdata'
     const navBarStore = useNavBarStore()
     const errorsStore = useErrorsArrayStore()
-    const userDataStore = useUserDataStore()
+    const userData = useUserDataStore()
     var loadingMsg = ref('Loading from TROVE.')
     var loading = ref(false)
     var inUserId = ''
@@ -18,14 +18,14 @@
     function handleMessage(e) {
         clearInterval(intervalLoading);
         var sseRetrieve = JSON.parse(e.data);
-        console.log('User Cache Event: ', userDataStore.troveUserId);
+        console.log('User Cache Event: ', userData.troveUserId);
         emit ('setupUserSse')
-        if (sseRetrieve.cacheUser == userDataStore.troveUserId) {
+        if (sseRetrieve.cacheUser == userData.troveUserId) {
             // console.log (JSON.stringify(sseRetrieve))
-            userDataStore.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
-            userDataStore.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
-            userDataStore.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
-            userDataStore.userLists = sseRetrieve.cacheUserLists
+            userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
+            userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
+            userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
+            userData.userLists = sseRetrieve.cacheUserLists
             loading.value = false
             navBarStore.disableTroveLists = false
         }
@@ -38,10 +38,10 @@
             console.log("Connecting sourceUserCache...");
         }
     }
-    function  loadUserLists() {
+    function loadUserLists() {
         if (!!window.EventSource) {
             loadingTick();
-            var streamId = 'user' + userDataStore.troveUserId
+            var streamId = 'user' + userData.troveUserId
             var streamName = 'https://localhost:3000/streamTrove/userCache/' + streamId;
             eventSourceUserCache = new EventSource(streamName, { withCredentials: true });
             console.log('start ' + streamName);
@@ -61,7 +61,7 @@
     }
     // Astnch method in App.vue will set this
     watch (
-        () => userDataStore.userLists,
+        () => userData.userLists,
         (userLists) => {
             loading.value = false;
             clearInterval(intervalLoading);
@@ -69,10 +69,10 @@
         }
     )
     async function verifyUser() {
-        // if this is a reload then inUserId wont equal userDataStore.troveUserId
+        // if this is a reload then inUserId wont equal userData.troveUserId
         // so reset the users cached data
-        if (inUserId != userDataStore.troveUserId) {
-            userDataStore.clearStore
+        if (inUserId != userData.troveUserId) {
+            userData.clearStore
         }
         errorsStore.errors = [];
         const url = "https://localhost:3000/";
@@ -106,19 +106,19 @@
         if (response.status == 200) {
             const data = await response.json();
             console.log ('data ', data)
-            userDataStore.troveUserId = inUserId // There is a watch function in App.vue that will be triggered
+            userData.troveUserId = inUserId // There is a watch function in App.vue that will be triggered
             loadingTick();
             loading.value = true
             // loadUserLists()
         } else {
-            errorsStore.errors = data
+            errorsStore.errors = response.errors
         }             
     }
     function updTroveLists () {
                 console.log('Reload User Trove Lists')
                 loading.value = true
                 loadingMsg.value = 'Loading from TROVE.'
-                inUserId = userDataStore.troveUserId
+                inUserId = userData.troveUserId
                 verifyUser()
             }
 </script>
@@ -131,13 +131,13 @@
         </li>
       </ul>
   </div>
-  <div v-if="userDataStore.troveUserId === ''" class="card col-sm-4 text-center">
+  <div v-if="userData.troveUserId === ''" class="card col-sm-4 text-center">
       <label for="UserId" class="form-label h2">Trove User Id</label>
       <input v-model="inUserId" class="form-control" id="UserId" placeholder="Enter Trove User Id" autofocus>
       <button @click="verifyUser()" id="UserID" class="btn btn-primary">Verify</button>
   </div>
   <div v-else class="card">
-      <p>This is a Trove Data Miner for user {{ userDataStore.troveUserId }}</p>
+      <p>This is a Trove Data Miner for user {{ userData.troveUserId }}</p>
       <div v-if="loading">
           {{ loadingMsg }}
       </div>
