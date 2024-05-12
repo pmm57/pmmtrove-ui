@@ -48,7 +48,7 @@
             eventSourceUserCache.addEventListener(streamId, (e) => handleMessage(e), false);
             eventSourceUserCache.addEventListener('error', (e) => handleError(e), false);
         } else {
-            errorsStore.errors.push({msg : `Your browser doesn't support SSE`, param : ''});
+            errorsStore.arrayErrors.push({msg : `Your browser doesn't support SSE`, param : ''});
             clearInterval(intervalLoading);
             console.log("Your browser doesn't support SSE")
         }
@@ -74,7 +74,7 @@
         if (inUserId != userData.troveUserId) {
             userData.clearStore
         }
-        errorsStore.errors = [];
+        errorsStore.arrayErrors = [];
         const url = "https://localhost:3000/";
         console.log('Verify User-', inUserId)
         const options = {                   
@@ -94,7 +94,7 @@
         const fetchPromise = fetch(request);
         const response = await fetchPromise
             .catch (error => {
-                errorsStore.errors.push({msg : 'Server not available', param : ''});
+                errorsStore.arrayErrors.push({msg : 'Server not available', param : ''});
                 console.log('verifyUser: Error in event handler:', error);
                 return
             });
@@ -105,13 +105,16 @@
         // }
         if (response.status == 200) {
             const data = await response.json();
-            console.log ('data ', data)
+            // console.log ('data ', data.response)
             userData.troveUserId = inUserId // There is a watch function in App.vue that will be triggered
             loadingTick();
             loading.value = true
             // loadUserLists()
         } else {
-            errorsStore.errors = response.errors
+            // console.log (response);
+            const errorData = await response.json();
+            // console.log(errorData)
+            errorsStore.arrayErrors = errorData
         }             
     }
     function updTroveLists () {
@@ -124,16 +127,9 @@
 </script>
 
 <template>
-  <div v-show="errorsStore.errors.length > 0" class="card col-sm-4 text-center" >
-      <ul>
-        <li v-for="error in errorsStore.errors">
-          {{ error.msg + "-" +  error.param }}
-        </li>
-      </ul>
-  </div>
   <div v-if="userData.troveUserId === ''" class="card col-sm-4 text-center">
       <label for="UserId" class="form-label h2">Trove User Id</label>
-      <input v-model="inUserId" class="form-control" id="UserId" placeholder="Enter Trove User Id" autofocus>
+      <input v-model="inUserId" @keyup.enter="verifyUser()" class="form-control" id="UserId" placeholder="Enter Trove User Id" autofocus>
       <button @click="verifyUser()" id="UserID" class="btn btn-primary">Verify</button>
   </div>
   <div v-else class="card">

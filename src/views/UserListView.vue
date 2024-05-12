@@ -17,7 +17,7 @@
   //
   function haveLink (article) {
     var haveLink = true
-    if (article.TroveListArticleMinedStatustext == "") haveLink = false;
+    if (article.TroveListArticleMinedStatustext == "Unknown") haveLink = false;
     return haveLink
   }
   //
@@ -38,7 +38,7 @@
     const fetchPromise = fetch(request);
     const response = await fetchPromise
         .catch (error => {
-            errorsStore.errors.push({msg : 'Server not available', param : ''});
+            errorsStore.arrayErrors.push({msg : 'Server not available', param : ''});
             console.log('verifyServerUp: Error in event handler::', error);
             return
         });
@@ -52,14 +52,14 @@
       const data = await response.json();
       console.log ('data ', data)
     } else {
-        errorsStore.errors = response.error
+        errorsStore.arrayErrors = response.error
     }             
   }
   //
   loadListArticles ('true')
 </script>
 <template>
-  <h1>User {{userData.troveUserId}} Trove List -
+  <h1>Trove List -
       {{ userData.userLists[idxList].TroveListName }} ( {{userData.userLists[idxList].TroveListId}} )
   </h1>
   <div class="card">

@@ -1,6 +1,8 @@
 <script setup>
 import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
+import { useErrorsArrayStore } from '@/stores/errorsarray'
+const errorsStore = useErrorsArrayStore()
 </script>
 <template>
     <div class="navbar navbar-expand-sm bg-light">
@@ -13,6 +15,13 @@ const navStore = useNavBarStore()
             <li class="nav-item"><RouterLink to="/userPersonList" class="nav-link" :class="{disabled:navStore.disablePersonList}">People</RouterLink></li>
             <li class="nav-item"><RouterLink to="/searchTrove" class="nav-link" :class="{disabled:navStore.disableSearch}">Search</RouterLink></li>
             <li class="nav-item"><RouterLink to="/about" class="nav-link" :class="{disabled:navStore.disableAbout}">About us</RouterLink></li>
+        </ul>
+    </div>
+    <div v-show="errorsStore.arrayErrors.length > 0" class="card col-sm-4 text-center" >
+        <ul>
+            <li v-for="error in errorsStore.arrayErrors">
+            {{ error.msg + "-" +  error.param }}
+            </li>
         </ul>
     </div>
 </template>

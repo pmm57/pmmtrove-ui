@@ -2,6 +2,8 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useUserDataStore = defineStore('userData', () => {
+  const arrayMinedStatus = ref([])
+  const arrayMetadataTypes = ref([])
   const troveUserId = ref('')
   const troveQueryTotal = ref(0)
   const troveQueryArticleTotal = ref(0)
@@ -57,6 +59,10 @@ export const useUserDataStore = defineStore('userData', () => {
   // ViewedArticleGetDB FROM TroveArticleGetDB => 
   // ViewedArticleRetrieveDB FROM TroveArticleRetrieveDB => 
   // ViewedArticleSelectedText FROM TroveArticleSelectedText => 
+  // ViewedArticlePossibleDupArticle []
+  //             TroveArticleId
+  //             TroveArticleViewUrl
+  //             TroveArticleListDescription
   // ViewedArticleEntities [] FROM TroveArticleEntities => 
 	// Metadatype (Date, Event, Name, Place), Metadata, 'Men'/Matched True
   // ViewedArticleRetrieveTrove FROM TroveArticleRetrieveTrove => 
@@ -83,5 +89,15 @@ export const useUserDataStore = defineStore('userData', () => {
     metadataTypeByMetadata.value = []
     }
   //
-  return { troveUserId, troveQueryTotal, troveQueryArticleTotal, userDuplicateListIds, userLists, userListsReady, viewedArticles, metadataValueTotal, metadataTypeByMetadata, clearStore}
+  return { arrayMinedStatus,
+    arrayMetadataTypes,
+    troveUserId, 
+    troveQueryTotal, 
+    troveQueryArticleTotal, 
+    userDuplicateListIds, 
+    userLists, 
+    userListsReady, 
+    viewedArticles, 
+    metadataValueTotal, 
+    metadataTypeByMetadata, clearStore}
 })

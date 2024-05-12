@@ -1,8 +1,83 @@
 <script setup>
+  import { ref } from 'vue'
+  import ArticleUrls from '@/components/ArticleUrls.vue'
+  import { useErrorsArrayStore } from '@/stores/errorsarray'
+  const errorsStore = useErrorsArrayStore()
   import { useUserDataStore } from '@/stores/userdata'
   const userData = useUserDataStore()
+  // Array to do accorian transition by Metadata Type
+  var flagMetadataType = ref([])
+  var flagMetadataValue = ref([])
+  showMetadataType (-1)
   //
+  function showMetadataType (idxType) {
+    for (var i=0; i<userData.metadataTypeByMetadata.length; ++i) {
+      flagMetadataType.value[i] = false
+    }
+    if (idxType > -1) {
+      flagMetadataType.value[idxType] = true
+    // console.log ("showMetadataType ", flagMetadataType)
+      showMetadataValue (idxType, -1)
+    }
+  }
   //
+  function showMetadataValue (idxType, idxValue) {
+    for (var j=0; j<userData.metadataTypeByMetadata[idxType].arrayMetadata.length; ++j) {
+      flagMetadataValue.value[j] =false
+    }
+    if (idxValue > -1) {
+      flagMetadataValue.value[idxValue] = true
+      // console.log ("showMetadataValue ", flagMetadataValue)
+      // Check if there are Articles that haven't been loaded into Viewed Articles
+      const getLinks = userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray.findIndex((el) => el.idxViewedArticle < 0)
+      if (getLinks > -1) getArticleLinks (idxType, idxValue)
+    }
+  }
+  //
+  async function getArticleLinks (idxType, idxMetadataValue) {
+    errorsStore.arrayErrors = [];
+    const url = 'https://localhost:3000/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue;
+    console.log('getArticleLinks -', url)
+    const options = {                   
+      method: "get",
+      mode: "cors", 
+      credentials : "include", // to send HTTP only cookies
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    };
+    const request = new Request(url, options);
+    const fetchPromise = fetch(request);
+    const response = await fetchPromise
+      .catch (error => {
+        errorsStore.arrayErrors.push({msg : 'Server not available', param : ''});
+        console.log('UserMetadataListView: Error in event handler:', error);
+        return
+      });
+    // console.log (response);
+    // iterate over all headers
+    // for (let [key, value] of response.headers) {
+    // console.log(`${key} = ${value}`);
+    // }
+    if (response.status == 200) {
+        const data = await response.json();
+        console.log ('data ', data)
+        // Update Dup-licate and Ignored modifier
+        data.linkedArticleUrls.arrayArticleUrls.forEach((el, index)=> {
+          if (el.includes(":")) {
+            userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray[index].troveArticleId = el
+          }
+        })
+    } else {
+        console.log ('UserMetadataListView ', response)
+        if (response.hasOwnProperty('errors')) {
+          errorsStore.arrayErrors = response.errors
+        } else {
+          errorsStore.arrayErrors.push({msg : response.statusText, param : response.status});
+        }
+    }
+  }
 </script>
 //
 <template>
@@ -12,22 +87,21 @@
     <br> 
     <p>This is a table of the {{ userData.metadataTypeByMetadata.length }} Metadata Types that {{ userData.metadataValueTotal }} Metadata Items classify Articles
     </p>
-    <div id="accordion">
-      <div v-for="type in userData.metadataTypeByMetadata" :key="type.metadataType" class="card h-50" >
-        <div class="card-header">
-          <button class="btn btn-link" data-toggle="collapse" data-target="#collapse{{ type.metadataType }}" aria-expanded="false" aria-controls="collapse{{ type.metadataType }}">
-            {{ type.metadataType }} [{{ type.arrayMetadata.length }}]
-          </button>
-        </div>
-        <div class="collapse" aria-labelledby="heading{{ type.metadataType }}" data-parent="#accordion">
-          <div class="card-body h-50" v-for="(item, index) in type.arrayMetadata" :key="item.metadataValue">
-            <div class="row border-top" >
-              <div class="col-sm-2">
-                <p v-if="item.articleListArray.length < 1">{{ item.metadataValue }} [{{ item.articleListArray.length }}]</p>
-                <a v-else href="#" class="card-link" metadataId-param="type.metadataType + ':' + index">{{ item.metadataValue }} [{{ item.articleListArray.length }}]</a>
-              </div>
-              <div class="col-sm-6"></div>  
+    <div v-for="(type, idxType) in userData.metadataTypeByMetadata" :key="type.metadataType" class="card h-50" >
+      <div class="card-header">
+        <button class="btn btn-link" @click="showMetadataType(idxType)">{{ type.metadataType }} [{{ type.arrayMetadata.length }}]
+        </button>
+      </div>
+      <div v-show="flagMetadataType[idxType]">
+        <div class="card-body h-50" v-for="(value, idxValue) in type.arrayMetadata" :key="value.metadataValue">
+          <div class="row border-top" >
+            <div class="col-sm-3">
+              <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{ value.articleListArray.length }}]</span>
+              <button v-else class="btn btn-link" @click="showMetadataValue (idxType, idxValue)">{{ value.metadataValue }} [{{ value.articleListArray.length }}]</button>
             </div>
+            <div v-show="flagMetadataValue[idxValue]" class="col-sm-6">
+              <ArticleUrls :articleListArray="value.articleListArray"></ArticleUrls>
+            </div>  
           </div>
         </div>
       </div>
