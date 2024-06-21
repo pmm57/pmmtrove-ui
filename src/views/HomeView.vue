@@ -65,7 +65,7 @@
         (userLists) => {
             loading.value = false;
             clearInterval(intervalLoading);
-            navBarStore.disableTroveLists = false
+            navBarStore.disableTroveLists = false;
         }
     )
     async function verifyUser() {
@@ -106,7 +106,8 @@
         if (response.status == 200) {
             const data = await response.json();
             // console.log ('data ', data.response)
-            userData.troveUserId = inUserId // There is a watch function in App.vue that will be triggered
+            userData.troveUserId = inUserId; // There is a watch function in App.vue that will be triggered
+            navBarStore.disableSearch = false;
             loadingTick();
             loading.value = true
             // loadUserLists()

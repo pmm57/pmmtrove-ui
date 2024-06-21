@@ -195,55 +195,54 @@ const errorsStore = useErrorsArrayStore()
   }
   //
   function updateMetadata (action, index) {
-    notifyEditError.value = 'inherit'
+    notifyEditError.value = 'inherit';
     switch  (action) {
       case 'Cancel':
-        editMetadata.value = -1
+        editMetadata.value = -1;
         if (savedMetadata.length == 0) {
-          userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index)
+          userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index);
         } else {
-          userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index] = savedMetadata
+          userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index] = savedMetadata;
         }
-        break
+        break;
       case 'Check':
-        var savedPopover = popoverForMetadata.value
-        var message = checkMetadata(index)
+        var savedPopover = popoverForMetadata.value;
+        var clickedRowCells = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index];
+        var message = checkMetadata(clickedRowCells);
         if (message.length > 0) {
-          popoverForMetadata.value = message
-          notifyEditError.value = 'red'
+          popoverForMetadata.value = message;
+          notifyEditError.value = 'red';
         } else {
-          disableUpdate.value = false
-          editMetadata.value = -1  
-          popoverForMetadata.value = savedPopover
-          notifyEditError.value = 'inherit'
+          disableUpdate.value = false;
+          editMetadata.value = -1  ;
+          popoverForMetadata.value = savedPopover;
+          // New Metadata Items are addedd from Sever
         }
-        break
+        break;
       case 'Del':
-        userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index)
-        break
+        userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index);
+        break;
       case 'Edit':
         if (index) {
-          editMetadata.value = index
-          savedMetadata = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index]
+          editMetadata.value = index;
+          savedMetadata = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index];
         } else {
-          editMetadata.value = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.length - 1
-          savedMetadata = []
+          editMetadata.value = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.length - 1;
+          savedMetadata = [];
         }
-        break
+        break;
       case 'New':
-        var newMatadata = ['','','Sel']
-        userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index + 1,0,newMatadata)
-        editMetadata.value = index + 1
-        break
+        var newMatadata = ['','','Sel'];
+        userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index + 1,0,newMatadata);
+        editMetadata.value = index + 1;
+        break;
       default:
-        break
+        break;
     }
   }
   // On clicking the check edit button, do row cell edit checks
-  function checkMetadata(index) {
-    var clickedRowCells = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index]
+  function checkMetadata(clickedRowCells) {
     // console.log (clickedRowCells);
-    // console.log ('rowCheckEditClick Type ', $(clickedRowCells.eq(0)).text());
     var message = ''
     // Check Different Metadata Types
     switch(clickedRowCells[0]) {

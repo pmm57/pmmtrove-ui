@@ -21,6 +21,27 @@
     return haveLink
   }
   //
+  function statusColour (status) {
+    switch (status) {
+      case 0:
+        return "badge text-bg-dark";
+      case 10:
+        return "badge text-bg-secondary";
+      case 20:
+        return "badge text-bg-warning";
+      case 30:
+        return "badge text-bg-primary";
+      case 40:
+        return "badge text-bg-info";
+      case 50:
+        return "badge text-bg-success";
+      case 60:
+        return "badge text-bg-danger";
+      default:
+        return "";
+    }
+  }
+  //
   // Async load of List Articles - they willbe SSE'd to App.vue
   //
   async function loadListArticles (firstLoad) {
@@ -91,10 +112,10 @@
       <table> 
         <tr>
           <th>Trove Id</th> 
-          <th>Article Name</th>
-          <th>Article Source</th> 
           <th>Date</th> 
           <th>Article Status</th>
+          <th>Article Name</th>
+          <th>Article Source</th> 
           <th>Link to Trove</th>
         </tr>
         <tr v-for="article in userData.userLists[idxList].TroveListArticles" :key="article.TroveListArticleId">
@@ -104,10 +125,10 @@
               {{article.TroveListArticleId}}
             </p>
           </td>
+          <td class="text-nowrap">{{article.TroveListArticlePubDate}}</td>
+          <td><span :class="statusColour(article.TroveListArticleMinedStatus)">{{article.TroveListArticleMinedStatustext}}</span></td>
           <td>{{article.TroveListArticleHeading}}</td>
           <td>{{article.TroveListArticleSource}}</td>
-          <td class="text-nowrap">{{article.TroveListArticlePubDate}}</td>
-          <td>{{article.TroveListArticleMinedStatustext}}</td>
           <td><a :href="article.TroveListArticleViewUrl" target="_blank">Trove Link</a></td>
         </tr>
       </table>

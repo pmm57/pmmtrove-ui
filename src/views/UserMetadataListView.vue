@@ -100,7 +100,7 @@
               <button v-else class="btn btn-link" @click="showMetadataValue (idxType, idxValue)">{{ value.metadataValue }} [{{ value.articleListArray.length }}]</button>
             </div>
             <div v-show="flagMetadataValue[idxValue]" class="col-sm-6">
-              <ArticleUrls :articleListArray="value.articleListArray"></ArticleUrls>
+              <ArticleUrls :inline="true" :articleListArray="value.articleListArray"></ArticleUrls>
             </div>  
           </div>
         </div>
