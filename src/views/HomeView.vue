@@ -38,21 +38,6 @@
             console.log("Connecting sourceUserCache...");
         }
     }
-    function loadUserLists() {
-        if (!!window.EventSource) {
-            loadingTick();
-            var streamId = 'user' + userData.troveUserId
-            var streamName = 'https://localhost:3000/streamTrove/userCache/' + streamId;
-            eventSourceUserCache = new EventSource(streamName, { withCredentials: true });
-            console.log('start ' + streamName);
-            eventSourceUserCache.addEventListener(streamId, (e) => handleMessage(e), false);
-            eventSourceUserCache.addEventListener('error', (e) => handleError(e), false);
-        } else {
-            errorsStore.arrayErrors.push({msg : `Your browser doesn't support SSE`, param : ''});
-            clearInterval(intervalLoading);
-            console.log("Your browser doesn't support SSE")
-        }
-    }
     function loadingTick() {
         intervalLoading = setInterval(tick,500);
     }
@@ -69,11 +54,6 @@
         }
     )
     async function verifyUser() {
-        // if this is a reload then inUserId wont equal userData.troveUserId
-        // so reset the users cached data
-        if (inUserId != userData.troveUserId) {
-            userData.clearStore
-        }
         errorsStore.arrayErrors = [];
         const url = "https://localhost:3000/";
         console.log('Verify User-', inUserId)
@@ -110,7 +90,6 @@
             navBarStore.disableSearch = false;
             loadingTick();
             loading.value = true
-            // loadUserLists()
         } else {
             // console.log (response);
             const errorData = await response.json();
@@ -119,12 +98,14 @@
         }             
     }
     function updTroveLists () {
-                console.log('Reload User Trove Lists')
-                loading.value = true
-                loadingMsg.value = 'Loading from TROVE.'
-                inUserId = userData.troveUserId
-                verifyUser()
-            }
+        console.log('Reload User Trove Lists')
+        loading.value = true
+        loadingMsg.value = 'Loading from TROVE.'
+        inUserId = userData.troveUserId
+        // as this is a reload  reset the users cached data
+        userData.clearStore
+        verifyUser()
+    }
 </script>
 
 <template>

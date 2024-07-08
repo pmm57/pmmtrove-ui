@@ -12,7 +12,7 @@
   //
   let loading = ref(false);
   let loadingText = ref("");
-  let showSearch = ref(true);
+  let showSearchToggle = ref(true);
   let searchBlock = ref(false);
   // let searchTypePerson = false;
   let searchFor = ref("");
@@ -124,7 +124,7 @@
     // searchBlock.value = false;
   }
   //
-  //  Post array of Ignored Article Id's
+  //  Post array of Ignored Article Id's to Unignore
   function postUnignoreArticles () {
     var items = [];
     searchData.searchResults.forEach((el, index) => {
@@ -439,7 +439,7 @@
     //
     loading.value = false;
     searchBlock.value = true;
-    showSearch.value = false;
+    showSearchToggle.value = false;
   }
   //
   function showResultRow(status) {
@@ -593,7 +593,7 @@
       // console.log ("identifyDuplicate:", dupFound)
       return {background: dupColour};
     }
-    return {};
+    return {};  
   }
   //
   function waitSearch() {
@@ -709,202 +709,202 @@
 </script>
 //
 <template>
-    <div class="card"> 
-      <details :open="showSearch">
-        <summary>Trove Search</summary>
-        <div class="card-body">
-          <!-- Search Input -->
-          <div class="form-group" >
-            <input type="text" class="form-control" v-model="searchFor" @keyup="changeSearchText()" placeholder="Enter Search" autofocus>
-          </div>
-          <div>Restrict Search To</div>
-          <div class="form-check form-check-inline">
-            <input type="checkbox" class="form-check-input" v-model="searchProximate" @change="checkSearchProximate" id="checkboxSearchProximate">
-            <label class="form-check-label" for="checkboxSearchProximate">Search Proximate</label>
-          </div>
-          <div class="fform-check form-check-inline">
-            <input type="checkbox" class="form-check-input" v-model="allStates" @change ="checkIfLimitState" id="checkboxAllStates">
-            <label class="form-check-label" for="checkboxAllStates">Include All States</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input type="checkbox" class="form-check-input" v-model="allYears" @change ="checkIfLimitYears" id="checkboxAllYears">
-            <label class="form-check-label" for="checkboxAllYears">Include All Years</label>
-          </div>
-          <!--Radio group of States to Limit Search -->
-          <div v-show="!allStates">
-            <div class="form-check form-check-inline" v-for="state in limitStates" @change="changeSearch()">
-              <input class="form-check-input" type="radio" name=stateLimit :id="'radioState' + state" :value="state" v-model="limitState">
-              <label class="form-check-label form-nowrap" :for="'radioState' + state">{{ state }}</label>
-            </div>
-          </div>
-          <div v-show="showLimitToDecade">
-            <!--Radio group of Decade to Limit Search -->
-            <div v-for="decade in limitDecades" @change="changeSearch()" class="form-check form-check-inline">
-              <input type="radio" class="form-check-input" name=decadeLimit :id="'radioDecade' + decade" :value="decade.substring(0, 3)" v-model="limitDecade">
-              <label class="form-check-label form-nowrap" :for="'radioDecade' + decade">{{ decade }}</label>
-            </div>
-          </div>
-          <div v-show="showLimitYear">
-            <!--Radio group of Years to Limit Search -->
-            <div v-for="year in limitYears" @change="changeSearch()" class="form-check form-check-inline">
-              <input type="radio" class="form-check-input" name=yearLimit :id="'radioYear' + year.label" :value="year.label" v-model="limitYear">
-              <label class="form-check-label form-nowrap" :for="'radioYear' + year.label">{{ year.label }}</label>
-            </div>
-          </div>
-          <div id="showSwitches1">
-            <div>Process Search Results</div>
-            <div class="form-check-inline">
-              <input type="checkbox" class="form-check-input" id="showNewSwitch" v-model="showNew">
-              <label class="form-check-label" for="showNewSwitch">Show New Articles</label>
-            </div>
-            <div class="form-check-inline">
-              <input type="checkbox" class="form-check-input" id="showKnownSwitch" v-model="showKnown">
-              <label class="form-check-label" for="showKnownSwitch">Show Known Articles</label>
-            </div>
-            <div class="form-check-inline">
-              <input type="checkbox" class="form-check-input" id="showIgnoredSwitch" v-model="showIgnored">
-              <label class="form-check-label" for="showIgnoredSwitch">Show Ignored Articles</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <input @click="postSearch (true)" :class="{disabled: disableSearch}" class="btn btn-primary" type="button" value="Search">
+  <div class="card"> 
+    <details :open="showSearchToggle">
+      <summary>Trove Search</summary>
+      <div class="card-body">
+        <!-- Search Input -->
+        <div class="form-group" >
+          <input type="text" class="form-control" v-model="searchFor" @keyup="changeSearchText()" placeholder="Enter Search" autofocus>
+        </div>
+        <div>Restrict Search To</div>
+        <div class="form-check form-check-inline">
+          <input type="checkbox" class="form-check-input" v-model="searchProximate" @change="checkSearchProximate" id="checkboxSearchProximate">
+          <label class="form-check-label" for="checkboxSearchProximate">Search Proximate</label>
+        </div>
+        <div class="fform-check form-check-inline">
+          <input type="checkbox" class="form-check-input" v-model="allStates" @change ="checkIfLimitState" id="checkboxAllStates">
+          <label class="form-check-label" for="checkboxAllStates">Include All States</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input type="checkbox" class="form-check-input" v-model="allYears" @change ="checkIfLimitYears" id="checkboxAllYears">
+          <label class="form-check-label" for="checkboxAllYears">Include All Years</label>
+        </div>
+        <!--Radio group of States to Limit Search -->
+        <div v-show="!allStates">
+          <div class="form-check form-check-inline" v-for="state in limitStates" @change="changeSearch()">
+            <input class="form-check-input" type="radio" name=stateLimit :id="'radioState' + state" :value="state" v-model="limitState">
+            <label class="form-check-label form-nowrap" :for="'radioState' + state">{{ state }}</label>
           </div>
         </div>
-      </details>
-    </div>
-    <div class="card"> 
-      <div v-show="loading" class="container-fluid">
-        <div class="card-body">
-          {{ loadingText }}
+        <div v-show="showLimitToDecade">
+          <!--Radio group of Decade to Limit Search -->
+          <div v-for="decade in limitDecades" @change="changeSearch()" class="form-check form-check-inline">
+            <input type="radio" class="form-check-input" name=decadeLimit :id="'radioDecade' + decade" :value="decade.substring(0, 3)" v-model="limitDecade">
+            <label class="form-check-label form-nowrap" :for="'radioDecade' + decade">{{ decade }}</label>
+          </div>
+        </div>
+        <div v-show="showLimitYear">
+          <!--Radio group of Years to Limit Search -->
+          <div v-for="year in limitYears" @change="changeSearch()" class="form-check form-check-inline">
+            <input type="radio" class="form-check-input" name=yearLimit :id="'radioYear' + year.label" :value="year.label" v-model="limitYear">
+            <label class="form-check-label form-nowrap" :for="'radioYear' + year.label">{{ year.label }}</label>
+          </div>
+        </div>
+        <div id="showSwitches1">
+          <div>Process Search Results</div>
+          <div class="form-check-inline">
+            <input type="checkbox" class="form-check-input" id="showNewSwitch" v-model="showNew">
+            <label class="form-check-label" for="showNewSwitch">Show New Articles</label>
+          </div>
+          <div class="form-check-inline">
+            <input type="checkbox" class="form-check-input" id="showKnownSwitch" v-model="showKnown">
+            <label class="form-check-label" for="showKnownSwitch">Show Known Articles</label>
+          </div>
+          <div class="form-check-inline">
+            <input type="checkbox" class="form-check-input" id="showIgnoredSwitch" v-model="showIgnored">
+            <label class="form-check-label" for="showIgnoredSwitch">Show Ignored Articles</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <input @click="postSearch (true)" :class="{disabled: disableSearch}" class="btn btn-primary" type="button" value="Search">
         </div>
       </div>
-      <div v-show="searchBlock" class="card-body">
-        <div>
-          <div v-show="searchData.maxPageNbr > 1" id="currentPage">
-          Page {{ searchData.pageNbr }} of {{ searchData.maxPageNbr }}
-          </div>
-          <button @click="postSearch (false)" type="button" :class="{disabled:disableNext}" class="btn btn-primary">Next Page</button> 
-          - <button @click="postIgnoredArticles" type="button" class="btn btn-primary" :class="{disabled:disableSaveIgnored}">Save {{ searchCounts.nbrToIgnore}} Ignored Articles</button> 
-          - <button @click="postUnignoreArticles" type="button" class="btn btn-primary" :class="{disabled:disableSaveUnignore}">Save {{ searchCounts.nbrToUnignore}} Unignore Articles</button> 
-          <br>
-          <div class="form-check-inline">
-            <input type="checkbox" class="form-check-input" id="toggleNewSwitch" v-model="toggleNew" ref="refNewSwitch">
-            <label class="form-check-label" for="toggleNewSwitch">Show New Articles</label>
-          </div>
-          <div class="form-check-inline">
-            <input type="checkbox" class="form-check-input" id="toggleKnownSwitch" v-model="toggleKnown">
-            <label class="form-check-label" for="toggleKnownSwitch">Show Known Articles</label>
-          </div>
-          <div class="form-check-inline">
-            <input type="checkbox" class="form-check-input" id="toggleRelevantSwitch" v-model="toggleRelevant">
-            <label class="form-check-label" for="toggleRelevantSwitch">Show Less Relevant</label>
-          </div>
-          <div class="form-check-inline">
-            <input type="checkbox" class="form-check-input" id="toggleIgnoredSwitch" v-model="toggleIgnored">
-            <label class="form-check-label" for="toggleIgnoredSwitch">Show Ignored Articles</label>
-          </div>
-          <div class="form-check-inline">
-            <input type="checkbox" class="form-check-input" id="toggleHiddenSwitch" v-model="toggleHidden">
-            <label class="form-check-label" for="toggleHiddenSwitch">Show Hidden Articles</label>
-          </div>
-          <div id="returnedStates">
-            <span v-for="state in searchData.searchCountState">
-              <span v-if="state.nbrFound > 0" v-text="state.label + ' (' + state.nbrFound + ')'"></span>
-            </span>
-          </div>
-          <div id="returnedDecade">
-            <span v-for="(decade, index) in searchData.searchCountDecade">
-              <span>{{ foundCount('D', decade, searchData.searchCountDecade.length - index - 1) }}</span>
-            </span>
-          </div>
-          <div id="returnedYears" v-show="showReturnedYears">
-            <span v-for="(year, index) in searchData.searchCountYear">
-              <span>{{ foundCount('Y', year, searchData.searchCountYear.length - index - 1) }}</span>
-            </span>          
-          </div>
-          <div id="searchResultsCounts">
-            Articles Found <b>{{ searchData.total }}</b> - New <b>{{ searchCounts.nbrNew }}</b> 
-            - Known <b>{{ searchCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchCounts.nbrLessRelevant }}</b> - To Ignore <b>{{ searchCounts.nbrToIgnore }}</b>
-            - Ignored <b>{{ searchCounts.nbrIgnored }}</b> - To Unignore <b>{{ searchCounts.nbrToUnignore }}</b> - Hidden <b>{{ searchCounts.nbrHidden }}</b>
-          </div>
-        </div>
-        <div class="card-body pre-scrollable"  style="max-height: 65vh; line-height: 100%">
-          <table id="tableResults" class="table table-bordered">
-            <thead class="mbhead">
-                <tr class="mbrow">
-                    <th>Row</th>
-                    <th>Date</th>
-                    <th>Article ID</th>
-                    <th>Action</th>
-                    <th>Known</th>
-                    <th>Relevant</th>
-                    <th>Link</th>
-                    <th>Newspaper</th>
-                    <th>Heading / Snippet</th>
-                </tr>
-            </thead>
-            <tbody>
-              <template v-for="(row, index) in searchData.searchResults">
-                <tr v-show="showResultRow(row.status)">
-                  <!-- Row -->
-                    {{ index + 1 }}
-                  <!-- Date -->
-                  <td :style="identifyDuplicate(index)">
-                    {{row.date}}
-                  </td>
-                  <!-- Article Id -->
-                  <td v-if="row.viewedIndex > -1">                  
-                    <ArticleUrls
-                    :inline="false"
-                    :articleListArray="[{idxViewedArticle:row.viewedIndex, troveListId:row.dbListId, troveArticleId:row.id}]"
-                    ></ArticleUrls>
-                  </td>
-                  <td v-else-if="row.dbListId != 0" >
-                    {{ row.id }}
-                    <router-link v-if="haveListLink(row.dbListId)" :to="'/userListPage/' + row.dbListId"  class="active link-primary">{{ row.listName }}</router-link>
-                    <p v-else>
-                      {{ row.listName }}
-                    </p>
-                  </td>
-                  <td v-else>
-                    {{ row.id }}
-                  </td>
-                  <!-- Action -->
-                  <td>
-                    <EditItem v-if="showIgnoreAction(row.status)" @click-item="ignoreArticleClick (index)" :action="ignoreAction" :icon="ignoreIcon"/>
-                    {{ showIgnoreActionFiller }}
-                    <EditItem v-if="showHideAction(row.status)" @click-item="hideRowClick (index)" :action="hideAction" :icon="hideIcon"/>
-                  </td>
-                  <!-- Known -->
-                  <td>
-                    {{ showStatus(row.status) }}
-                  </td>
-                  <!-- Relevent -->
-                  <td v-if="row.relevance==='very relevant'">
-                    Yes
-                  </td>
-                  <td v-else>
-                    No
-                  </td>
-                  <!-- Link -->
-                  <td>
-                    <a :href="row.troveUrl" target="_blank">Trove</a>
-                  </td>
-                  <!-- Newspaper -->
-                  <td>
-                    {{row.title.title}}
-                  </td>
-                  <!-- Heading / Snippet -->
-                  <td>
-                    {{ row.heading }}</br>{{ row.snippet }}</br>{{ row.textSnip }}</br>{{ row.articleMatch }}
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
+    </details>
+  </div>
+  <div class="card"> 
+    <div v-show="loading" class="container-fluid">
+      <div class="card-body">
+        {{ loadingText }}
       </div>
     </div>
+    <div v-show="searchBlock" class="card-body">
+      <div>
+        <div v-show="searchData.maxPageNbr > 1" id="currentPage">
+        Page {{ searchData.pageNbr }} of {{ searchData.maxPageNbr }}
+        </div>
+        <button @click="postSearch (false)" type="button" :class="{disabled:disableNext}" class="btn btn-primary">Next Page</button> 
+        - <button @click="postIgnoredArticles" type="button" class="btn btn-primary" :class="{disabled:disableSaveIgnored}">Save {{ searchCounts.nbrToIgnore}} Ignored Articles</button> 
+        - <button @click="postUnignoreArticles" type="button" class="btn btn-primary" :class="{disabled:disableSaveUnignore}">Save {{ searchCounts.nbrToUnignore}} Unignore Articles</button> 
+        <br>
+        <div class="form-check-inline">
+          <input type="checkbox" class="form-check-input" id="toggleNewSwitch" v-model="toggleNew" ref="refNewSwitch">
+          <label class="form-check-label" for="toggleNewSwitch">Show New Articles</label>
+        </div>
+        <div class="form-check-inline">
+          <input type="checkbox" class="form-check-input" id="toggleKnownSwitch" v-model="toggleKnown">
+          <label class="form-check-label" for="toggleKnownSwitch">Show Known Articles</label>
+        </div>
+        <div class="form-check-inline">
+          <input type="checkbox" class="form-check-input" id="toggleRelevantSwitch" v-model="toggleRelevant">
+          <label class="form-check-label" for="toggleRelevantSwitch">Show Less Relevant</label>
+        </div>
+        <div class="form-check-inline">
+          <input type="checkbox" class="form-check-input" id="toggleIgnoredSwitch" v-model="toggleIgnored">
+          <label class="form-check-label" for="toggleIgnoredSwitch">Show Ignored Articles</label>
+        </div>
+        <div class="form-check-inline">
+          <input type="checkbox" class="form-check-input" id="toggleHiddenSwitch" v-model="toggleHidden">
+          <label class="form-check-label" for="toggleHiddenSwitch">Show Hidden Articles</label>
+        </div>
+        <div id="returnedStates">
+          <span v-for="state in searchData.searchCountState">
+            <span v-if="state.nbrFound > 0" v-text="state.label + ' (' + state.nbrFound + ')'"></span>
+          </span>
+        </div>
+        <div id="returnedDecade">
+          <span v-for="(decade, index) in searchData.searchCountDecade">
+            <span>{{ foundCount('D', decade, searchData.searchCountDecade.length - index - 1) }}</span>
+          </span>
+        </div>
+        <div id="returnedYears" v-show="showReturnedYears">
+          <span v-for="(year, index) in searchData.searchCountYear">
+            <span>{{ foundCount('Y', year, searchData.searchCountYear.length - index - 1) }}</span>
+          </span>          
+        </div>
+        <div id="searchResultsCounts">
+          Articles Found <b>{{ searchData.total }}</b> - New <b>{{ searchCounts.nbrNew }}</b> 
+          - Known <b>{{ searchCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchCounts.nbrLessRelevant }}</b> - To Ignore <b>{{ searchCounts.nbrToIgnore }}</b>
+          - Ignored <b>{{ searchCounts.nbrIgnored }}</b> - To Unignore <b>{{ searchCounts.nbrToUnignore }}</b> - Hidden <b>{{ searchCounts.nbrHidden }}</b>
+        </div>
+      </div>
+      <div class="card-body pre-scrollable"  style="max-height: 65vh; line-height: 100%">
+        <table id="tableResults" class="table table-bordered">
+          <thead class="mbhead">
+              <tr class="mbrow">
+                  <th>Row</th>
+                  <th>Date</th>
+                  <th>Article ID</th>
+                  <th>Action</th>
+                  <th>Known</th>
+                  <th>Relevant</th>
+                  <th>Link</th>
+                  <th>Newspaper</th>
+                  <th>Heading / Snippet</th>
+              </tr>
+          </thead>
+          <tbody>
+            <template v-for="(row, index) in searchData.searchResults">
+              <tr v-show="showResultRow(row.status)">
+                <!-- Row -->
+                  {{ index + 1 }}
+                <!-- Date -->
+                <td :style="identifyDuplicate(index)">
+                  {{row.date}}
+                </td>
+                <!-- Article Id -->
+                <td v-if="row.viewedIndex > -1">                  
+                  <ArticleUrls
+                  :inline="false"
+                  :articleListArray="[{idxViewedArticle:row.viewedIndex, troveListId:row.dbListId, troveArticleId:row.id}]"
+                  ></ArticleUrls>
+                </td>
+                <td v-else-if="row.dbListId != 0" >
+                  {{ row.id }}
+                  <router-link v-if="haveListLink(row.dbListId)" :to="'/userListPage/' + row.dbListId"  class="active link-primary">{{ row.listName }}</router-link>
+                  <p v-else>
+                    {{ row.listName }}
+                  </p>
+                </td>
+                <td v-else>
+                  {{ row.id }}
+                </td>
+                <!-- Action -->
+                <td>
+                  <EditItem v-if="showIgnoreAction(row.status)" @click-item="ignoreArticleClick (index)" :action="ignoreAction" :icon="ignoreIcon"/>
+                  {{ showIgnoreActionFiller }}
+                  <EditItem v-if="showHideAction(row.status)" @click-item="hideRowClick (index)" :action="hideAction" :icon="hideIcon"/>
+                </td>
+                <!-- Known -->
+                <td>
+                  {{ showStatus(row.status) }}
+                </td>
+                <!-- Relevent -->
+                <td v-if="row.relevance==='very relevant'">
+                  Yes
+                </td>
+                <td v-else>
+                  No
+                </td>
+                <!-- Link -->
+                <td>
+                  <a :href="row.troveUrl" target="_blank">Trove</a>
+                </td>
+                <!-- Newspaper -->
+                <td>
+                  {{row.title.title}}
+                </td>
+                <!-- Heading / Snippet -->
+                <td>
+                  {{ row.heading }}</br>{{ row.snippet }}</br>{{ row.textSnip }}</br>{{ row.articleMatch }}
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style>

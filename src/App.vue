@@ -36,6 +36,12 @@
             userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
             userData.userLists = sseRetrieve.cacheUserLists
             break
+          case 'sseRemoveUserList':
+            // console.log(sseRetrieve.event);
+            // console.log (JSON.stringify(sseRetrieve))
+            userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
+            userData.userLists = sseRetrieve.cacheUserLists
+            break
           case 'sseUserListsArticles':
             // console.log(sseRetrieve.event);
             // console.log (JSON.stringify(sseRetrieve))
@@ -248,7 +254,7 @@
       const data = await response.json();
       userData.arrayMinedStatus = data.arrayMinedStatus
       userData.arrayMetadataTypes = data.arrayMetadataTypes
-      console.log ('data ', data)
+      // console.log ('data ', data)
     } else {
         errorsStore.arrayErrors = response.error
     }             

@@ -27,6 +27,9 @@ const errorsStore = useErrorsArrayStore()
   var disableUpdate = ref(true)
   var showModalEntities = ref(false)
   var showModalDuplicates = ref(false)
+  var showTroveText = ref(true)
+  var showSelectedText = ref(true)
+  var showSummaryText = ref(false)
   var editMetadata = ref(-1)
   var notifyEditError = ref('inherit')
   const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName InitialAs N. b.9999-d.9999'
@@ -123,10 +126,14 @@ const errorsStore = useErrorsArrayStore()
                       'articleId' : props.articleId,
                       'articleMinedStatusText' : userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText,
                       'metadata' : userData.viewedArticles[idxViewed.value].ViewedArticleMetadata,
-                      'selectedData' : userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText
+                      'selectedData' : userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText,
+                      'summaryData' : userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText
     }
     if (updatedData.selectedData.length == 0) {
       updatedData.selectedData= 'None';
+    }
+    if (updatedData.summaryData.length == 0) {
+      updatedData.summaryData= 'None';
     }
     // console.log (updatedData);
     const url = "https://localhost:3000/saveDB/updateArticle" ;
@@ -143,9 +150,7 @@ const errorsStore = useErrorsArrayStore()
           };
     console.log (options);
     doFetch ('loadArticle', url, options)
-    // $('#troveData').text('Reloading from TROVE.');
-    // $('#selectedText').val('Saving to DB.');
-    // reloadArticle ();
+    //
     disableUpdate.value = true
   }
   //
@@ -160,6 +165,12 @@ const errorsStore = useErrorsArrayStore()
   })
   //  Enable Updata Data Button
   watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText, () => {
+      disableUpdate.value = false
+      return 
+    },
+    { once: true }
+  )
+  watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText, () => {
       disableUpdate.value = false
       return 
     },
@@ -344,6 +355,11 @@ function editPersonMetadata (stringPerson) {
   //
   loadArticle (true)
   //
+  if (userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText.length > 0) {
+    showTroveText.value = false;
+    showSummaryText.value = true;
+  }
+  //
 </script>
 <template>
   <div class="container-fluid">
@@ -526,40 +542,63 @@ function editPersonMetadata (stringPerson) {
           </div>
           <br>
           <div class="row">
-            <div class="col-sm-6">
-              <div class="card-header text-center">
-                Trove Original Text
-              </div>
+            <details :open="showTroveText">
+              <summary>
+                <!-- <div class="card-header text-center"> -->
+                  Trove Original Text
+                <!-- </div> -->
+              </summary>
               <div class="card text-center">
                 Search Word ({{ userData.viewedArticles[idxViewed].ViewedArticleSearchWord  }}) Occurs {{ userData.viewedArticles[idxViewed].ViewedArticleFoundCount  }}
               </div>
-                <div class="card">
-                  <div @scroll.once="scrollSearchWord"
-                        @mouseup="getSelectedText"
-                        id="textTrove"
-                        class="card-body overflow-auto"
-                        style="max-height: 75vh">
-                    <span v-html="userData.viewedArticles[idxViewed].ViewedArticleOriginalText"></span>
-                  </div>
+              <div class="card">
+                <div @scroll.once="scrollSearchWord"
+                      @mouseup="getSelectedText"
+                      id="textTrove"
+                      class="card-body overflow-auto"
+                      style="max-height: 300px">
+                  <span v-html="userData.viewedArticles[idxViewed].ViewedArticleOriginalText"></span>
                 </div>
-            </div>
-            <div class="col-sm-6">
-              <div class="card-header text-center">
-                Your Selected Text
               </div>
-                <div class="form-group pre-scrollable"  style="max-height: 75vh">
-                  <textarea
-                    @input.once="disableUpdate = false"
-                    v-model.lazy.trim="userData.viewedArticles[idxViewed].ViewedArticleSelectedText"
-                    class="form-control"
-                    style="height:auto !important;"
-                    rows=40
-                    placeholder="Select from left panel to copy here, then save"
-                    tabindex="1000"
-                  >
-                  </textarea>
-                </div>
-            </div>
+            </details>
+          </div>
+          <div class="row">
+            <details :open="showSelectedText">
+              <summary>
+                Your Selected Text
+              </summary>
+              <div class="form-group pre-scrollable"  style="max-height: 75vh">
+                <textarea
+                  @input.once="disableUpdate = false"
+                  v-model.lazy.trim="userData.viewedArticles[idxViewed].ViewedArticleSelectedText"
+                  class="form-control"
+                  style="max-height: 300px"
+                  rows=40
+                  placeholder="Select from above panel to copy here, then save"
+                  tabindex="1000"
+                >
+                </textarea>
+              </div>
+            </details>
+          </div>
+          <div class="row">
+            <details :open="showSummaryText">
+              <summary>
+                Your Summary Text
+              </summary>
+              <div class="form-group pre-scrollable"  style="max-height: 75vh">
+                <textarea
+                  @input.once="disableUpdate = false"
+                  v-model.lazy.trim="userData.viewedArticles[idxViewed].ViewedArticleSummaryText"
+                  class="form-control"
+                  style="max-height: 300px"
+                  rows=40
+                  placeholder="Summarize this event"
+                  tabindex="1000"
+                >
+                </textarea>
+              </div>
+            </details>
           </div>
         </div>
         <br>

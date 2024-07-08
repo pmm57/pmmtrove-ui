@@ -2,7 +2,7 @@ import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
 // Async Do Fetch
 export async function useDoFetch (calledFrom, url, options) {
-    const noJsonResponse = ["Ignore Articles", "Search", 'Unignore Articles'];
+    const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "Ignore List Articles", "loadListArticles"];
     const request = new Request(url, options);
     const fetchPromise = fetch(request);
     const response = await fetchPromise
@@ -11,7 +11,7 @@ export async function useDoFetch (calledFrom, url, options) {
             console.log('doFetch ' + calledFrom + ' : Error in event handler::', error);
             return
         });
-    console.log(calledFrom + ": response =", response);
+    // console.log(calledFrom + ": response =", response);
     // iterate over all headers
     // for (let [key, value] of response.headers) {
     // console.log(`${key} = ${value}`);

@@ -53,37 +53,33 @@ matchEntityToMetadata ()
 </script>
 <template>
     <div class="modal">
-        <div class="container-fluid"  style="width: 25rem;">
-          <div class="row">
-                <div class="card">
-                    <h5>Apply Metadata with Check / Uncheck
-                        <a @click="$emit('close')" href="#"><i class="bi-x-square"></i></a>
-                    </h5>
-                </div>
+        <div class="container-fluid"  style="width: 25rem; max-height: 75vh">
+            <div class="card">
+                <h5>Apply Metadata with Check / Uncheck
+                    <a @click="$emit('close')" href="#"><i class="bi-x-square"></i></a>
+                </h5>
             </div>
-            <div class="row">
-                <div class="card pre-scrollable">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Add</th>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(entity, index) in userData.viewedArticles[props.idxViewed].ViewedArticleEntities">
-                                <td>
-                                    <div @change="processEntity(index)" class="checkbox">
-                                        <input type="checkbox" v-model="entity[2]" />
-                                    </div>
-                                </td>
-                                <td>{{ entity[0] }}</td>
-                                <td>{{ entity[1] }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="card pre-scrollable" style="max-height: 75vh">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Add</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(entity, index) in userData.viewedArticles[props.idxViewed].ViewedArticleEntities">
+                            <td>
+                                <div @change="processEntity(index)" class="checkbox">
+                                    <input type="checkbox" v-model="entity[2]" />
+                                </div>
+                            </td>
+                            <td>{{ entity[0] }}</td>
+                            <td>{{ entity[1] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

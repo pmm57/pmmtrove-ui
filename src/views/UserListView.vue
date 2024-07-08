@@ -1,24 +1,27 @@
 <script setup>
-  import { useUserDataStore } from '@/stores/userdata'
-  const userData = useUserDataStore()
-  import { useNavBarStore } from '@/stores/navbar'
-  const navStore = useNavBarStore()
-  import { useErrorsArrayStore } from '@/stores/errorsarray'
-  const errorsStore = useErrorsArrayStore()
+  import { useDoFetch } from '@/components/DoFetch.js';
+  import { useRouter } from 'vue-router';
+  const router = useRouter();
+  import { useUserDataStore } from '@/stores/userdata';
+  const userData = useUserDataStore();
+  import { useNavBarStore } from '@/stores/navbar';
+  const navStore = useNavBarStore();
+  import { useErrorsArrayStore } from '@/stores/errorsarray';
+  const errorsStore = useErrorsArrayStore();
 
-  const props = defineProps(['listId'])
-  console.log ('UserListView ', props.listId)
-  navStore.listId = props.listId
-  navStore.listHref = "/userListPage/" + props.listId
-  navStore.listTabTitle = "List " + props.listId
+  const props = defineProps(['listId']);
+  console.log ('UserListView ', props.listId);
+  navStore.listId = props.listId;
+  navStore.listHref = "/userListPage/" + props.listId;
+  navStore.listTabTitle = "List " + props.listId;
   //
   var idxList = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
   // console.log ('UserListView.viewIndex ', props.listId, idxList)
   //
   function haveLink (article) {
-    var haveLink = true
+    var haveLink = true;
     if (article.TroveListArticleMinedStatustext == "Unknown") haveLink = false;
-    return haveLink
+    return haveLink;
   }
   //
   function statusColour (status) {
@@ -55,26 +58,54 @@
                   'Content-Type': 'application/json'
               }
           };
-    const request = new Request(url, options);
-    const fetchPromise = fetch(request);
-    const response = await fetchPromise
-        .catch (error => {
-            errorsStore.arrayErrors.push({msg : 'Server not available', param : ''});
-            console.log('verifyServerUp: Error in event handler::', error);
-            return
-        });
-    // console.log (response);
-    // iterate over all headers
-    // for (let [key, value] of response.headers) {
-    // console.log(`${key} = ${value}`);
-    // }
-    console.log("loadListArticles: response.status =", response.status);
-    if (response.status == 200) {
-      const data = await response.json();
-      console.log ('data ', data)
-    } else {
-        errorsStore.arrayErrors = response.error
-    }             
+    useDoFetch ('loadListArticles', url, options)
+    // const request = new Request(url, options);
+    // const fetchPromise = fetch(request);
+    // const response = await fetchPromise
+    //     .catch (error => {
+    //         errorsStore.arrayErrors.push({msg : 'Server not available', param : ''});
+    //         console.log('verifyServerUp: Error in event handler::', error);
+    //         return
+    //     });
+    // // console.log (response);
+    // // iterate over all headers
+    // // for (let [key, value] of response.headers) {
+    // // console.log(`${key} = ${value}`);
+    // // }
+    // console.log("loadListArticles: response.status =", response.status);
+    // if (response.status == 200) {
+    //   const data = await response.json();
+    //   console.log ('data ', data)
+    // } else {
+    //     errorsStore.arrayErrors = response.error
+    // }             
+  }
+  //  Post array of Ignored Article Id's
+  function ignoreArticles () {
+    var items = [];
+    userData.userLists[idxList].TroveListArticles.forEach((article) => {
+      items.push({id: article.TroveListArticleId});
+    });
+    // console.log("clicked Save Ignored action " + JSON.stringify(items));
+    const ignored = {ignoreArticles : items};
+    //
+    const url = "https://localhost:3000/searchTrove/updateIgnored" ;
+    const options = {                
+              method: "post",
+              mode: "cors", 
+              credentials : "include", // to send HTTP only cookies
+              headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+              },
+            //make sure to serialize your JSON body
+            body: JSON.stringify(ignored)
+          };
+    useDoFetch ('Ignore List Articles', url, options);
+    navStore.listId = 0;
+    navStore.listHref = "";
+    navStore.listTabTitle = "List";
+    router.push({name: 'userTroveLists'});
   }
   //
   loadListArticles ('true')
@@ -101,6 +132,11 @@
         <div class="col">
           <div class="card">
             <a @click="loadListArticles ('false')" class="btn btn-primary" role="button">Reload List from Trove</a>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <a @click="ignoreArticles ()" class="btn btn-primary" role="button">Ignore All Articles</a>
           </div>
         </div>
       </div>
