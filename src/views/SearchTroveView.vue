@@ -857,6 +857,7 @@
                   <ArticleUrls
                   :inline="false"
                   :articleListArray="[{idxViewedArticle:row.viewedIndex, troveListId:row.dbListId, troveArticleId:row.id}]"
+                  :troveListId="0">                  
                   ></ArticleUrls>
                 </td>
                 <td v-else-if="row.dbListId != 0" >

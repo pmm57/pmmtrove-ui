@@ -10,7 +10,6 @@
   const errorsStore = useErrorsArrayStore();
 
   const props = defineProps(['listId']);
-  console.log ('UserListView ', props.listId);
   navStore.listId = props.listId;
   navStore.listHref = "/userListPage/" + props.listId;
   navStore.listTabTitle = "List " + props.listId;
@@ -45,9 +44,10 @@
     }
   }
   //
-  // Async load of List Articles - they willbe SSE'd to App.vue
+  // Async load of List Articles - they will be SSE'd to App.vue sseUserListWithArticles
   //
   async function loadListArticles (firstLoad) {
+    console.log ('UserListView ', props.listId, firstLoad);
     const url = "https://localhost:3000/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
     const options = {                
               method: "get",
@@ -59,26 +59,6 @@
               }
           };
     useDoFetch ('loadListArticles', url, options)
-    // const request = new Request(url, options);
-    // const fetchPromise = fetch(request);
-    // const response = await fetchPromise
-    //     .catch (error => {
-    //         errorsStore.arrayErrors.push({msg : 'Server not available', param : ''});
-    //         console.log('verifyServerUp: Error in event handler::', error);
-    //         return
-    //     });
-    // // console.log (response);
-    // // iterate over all headers
-    // // for (let [key, value] of response.headers) {
-    // // console.log(`${key} = ${value}`);
-    // // }
-    // console.log("loadListArticles: response.status =", response.status);
-    // if (response.status == 200) {
-    //   const data = await response.json();
-    //   console.log ('data ', data)
-    // } else {
-    //     errorsStore.arrayErrors = response.error
-    // }             
   }
   //  Post array of Ignored Article Id's
   function ignoreArticles () {
@@ -111,9 +91,8 @@
   loadListArticles ('true')
 </script>
 <template>
-  <h1>Trove List -
-      {{ userData.userLists[idxList].TroveListName }} ( {{userData.userLists[idxList].TroveListId}} )
-  </h1>
+  <h1>Trove List - {{userData.userLists[idxList].TroveListId}} </h1>
+  <h2>{{ userData.userLists[idxList].TroveListName }}</h2>
   <div class="card">
     <div class="card-body">
       <div class="card">

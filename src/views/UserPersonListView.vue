@@ -1,51 +1,59 @@
 <script setup>
-  import { ref, reactive } from 'vue'
-  import ArticleUrls from '@/components/ArticleUrls.vue'
-  import RelatedTable from '@/components/RelatedTable.vue'
-  import ModalRelative from '@/components/ModalRelative.vue'
-  import ModalPartner from '@/components/ModalPartner.vue'
-  import { useCheckName } from '@/components/CheckName.js'
-  import { useDoFetch } from '@/components/DoFetch.js'
-  import { useUserDataStore } from '@/stores/userdata'
-  import { useErrorsArrayStore } from '@/stores/errorsarray'
-  const errorsStore = useErrorsArrayStore()
-  const userData = useUserDataStore()
+  import { ref, reactive } from 'vue';
+  import ArticleUrls from '@/components/ArticleUrls.vue';
+  import RelatedTable from '@/components/RelatedTable.vue';
+  import ModalLists from '@/components/ModalLists.vue';
+  import ModalRelative from '@/components/ModalRelative.vue';
+  import ModalPartner from '@/components/ModalPartner.vue';
+  import { useCheckName } from '@/components/CheckName.js';
+  import { useDoFetch } from '@/components/DoFetch.js';
+  import { useUserDataStore } from '@/stores/userdata';
+  import { useErrorsArrayStore } from '@/stores/errorsarray';
+  const errorsStore = useErrorsArrayStore();
+  const userData = useUserDataStore();
   //
-  let sourceLoadPerson = null
-  let loadingPerson = ref(false)
-  let loadingPersonText = ref("")
-  let showPersonDetails = ref(false)
-  let showSearchPerson = ref(false)
-  let showEditPersonName = ref(false)
-  let notifyEditError = ref('inherit')
-  let popoverForMetadata = ref('')
-  let showDefaultPersonAction = ref(true)
-  let showEditPersonAction = ref(false)
-  let showCheckPersonNameAction = ref(false)
-  let showDeletePersonAction = ref(false)
-  let showRestorePersonAction = ref(false)
-  let showAddRelativeAction = ref(false)
-  let showAddPerson = ref(false)
-  let showChgPerson = ref(false)
-  let showDelPerson = ref(false)
-  let showModalRelative = ref(false)
-  let showModalPartner = ref(false)
+  let sourceLoadPerson = null;
+  let loadingPerson = ref(false);
+  let loadingPersonText = ref("");
+  let linkListText = ref("Link to a List");
+  let linkedListText = ref("Unlink from List ");
+  let linkedListIdx = ref(-1);
+  let showPersonDetails = ref(false);
+  let showSearchPerson = ref(false);
+  let showEditPersonName = ref(false);
+  let notifyEditError = ref('inherit');
+  let popoverForMetadata = ref('');
+  let showDefaultPersonAction = ref(true);
+  let showEditPersonAction = ref(false);
+  let showCheckPersonNameAction = ref(false);
+  let showDeletePersonAction = ref(false);
+  let showRestorePersonAction = ref(false);
+  let showLinkPersonAction = ref(false);
+  let showAddRelativeAction = ref(false);
+  let showAddPerson = ref(false);
+  let showChgPerson = ref(false);
+  let showDelPerson = ref(false);
+  let showModalLists = ref(false);
+  let showModalRelative = ref(false);
+  let showModalPartner = ref(false);
   let savedPerson = reactive({
     action: "",
     personIndex: -1,
     readName: "",
+    linkedListId: 0,
     arrayRelated: []
   });
-  let partners = ref([])
+  let partners = ref([]);
   //
   let updatePerson = reactive({
     chgName: [],
+    chgLinkedListId: 0,
     chgRelated: []
   });
   //
-  const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person")  
-  const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999'
-  popoverForMetadata.value = popoverPersonMetadata
+  const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person")  ;
+  const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999';
+  popoverForMetadata.value = popoverPersonMetadata;
   //
   // These become active as confirmation buttons after a Person Name Action button
   function setPersonActions (showActions) {
@@ -53,86 +61,103 @@
       showAddPerson.value = true;
     } else {
       showAddPerson.value = false;
-    }  
+    };
     if (showActions.includes("del")) {
       showDelPerson.value = true;
     } else {
       showDelPerson.value = false;
-    }  
+    };
     if (showActions.includes("chg")) {
       showChgPerson.value = true;
     } else {
       showChgPerson.value = false;
-    }
+    };
   }  
   //
   function setPersonNameActions (showActions) {
     // 
     if (showActions.length ==0) {
-      showActions = 'edit relatives restore search';
+      showActions = 'edit link relatives restore search';
       if ((userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray.length == 0) &&
-       (savedPerson.arrayRelated.length == 0)) {
-        // As not linked articles or Relatives - Person can be deleted
+      (savedPerson.arrayRelated.length == 0) &&
+      (linkedListIdx.value == -1)) {
+        // As not linked articles or Relatives or List - Person can be deleted
         showActions += ' delete';
-      }
-    }
+      };
+    };
     console.log ('setPersonNameAction ' + showActions);
     if (showActions.includes("start")) {
       showDefaultPersonAction.value = true
     } else {      
       showDefaultPersonAction.value = false
-    }
+    };
     if (showActions.includes("edit")) {
       showEditPersonAction.value = true
     } else {      
       showEditPersonAction.value = false
-    }
+    };
     if (showActions.includes("search")) {
       showSearchPerson.value = true
     } else {      
       showSearchPerson.value = false
-    }
+    };
     if (showActions.includes("check")) {
       showCheckPersonNameAction.value = true
     } else {      
       showCheckPersonNameAction.value = false
-    }
+    };
     if (showActions.includes("delete")) {
       showDeletePersonAction.value = true
     } else {      
       showDeletePersonAction.value = false
-    }
+    };
     if (showActions.includes("restore")) {
       showRestorePersonAction.value = true
     } else {      
       showRestorePersonAction.value = false
-    }
+    };
+    if (showActions.includes("link")) {
+      showLinkPersonAction.value = true
+    } else {      
+      showLinkPersonAction.value = false
+    };
     if (showActions.includes("relatives")) {
       showAddRelativeAction.value = true
     } else {      
       showAddRelativeAction.value = false
-    }
-    return
+    };
+    return;
   }
 //
   function handleLoadPersonMessage(e, intervalApersonData, idxPartner) {
-    var returnedData = JSON.parse(e.data)
+    var returnedData = JSON.parse(e.data);
     console.log('Return Loadperson', JSON.stringify(returnedData));
     // savedPerson = JSON.parse(e.data);
-    savedPerson.readName = returnedData.readPerson
-    savedPerson.arrayRelated = returnedData.arrayRelated
-    savedPerson.personIndex = returnedData.personIndex
+    savedPerson.readName = returnedData.readPerson;
+    savedPerson.linkedListId = returnedData.linkedListId;
+    linkedListText.value = "Unlink from List " + savedPerson.linkedListId;
+    if (savedPerson.linkedListId > 0) {
+      linkedListIdx.value = userData.userLists.findIndex((item) => item.TroveListId === returnedData.linkedListId.toString());
+      if (linkedListIdx.value > -1) {
+        linkedListText.value += " | " + userData.userLists[linkedListIdx.value].TroveListName;
+      } else {
+        linkedListText.value += " | No Name";
+      }
+    }
+    savedPerson.arrayRelated = returnedData.arrayRelated;
+    savedPerson.personIndex = returnedData.personIndex;
     savedPerson.action = "LOAD";
-    console.log('Return Loadperson', savedPerson);
+    console.log('Return Savedperson', JSON.stringify(savedPerson));
     setPersonActions('');
-    updatePerson.chgName = savedPerson.readName
+    updatePerson.chgName = savedPerson.readName;
+    updatePerson.chgLinkedListId = savedPerson.linkedListId;
     updatePerson.chgRelated = [];
     if (savedPerson.hasOwnProperty('arrayRelated')) {
       updatePerson.chgRelated = JSON.parse(JSON.stringify(savedPerson.arrayRelated));
-      partners.value = []
+      partners.value = [];
       for (var relation of updatePerson.chgRelated) {
         // Need this for relation hyper link
-        relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson)
+        relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson);
         if ((idxPartner == -1) && (relation.relatedType == 'ChildWith')) {
           //Get partner details to link new ChildOf relations for current displayed person
           partners.value.push({
@@ -140,33 +165,33 @@
               personIndex: relation.relatedIdxPerson,
               readName: relation.relatedPerson,
               arrayRelated: []
-            })
-        }
-      }
-    }
+            });
+        };
+      };
+    };
     sourceLoadPerson.close();
     clearInterval(intervalApersonData);
-    loadingPerson.value = false
-    showPersonDetails.value = true
-    showEditPersonName.value = false
-    setPersonNameActions ('')
+    loadingPerson.value = false;
+    showPersonDetails.value = true;
+    showEditPersonName.value = false;
+    setPersonNameActions ('');
     // Load partner details
-    console.log ('Load Person Partners', partners.value)
+    console.log ('Load Person Partners', partners.value);
     for (var idx = 0; idx < partners.value.length; ++idx) {
-      loadPerson(partners.value[idx].personIndex, idx)
-    }
+      loadPerson(partners.value[idx].personIndex, idx);
+    };
   }
 //
   function handleLoadPartnerMessage(e, intervalApersonData, idxPartner) {
-    var returnedData = JSON.parse(e.data)
+    var returnedData = JSON.parse(e.data);
     // console.log('Return Load Partner', JSON.stringify(returnedData));
-    partners.value[idxPartner].readName = returnedData.readPerson
-    partners.value[idxPartner].personIndex = returnedData.personIndex
+    partners.value[idxPartner].readName = returnedData.readPerson;
+    partners.value[idxPartner].personIndex = returnedData.personIndex;
     for (var relation of returnedData.arrayRelated) {
       // Need this for relation hyper link
-      relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson)
+      relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson);
     }
-    partners.value[idxPartner].arrayRelated = returnedData.arrayRelated
+    partners.value[idxPartner].arrayRelated = returnedData.arrayRelated;
     console.log('Return Load Partner', JSON.stringify(partners.value[idxPartner]));
     sourceLoadPerson.close();
     clearInterval(intervalApersonData);
@@ -194,10 +219,10 @@
       if (idxPartner > -1) {
         sourceLoadPerson.addEventListener("LoadPerson", (e) => handleLoadPartnerMessage(e, intervalLoadPerson, idxPartner), false);
       } else {
-        loadingPerson.value = true
-        loadingPersonText.value = "Loading Person Details"
-        showPersonDetails.value = false
-        showEditPersonName.value = false
+        loadingPerson.value = true;
+        loadingPersonText.value = "Loading Person Details";
+        showPersonDetails.value = false;
+        showEditPersonName.value = false;
         sourceLoadPerson.addEventListener("LoadPerson", (e) => handleLoadPersonMessage(e, intervalLoadPerson, idxPartner), false);
       }
       // Close if still open when window closed
@@ -209,7 +234,7 @@
       // });
     } else {
       errorsStore.arrayErrors.push({msg : `Your browser doesn't support SSE`, param : ''});
-      console.log("Your browser doesn't support SSE")
+      console.log("Your browser doesn't support SSE");
     }
   }
   //
@@ -221,8 +246,12 @@
     savedPerson.action = 'ADD';
     savedPerson.personIndex = -1;
     savedPerson.readName = "";
+    savedPerson.linkedListId = 0;
+    linkListText.value = "Link to a List";
+    linkedListText.value = "";
     savedPerson.arrayRelated = [];
     updatePerson.chgName = "";
+    updatePerson.chgLinkedListId = 0;
     updatePerson.chgRelated = [];
     loadingPerson.value = false;
     showPersonDetails.value = false;
@@ -240,14 +269,14 @@
   }
     // On clicking the check edit button
   function checkPersonNameClick() {
-    var errorTip = ''
+    var errorTip = '';
     // Check Non-Blank
     if (updatePerson.chgName.length < 1) {
       errorTip =  'Is Blank';
     } else{
       errorTip = useCheckName (updatePerson.chgName);
       if (errorTip.length > 0) {
-        valid = false
+        valid = false;
       }
     }
     // 
@@ -266,15 +295,15 @@
     }
     //
     if (errorTip.length == 0) {
-      notifyEditError.value = 'inherit'
-      popoverForMetadata.value = popoverPersonMetadata
-      showEditPersonName.value = false
-      showPersonDetails.value = true
+      notifyEditError.value = 'inherit';
+      popoverForMetadata.value = popoverPersonMetadata;
+      showEditPersonName.value = false;
+      showPersonDetails.value = true;
       setPersonNameActions("restore");
       setPersonActions ("chg");
     }	else {
-      notifyEditError.value = 'red'
-      popoverForMetadata.value = errorTip
+      notifyEditError.value = 'red';
+      popoverForMetadata.value = errorTip;
     }
   }
   //
@@ -285,16 +314,34 @@
   // //
   function delPerson (deletePerson, emptyPerson) {
     deletePerson.action = 'DEL';
-    emptyPerson.chgName = []
-    emptyPerson.chgRelated = []
+    emptyPerson.chgName = [];
+    emptyPerson.chgRelated = [];
     saveData (deletePerson, emptyPerson, true);
-    initScreen ()
+    initScreen ();
+  }
+  //
+  function linkListToPerson (linkList) {
+    linkListText.value = "Link to List " + linkList;
+    updatePerson.chgLinkedListId = Number(linkList.split("|")[0].trim());
+    console.log ('Link List ', updatePerson.chgLinkedListId, linkList);
+    showModalLists.value = false;
+    setPersonActions ("chg");
+    setPersonNameActions ('relatives restore');
+    savedPerson.action = 'CHG';
+  }
+  //
+  function unlinkListToPerson () {
+    updatePerson.chgLinkedListId = 0;
+    console.log ('UnLink List ', updatePerson.chgLinkedListId);
+    setPersonActions ("chg");
+    setPersonNameActions ('relatives restore');
+    savedPerson.action = 'CHG';
   }
   //
   function addRelatedPerson (relatedPerson) {
     console.log ('Add Relative ', JSON.stringify(relatedPerson));
-    showModalRelative.value = false
-    updatePerson.chgRelated.push(relatedPerson)
+    showModalRelative.value = false;
+    updatePerson.chgRelated.push(relatedPerson);
     // If partners
     if (partners.value.length > 0) {
     // If relation type is ChildOf - check Partner details and ask to link
@@ -303,13 +350,13 @@
         var childWithPartner = -1
         for (var idx = 0; idx < partners.value.length; ++idx) {
           if (relatedPerson.relatedPerson == partners.value[idx].readName) {
-            childWithPartner = idx
-            break
+            childWithPartner = idx;
+            break;
           }
         }
         if (childWithPartner == -1) {
-          console.log ('UserPersonListView addRelatedPerson No Partner')
-          showModalPartner.value = true
+          console.log ('UserPersonListView addRelatedPerson No Partner');
+          showModalPartner.value = true;
         }
       }
     }
@@ -319,10 +366,10 @@
   }
   //
   function addToRelatedPartner (idxOtherParent) {
-    console.log ('UserPersonListView addToRelatedPartner ', idxOtherParent, partners.value[idxOtherParent])
-    partners.value[idxOtherParent].action = 'CHG'
-    partners.value[idxOtherParent].arrayRelated.push(updatePerson.chgRelated[updatePerson.chgRelated.length - 1])
-    showModalPartner.value = false
+    console.log ('UserPersonListView addToRelatedPartner ', idxOtherParent, partners.value[idxOtherParent]);
+    partners.value[idxOtherParent].action = 'CHG';
+    partners.value[idxOtherParent].arrayRelated.push(updatePerson.chgRelated[updatePerson.chgRelated.length - 1]);
+    showModalPartner.value = false;
   }
   //
   function delRelativeClick(idxRelation) {
@@ -349,9 +396,9 @@
       updatePerson.chgRelated[idxRelation].relatedAction = 'DEL';
       if (idxPartner > -1) {
         if (partners.value[idxPartner].arrayRelated[idxPartnerRelation].action === 'ADD') {
-          partners.value[idxPartner].arrayRelated.splice(idxPartnerRelation,1)
+          partners.value[idxPartner].arrayRelated.splice(idxPartnerRelation,1);
         } else {
-          partners.value[idxPartner].arrayRelated[idxPartnerRelation].action = 'DEL'
+          partners.value[idxPartner].arrayRelated[idxPartnerRelation].action = 'DEL';
         }
       }
     }
@@ -359,14 +406,14 @@
     setPersonActions ("chg");
     savedPerson.action = 'CHG';    
     if (idxPartner > -1) {
-      partners.value[idxPartner].action = 'CHG'
+      partners.value[idxPartner].action = 'CHG';
     }
   }
   //
   function chgPerson (preChgDetails, chgDetails, firstCall) {
     // Could be ADD or CHG
-    console.log ('chgPerson Changed ', JSON.stringify(chgDetails));
     console.log('chgPerson Pre-Change ', JSON.stringify(preChgDetails));
+    console.log ('chgPerson Changed ', JSON.stringify(chgDetails));
     //
     if ((firstCall) && (partners.value.length > 0)) {
       // Check Partners Array for any changes
@@ -394,7 +441,7 @@
             clnRelated.push(chgDetails.chgRelated[i]);
           }
         }
-        if ((clnRelated.length == 0) && (chgDetails.chgName == preChgDetails.readName)) {
+        if ((clnRelated.length == 0) && (chgDetails.chgName == preChgDetails.readName) && (chgDetails.chgLinkedListId == preChgDetails.linkListId)) {
           // Nothing Changed
           return;
         }
@@ -415,7 +462,7 @@
     console.log("saveData action " + currentDetails.action);
     var updMetaData = {'oldPersonData' : currentDetails,
                       'updPersonData' : newDetails
-                      }
+                      };
     console.log ('Sent to Server', JSON.stringify(updMetaData));
     // $.post( "/updUserMetaData/updateMetaData", updMetaData);
     // console.log (updatedData);
@@ -432,7 +479,7 @@
             body: JSON.stringify(updMetaData)
           };
     // console.log (options);
-    useDoFetch ('UserPersonListView/saveData', url, options)
+    useDoFetch ('UserPersonListView/saveData', url, options);
   }
   // Initialise Screen
   function initScreen () {
@@ -443,14 +490,18 @@
     savedPerson.action = "";
     savedPerson.personIndex = -1;
     savedPerson.readName = "";
+    savedPerson.linkedListId = 0;
+    linkListText.value = "Link to a List";
+    linkedListText.value = "";
     savedPerson.arrayRelated = [];
     updatePerson.chgName = "";
+    updatePerson.chgLinkedListId = 0;
     updatePerson.chgRelated = [];
     partners.value = [];;
   }
   // Initaliase
-  initScreen ()
-  console.log ("UserPersonListView - persons ", userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata)
+  initScreen ();
+  console.log ("UserPersonListView - persons ", userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata);
 //
 </script>
 
@@ -461,7 +512,7 @@
     <div class="container">
       <div class="row">
         <div class="card col-6 pre-scrollable" style="max-height: 75vh" >
-          <div class="card border-0" >
+          <div class="card border-0 overflow-auto" >
             <a
               v-for="(metadataValue, idxValue) in userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata"
               @click="loadPerson (idxValue, -1)"
@@ -478,9 +529,14 @@
               <div class="row"><p>{{ loadingPersonText }}</p></div>
             </div>
             <div v-if="showEditPersonName" class="metadataPopover" :style="{ 'background-color': notifyEditError }">
-              <input v-model="updatePerson.chgName" size="64">
-              <span class="tooltiptext">{{ popoverForMetadata }}</span>
-              </input>
+              <form>
+                <div class="form-group">
+                  <label for="inputName">Enter a Name</label>
+                  <input v-model="updatePerson.chgName" id="inputName">
+                  <span class="tooltiptext">{{ popoverForMetadata }}</span>
+                  </input>
+                </div>
+              </form>
             </div>
             <div v-else class="font-weight-bold">
               {{ updatePerson.chgName }}
@@ -489,6 +545,14 @@
               <div v-show="showRestorePersonAction" class="col">
                 <div class="card">
                   <button @click="initScreen()" class="btn btn-primary">Clear Details</button>
+                </div>
+              </div>
+              <div v-show="showLinkPersonAction" class="col">
+                <div v-if="savedPerson.linkedListId==0" class="card">
+                  <button @click="showModalLists=true" class="btn btn-primary" :class="{disabled: savedPerson.action == 'CHG'}">{{ linkListText }}</button>
+                </div>
+                <div v-else class="card">
+                  <button @click="unlinkListToPerson" class="btn btn-primary" :class="{disabled: savedPerson.action == 'CHG'}">{{ linkedListText }}</button>
                 </div>
               </div>
               <div v-show="showSearchPerson" class="col">
@@ -539,13 +603,30 @@
             </div>
           </div>
           <div v-show="showPersonDetails">
+            <div v-if="(linkedListIdx > -1)"
+              class="card-body">
+              Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"  class="active link-primary">
+                  {{ userData.userLists[linkedListIdx].TroveListId + ' ' + userData.userLists[linkedListIdx].TroveListName }}
+                </router-link>
+              <br><span>List Articles </span>
+              <ArticleUrls
+                :inline="true"
+                :articleListArray="userData.userLists[linkedListIdx].TroveListArticles" 
+                :troveListId="userData.userLists[linkedListIdx].TroveListId">
+              </ArticleUrls>
+            </div>
+            <div v-else class="card-body">No Linked List</div>
             <div v-if="(savedPerson.personIndex > -1) && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray.length > 0)"
               class="card-body">
-              <span>Linked Articles</span>
-              <ArticleUrls :inline="true" :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray"></ArticleUrls>
+              <span>Linked Articles </span>
+              <ArticleUrls
+                :inline="true"
+                :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray"
+                :troveListId="0">
+              </ArticleUrls>
             </div>
             <div v-else class="card-body">No Linked Articles</div>
-            <div v-if="updatePerson.chgRelated.length > 0" class="card-body">
+            <div v-if="updatePerson.chgRelated.length > 0" class="card-body overflow-auto">
                 <RelatedTable
                   :personName = "updatePerson.chgName"
                   :arrayRelated="updatePerson.chgRelated"
@@ -564,6 +645,14 @@
                 </div>
             </div>
             <div v-else class="card-body">No Related People</div>
+            <Teleport to="#positionModals">
+              <ModalLists
+                v-if="showModalLists"
+                @close="showModalLists=false"
+                @link-list="(linkList) => linkListToPerson (linkList)"
+                :listPerson="updatePerson.chgName"
+              />
+            </Teleport>
             <Teleport to="#positionModals">
               <ModalRelative
                 v-if="showModalRelative"

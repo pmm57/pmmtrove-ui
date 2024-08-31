@@ -227,11 +227,12 @@ const errorsStore = useErrorsArrayStore()
           disableUpdate.value = false;
           editMetadata.value = -1  ;
           popoverForMetadata.value = savedPopover;
-          // New Metadata Items are addedd from Sever
+          // New Metadata Items are added from Sever
         }
         break;
       case 'Del':
         userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index);
+        disableUpdate.value = false;
         break;
       case 'Edit':
         if (index) {
@@ -355,7 +356,7 @@ function editPersonMetadata (stringPerson) {
   //
   loadArticle (true)
   //
-  if (userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText.length > 0) {
+  if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
     showTroveText.value = false;
     showSummaryText.value = true;
   }

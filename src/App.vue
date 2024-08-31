@@ -1,24 +1,28 @@
 <script setup>
   import { watch } from 'vue'
+  import { useRouter } from 'vue-router';
+  const router = useRouter();
   import NavBar from '@/components/NavBar.vue'
   import { useErrorsArrayStore } from '@/stores/errorsarray'
   const errorsStore = useErrorsArrayStore()
   import { useUserDataStore } from '@/stores/userdata'
   const userData = useUserDataStore()
   import { useNavBarStore } from '@/stores/navbar'
-  const navBarStore = useNavBarStore()
+  const navStore = useNavBarStore()
   var eventSourceUserCache = null
 //
 // This code handles the following SSE events from the server
 //    sseUserLists
-//    sseUserListsCounts
+//    sseRemoveUserList
 //    sseUserListsArticles
+//    sseUserListsCounts
 //    sseMetaData
 //    sseUserListWithArticles
 //    sseArticlePossibleDupArticle
 //    sseReloadViewedArticle
 //    sseUpdateListsArticleStatus
 //    sseUpdateListStatusCount
+//    sseServerError
 //
   function handleMessage(e) {
       var sseRetrieve = JSON.parse(e.data);
@@ -37,31 +41,53 @@
             userData.userLists = sseRetrieve.cacheUserLists
             break
           case 'sseRemoveUserList':
-            // console.log(sseRetrieve.event);
-            // console.log (JSON.stringify(sseRetrieve))
+            // console.log (JSON.stringify(sseRetrieve)) 
             userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
             userData.userLists = sseRetrieve.cacheUserLists
+            // console.log('Remove List :', sseRetrieve.removedListId, navStore.listId);
+            // Handle where this list is being viewed
+            if (sseRetrieve.removedListId == navStore.listId) {              
+              navStore.listId = 0;
+              navStore.listHref = "";
+              navStore.listTabTitle = "List";
+              router.push({name: 'userTroveLists'});
+            }
             break
           case 'sseUserListsArticles':
             // console.log(sseRetrieve.event);
-            // console.log (JSON.stringify(sseRetrieve))
+            // console.log ('sseUserListsArticles ', JSON.stringify(sseRetrieve))
             userData.userListsReady = true
+            if (sseRetrieve.updatedListIndex == -1) {
+              userData.userLists = sseRetrieve.cacheUserLists
+            } else {
+              userData.userLists.splice(sseRetrieve.updatedListIndex, 1, sseRetrieve.cacheUserLists) // Triggers Reactivity
+              userData.userLists[sseRetrieve.updatedListIndex].TroveListArticleMinedStatusCounts = sseRetrieve.cacheUserLists.TroveListArticleMinedStatusCounts;
+            }
             break
           case 'sseUserListsCounts':
             // console.log(sseRetrieve.event);
-            userData.userLists = sseRetrieve.cacheUserLists
+            // userData.userLists = sseRetrieve.cacheUserLists
+            // userData.userLists[listIdx].TroveListArticleMinedStatusCounts = sseRetrieve.cacheTroveListArticleMinedStatusCounts
+            // Update each lists status counts
+            for (let index = 0; index < userData.userLists.length; index++) {
+              userData.userLists[index].TroveListArticleMinedStatusCounts = sseRetrieve.cacheUserLists[index].TroveListArticleMinedStatusCounts;
+            }
             break
           case 'sseMetaData':
             // console.log (JSON.stringify(sseRetrieve))
             userData.metadataValueTotal = sseRetrieve.cacheMetadataValueTotal
             userData.metadataTypeByMetadata = sseRetrieve.cacheMetadataTypeByMetadata
-            navBarStore.disableMetadataList = false
-            navBarStore.disablePersonList = false
+            navStore.disableMetadataList = false
+            navStore.disablePersonList = false
             break
           case 'sseUserListWithArticles':
             // console.log (JSON.stringify(sseRetrieve))
+            // Clear Edit Article
+            navStore.articleId = 0
+            navStore.articleHref = "";
+            navStore.articleTabTitle = "";
             listIdx = userData.userLists.findIndex((item) => item.TroveListId === sseRetrieve.listId);
-            userData.userLists[listIdx] = sseRetrieve.cacheUserListWithArticles
+            userData.userLists.splice(listIdx, 1, sseRetrieve.cacheUserListWithArticles) // Triggers Reactivity
             // console.log (JSON.stringify(userData.userLists[listIdx].TroveListArticles))
             userData.viewedArticles = sseRetrieve.cacheViewedArticles
             // Collect ViewedList Article Metadata
@@ -83,20 +109,24 @@
             break
           case 'sseArticlePossibleDupArticle':
             articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
-            console.log ('sseArticlePossibleDupArticle', JSON.stringify(sseRetrieve))
+            // console.log ('sseArticlePossibleDupArticle', JSON.stringify(sseRetrieve))
             userData.viewedArticles[articleIdx].ViewedArticlePossibleDupArticle = sseRetrieve.cacheViewedArticlePossibleDupArticle
             break
           case 'sseReloadViewedArticle':
-            // console.log (JSON.stringify(sseRetrieve)) viewedListId
+            // console.log ("sseReloadViewedArticle ", sseRetrieve)
             articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
-            userData.viewedArticles[articleIdx] = sseRetrieve.cacheViewedArticle
+            if (articleIdx < 0) { // New Viewed Article
+              articleIdx = userData.viewedArticles.length;
+            }
+            userData.viewedArticles.splice(articleIdx, 1, sseRetrieve.cacheViewedArticle) // Triggers Reactivity
+            // console.log ("sseReloadViewedArticle userData", articleIdx, userData.viewedArticles[articleIdx])
             // Collect ViewedArticle Metadata
             var arrayViewedArticleMetadata = []
-            userData.viewedArticles[articleIdx].ViewedArticleMetadata.forEach ((metadata) => {
+            sseRetrieve.cacheViewedArticle.ViewedArticleMetadata.forEach ((metadata) => {
               if (metadata[2] == 'Sel'){
                 arrayViewedArticleMetadata.push({MetadataType: metadata[0],
                                                 MetadataValue: metadata[1],
-                                                troveArticleId: Number(sseRetrieve.ViewedArticleId),
+                                                troveArticleId: Number(sseRetrieve.viewedArticleId),
                                                 troveListId: Number(sseRetrieve.viewedListId),
                                                 idxViewedArticle: articleIdx})
               }
@@ -106,8 +136,10 @@
           case 'sseUpdateListsArticleStatus':
             listIdx = userData.userLists.findIndex((item) => item.TroveListId === sseRetrieve.listId);
             articleIdx = userData.userLists[listIdx].TroveListArticles.findIndex((item) => item.TroveListArticleId === sseRetrieve.articleId);
-            userData.userLists[listIdx].TroveListArticles[articleIdx].TroveListArticleMinedStatus = sseRetrieve.cacheListsArticleStatus
-            userData.userLists[listIdx].TroveListArticles[articleIdx].TroveListArticleMinedStatustext = sseRetrieve.cacheListsArticleStatusText
+            const aTroveListArticles = userData.userLists[listIdx].TroveListArticles[articleIdx]
+            aTroveListArticles.TroveListArticleMinedStatus = sseRetrieve.cacheListsArticleStatus
+            aTroveListArticles.TroveListArticleMinedStatustext = sseRetrieve.cacheListsArticleStatusText
+            userData.userLists[listIdx].TroveListArticles.splice(articleIdx, 1, aTroveListArticles) // Triggers Reactivity
             // console.log ('sseUpdateListsArticleStatus', listIdx, articleIdx, JSON.stringify(sseRetrieve))
             break
           case 'sseUpdateListStatusCount':
@@ -115,6 +147,9 @@
             listIdx = userData.userLists.findIndex((item) => item.TroveListId === sseRetrieve.listId);
             userData.userLists[listIdx].TroveListItemCount = sseRetrieve.cacheTroveListItemCount
             userData.userLists[listIdx].TroveListArticleMinedStatusCounts = sseRetrieve.cacheTroveListArticleMinedStatusCounts
+            break
+          case 'sseServerError':
+            errorsStore.arrayErrors.push({msg : sseRetrieve.errorResponse.statusText, param : sseRetrieve.errorResponse});
             break
           default:
             console.log('App.vue SSE tiggered unknown action: ', sseRetrieve.event);
@@ -124,13 +159,13 @@
   // Whenever viewedArticles is updated update metadataTypeByMetadata to indicate Article link is enabled
   function updMetadataTypeArticleLinks (arrayViewedArticleMetadata) {
     // Wait until Metadata has been loaded
-    console.log('App.vue updMetadataTypeArticleLinks: ', userData.metadataTypeByMetadata.length, arrayViewedArticleMetadata);
+    // console.log('App.vue updMetadataTypeArticleLinks: ', userData.metadataTypeByMetadata.length, arrayViewedArticleMetadata);
     if (userData.metadataTypeByMetadata.length == 0) {
       setTimeout(updMetadataTypeArticleLinks, 3000, arrayViewedArticleMetadata);  
     }
     // Sort into order
     arrayViewedArticleMetadata.sort(sortMetadataTypeAndValue)
-    console.log('App.vue arrayViewedArticleMetadata: ', JSON.stringify(arrayViewedArticleMetadata));
+    // console.log('App.vue arrayViewedArticleMetadata: ', JSON.stringify(arrayViewedArticleMetadata));
     // Merge against metadataTypeByMetadata and set Article Link
     var idxType = 0
     var idxValue = 0
@@ -155,7 +190,7 @@
         console.log ('NOTIFY updMetadataType Missing MetadataValue ', el.MetadataValue)
         break
       }
-      console.log('App.vue updMetadataType Match Value: ', el.MetadataValue, tempArray[idxValue].metadataValue);
+      // console.log('App.vue updMetadataType Match Value: ', el.MetadataValue, tempArray[idxValue].metadataValue);
       // Matched to MetadataType and MetadataValue now match List and Article
       tempArray = userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray
       // console.log ('updMetadataType - articleListArray ', JSON.stringify(tempArray))
@@ -205,7 +240,7 @@
           var streamId = 'userSSE' + userData.troveUserId
           var streamName = 'https://localhost:3000/streamTrove/userSSE/' + streamId;
           eventSourceUserCache = new EventSource(streamName, { withCredentials: true });
-          console.log('Appvue start ' + streamName);
+          // console.log('Appvue start ' + streamName);
           eventSourceUserCache.addEventListener(streamId, (e) => handleMessage(e), false);
           eventSourceUserCache.addEventListener('error', (e) => handleError(e), false);
       } else {

@@ -11,9 +11,15 @@
   showMetadataType (-1)
   //
   function showMetadataType (idxType) {
-    for (var i=0; i<userData.metadataTypeByMetadata.length; ++i) {
-      flagMetadataType.value[i] = false
+    console.log('showMetadataType ', idxType, flagMetadataType.value, flagMetadataType.value[idxType])
+    if ((idxType > -1) && (flagMetadataType.value[idxType])) {
+      flagMetadataType.value[idxType] = false;
+      return;
     }
+    for (var i=0; i<userData.metadataTypeByMetadata.length; ++i) {
+      flagMetadataType.value[i] = false;
+    }
+    console.log('showMetadataType ', idxType, flagMetadataType.value)
     if (idxType > -1) {
       flagMetadataType.value[idxType] = true
     // console.log ("showMetadataType ", flagMetadataType)
@@ -87,22 +93,26 @@
     <br> 
     <p>This is a table of the {{ userData.metadataTypeByMetadata.length }} Metadata Types that {{ userData.metadataValueTotal }} Metadata Items classify Articles
     </p>
-    <div v-for="(type, idxType) in userData.metadataTypeByMetadata" :key="type.metadataType" class="card h-50" >
-      <div class="card-header">
+    <div v-for="(type, idxType) in userData.metadataTypeByMetadata" :key="type.metadataType" class="card" >
+      <div class="card-header px-0 py-0">
         <button class="btn btn-link" @click="showMetadataType(idxType)">{{ type.metadataType }} [{{ type.arrayMetadata.length }}]
         </button>
       </div>
       <div v-show="flagMetadataType[idxType]">
-        <div class="card-body h-50" v-for="(value, idxValue) in type.arrayMetadata" :key="value.metadataValue">
-          <div class="row border-top" >
-            <div class="col-sm-3">
-              <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{ value.articleListArray.length }}]</span>
-              <button v-else class="btn btn-link" @click="showMetadataValue (idxType, idxValue)">{{ value.metadataValue }} [{{ value.articleListArray.length }}]</button>
-            </div>
-            <div v-show="flagMetadataValue[idxValue]" class="col-sm-6">
-              <ArticleUrls :inline="true" :articleListArray="value.articleListArray"></ArticleUrls>
-            </div>  
+        <div class="card-body px-0 py-0" v-for="(value, idxValue) in type.arrayMetadata" :key="value.metadataValue">
+          <div>
+            <span>&nbsp;&nbsp;&nbsp;-&nbsp;</span>
+            <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{ value.articleListArray.length }}]</span>
+            <button v-else class="btn btn-link px-0 py-0" @click="showMetadataValue (idxType, idxValue)">{{ value.metadataValue }} [{{ value.articleListArray.length }}]</button>
           </div>
+          <div v-show="flagMetadataValue[idxValue]" class="card-body ml-3 px-0 py-0">
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;</span>
+            <ArticleUrls
+              :inline="true"
+              :articleListArray="value.articleListArray"
+              :troveListId="0">
+            </ArticleUrls>
+          </div>  
         </div>
       </div>
     </div>

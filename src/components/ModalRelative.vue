@@ -1,45 +1,44 @@
 <script setup>
-import { reactive, ref } from 'vue'
-import { useUserDataStore } from '@/stores/userdata'
-const userData = useUserDataStore()
-const props = defineProps(['savedPerson', 'updatedPerson'])
-const emit = defineEmits(['add-relative', 'close'])
+import { reactive, ref } from 'vue';
+import { useUserDataStore } from '@/stores/userdata';
+const userData = useUserDataStore();
+const props = defineProps(['savedPerson', 'updatedPerson']);
+const emit = defineEmits(['add-relative', 'close']);
 //
-var disableAdd = ref(true)
+var disableAdd = ref(true);
 const relatedPerson = reactive ({
     relatedType : '',
     relatedPerson : '',
     relatedAction : 'ADD',
     relatedIdxPerson: -1
-})
-var tempArray = props.savedPerson.readName.split(",");
-relatedPerson.relatedPerson = props.savedPerson.readName.split(",")[0]
-console.log('ModalRelative:', props.savedPerson, props.updatedPerson)
+});
+relatedPerson.relatedPerson = props.savedPerson.readName.split(",")[0];
+console.log('ModalRelative:', props.savedPerson, props.updatedPerson);
 //
-const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person")
-var arrayRelationDropdown = []
+const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
+var arrayRelationDropdown = [];
 for (const el of userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata) {
     if (el.metadataValue != props.savedPerson.readName) {
         if (props.updatedPerson.chgRelated.findIndex((x) => x.relatedPerson == el.metadataValue) < 0) {
             // console.log ('ModalRelative :', el.metadataValue)
-            arrayRelationDropdown.push(el.metadataValue)
+            arrayRelationDropdown.push(el.metadataValue);
         }
     }
 }
 // console.log('ModalRelative:', arrayRelationDropdown.value)
 //
 function validateRelation () {
-    disableAdd.value = true
+    disableAdd.value = true;
     // Check we have some info
     if ((relatedPerson.relatedPerson.length == 0) || (relatedPerson.relatedType.length == 0)) {
-        return
+        return;
     }
     // Check it is one of the know other people
     if (arrayRelationDropdown.findIndex((x) => x == relatedPerson.relatedPerson) > -1) {
-        disableAdd.value = false
+        disableAdd.value = false;
     }
-    relatedPerson.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relatedPerson.relatedPerson)
-    console.log ('ModalRelative SelectedPerson', disableAdd, arrayRelationDropdown.findIndex((x) => x == relatedPerson.relatedPerson), JSON.stringify(relatedPerson))
+    relatedPerson.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relatedPerson.relatedPerson);
+    console.log ('ModalRelative SelectedPerson', disableAdd, arrayRelationDropdown.findIndex((x) => x == relatedPerson.relatedPerson), JSON.stringify(relatedPerson));
 }
 //
 </script>
