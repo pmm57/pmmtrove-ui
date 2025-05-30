@@ -282,6 +282,7 @@ watch(
 //
 async function verifyServerUp() {
   const url = import.meta.env.VITE_SERVER_URL + "/check";
+  console.log(`App.vue verifyServerUp URL:%s`, url);
   const options = {
     method: "get",
     mode: "cors",

@@ -42,7 +42,7 @@ function showMetadataValue(idxType, idxValue) {
 //
 async function getArticleLinks(idxType, idxMetadataValue) {
   errorsStore.arrayErrors = [];
-  const url = 'https://localhost:3000/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue;
+  const url = import.meta.env.VITE_SERVER_URL + '/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue;
   console.log('getArticleLinks -', url)
   const options = {
     method: "get",
@@ -105,7 +105,7 @@ async function getArticleLinks(idxType, idxMetadataValue) {
           <div>
             <span>&nbsp;&nbsp;&nbsp;-&nbsp;</span>
             <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{ value.articleListArray.length
-              }}]</span>
+            }}]</span>
             <button v-else class="btn btn-link px-0 py-0" @click="showMetadataValue(idxType, idxValue)">{{
               value.metadataValue }} [{{ value.articleListArray.length }}]</button>
           </div>

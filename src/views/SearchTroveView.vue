@@ -616,7 +616,7 @@ function waitSearch() {
   }, 500);
   if (!!window.EventSource) {
     var searchName = userData.troveDetails.troveUserId + ':searchNbr' + newSearch.searchId;
-    var streamName = 'https://localhost:3000/streamTrove/loadSearch/' + searchName;
+    var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/loadSearch/' + searchName;
     // console.log(streamName);
     var source = new EventSource(streamName, { withCredentials: true });
     // Close if still open when window closed

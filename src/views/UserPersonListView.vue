@@ -212,7 +212,7 @@ function loadPerson(idxValue, idxPartner) {
     loadingPersonText.value += ' .'
   }, 500);
   if (!!window.EventSource) {
-    var streamName = 'https://localhost:3000/streamTrove/LoadPerson/Person:' + idxValue;
+    var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/LoadPerson/Person:' + idxValue;
     // console.log(streamName);
     sourceLoadPerson = new EventSource(streamName, { withCredentials: true });
     sourceLoadPerson.addEventListener('error', (e) => handleError(e), false);
