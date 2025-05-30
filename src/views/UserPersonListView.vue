@@ -468,7 +468,7 @@ function saveData(currentDetails, newDetails) {
   console.log('Sent to Server', JSON.stringify(updMetaData));
   // $.post( "/updUserMetaData/updateMetaData", updMetaData);
   // console.log (updatedData);
-  const url = "https://localhost:3000/updUserMetaData/updateMetaData";
+  const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateMetaData";
   const options = {
     method: "post",
     mode: "cors",

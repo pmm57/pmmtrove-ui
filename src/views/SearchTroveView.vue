@@ -107,7 +107,7 @@ function postIgnoredArticles() {
   // console.log("clicked Save Ignored action " + JSON.stringify(items));
   const ignored = { ignoreArticles: items };
   //
-  const url = "https://localhost:3000/searchTrove/updateIgnored";
+  const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
   const options = {
     method: "post",
     mode: "cors",
@@ -139,7 +139,7 @@ function postUnignoreArticles() {
   // console.log("clicked Save Ignored action " + JSON.stringify(items));
   const unignored = { unignoreArticles: items };
   //
-  const url = "https://localhost:3000/searchTrove/updateUnignored";
+  const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateUnignored";
   const options = {
     method: "post",
     mode: "cors",
@@ -674,7 +674,7 @@ function postSearch(blnNew) {
     newSearch.nextURL = searchData.nextURL;
   }
   console.log('Post this Search', JSON.stringify(newSearch));
-  const url = "https://localhost:3000/searchTrove";
+  const url = import.meta.env.VITE_SERVER_URL + "/searchTrove";
   const options = {
     method: "post",
     mode: "cors",

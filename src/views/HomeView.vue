@@ -55,7 +55,7 @@ watch(
 )
 async function verifyUser() {
     errorsStore.arrayErrors = [];
-    const url = "https://localhost:3000/";
+    const url = import.meta.env.VITE_SERVER_URL + "/";
     console.log('Verify User-', inUserId)
     const options = {
         method: "post",

@@ -258,7 +258,7 @@ function handleError(e) {
 function setupUserSse() {
   if (!!window.EventSource) {
     var streamId = 'userSSE' + userData.troveDetails.troveUserId
-    var streamName = 'https://localhost:3000/streamTrove/userSSE/' + streamId;
+    var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
     eventSourceUserCache = new EventSource(streamName, { withCredentials: true });
     // console.log('Appvue start ' + streamName);
     eventSourceUserCache.addEventListener(streamId, (e) => handleMessage(e), false);
@@ -281,7 +281,7 @@ watch(
 // Verify that the server is available
 //
 async function verifyServerUp() {
-  const url = "https://localhost:3000/check";
+  const url = import.meta.env.VITE_SERVER_URL + "/check";
   const options = {
     method: "get",
     mode: "cors",
@@ -315,6 +315,7 @@ async function verifyServerUp() {
   }
 }
 //
+console.log(`Host URL:%s`, import.meta.env.VITE_SERVER_URL)
 verifyServerUp()
 </script>
 

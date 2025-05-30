@@ -107,7 +107,7 @@ async function doFetch(calledFrom, url, options) {
 // load of An Article - they will be SSE'd to App.vue
 //
 function loadArticle(firstLoad) {
-    const url = "https://localhost:3000/dispArticle/newspaper/" + props.articleId + "/"
+    const url = import.meta.env.VITE_SERVER_URL + "/dispArticle/newspaper/" + props.articleId + "/"
         + props.listId + "/" + !firstLoad;
     const options = {
         method: "get",
@@ -139,7 +139,7 @@ function saveData() {
         updatedData.summaryData = 'None';
     }
     // console.log (updatedData);
-    const url = "https://localhost:3000/saveDB/updateArticle";
+    const url = import.meta.env.VITE_SERVER_URL + "/saveDB/updateArticle";
     const options = {
         method: "post",
         mode: "cors",
