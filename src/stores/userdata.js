@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 export const useUserDataStore = defineStore('userData', () => {
   const arrayMinedStatus = ref([])
   const arrayMetadataTypes = ref([])
-  const troveUserId = ref('')
+  const troveDetails = ref('')
   const troveQueryTotal = ref(0)
   const troveQueryArticleTotal = ref(0)
   const userDuplicateListIds = ref([])
@@ -13,7 +13,6 @@ export const useUserDataStore = defineStore('userData', () => {
 // userLists = []; /
 // List element object definition
 // listItem = {};
-// listItem.TroveListUserId FROM TroveUserId  REMOVE
 // listItem.TroveListId
 // listItem.TroveListUpdatedText
 // listItem.TroveListUpdated
@@ -79,7 +78,7 @@ export const useUserDataStore = defineStore('userData', () => {
   const metadataTypeByMetadata = ref([])
   //
  function clearStore() {
-    troveUserId.value = ''
+    troveDetails.value = {}
     troveQueryTotal.value = 0
     troveQueryArticleTotal.value = 0
     userDuplicateListIds.value = []
@@ -92,7 +91,7 @@ export const useUserDataStore = defineStore('userData', () => {
   //
   return { arrayMinedStatus,
     arrayMetadataTypes,
-    troveUserId, 
+    troveDetails, 
     troveQueryTotal, 
     troveQueryArticleTotal, 
     userDuplicateListIds, 

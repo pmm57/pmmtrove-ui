@@ -1,69 +1,71 @@
 <script setup>
-  import StatusCount from '@/components/StatusCount.vue'
-  import { useUserDataStore } from '@/stores/userdata'
-  const userData = useUserDataStore()
-  //
-  function haveListLink (list) {
-    var haveLink = userData.userListsReady
-    if (list.TroveListItemCount == 0) haveLink = false;
-    if (userData.userDuplicateListIds.indexOf(Number(list.TroveListId)) > -1) haveLink = false; // Disable Link if it is the list holding duplicate articles
-    return haveLink
-  }
-  //
-  function statusBadge (status, count)  {
-    var classCount = 'badge ';
-    if (Number(count) == 0) {
-      classCount += 'text-bg-light';
-    } else {
-      switch (Number(status)) {
-        case 0:
-          classCount += 'text-bg-dark';
-          break;
-        case 1:
-          classCount += 'text-bg-secondary';
-          break;
-        case 2:
-          classCount += 'text-bg-warning';
-          break;
-        case 3:
-          classCount += 'text-bg-primary';
-          break;
-        case 4:
-          classCount += 'text-bg-info';
-          break;
-        case 5:
-          classCount += 'text-bg-success';
-          break;  
-        default:
-          classCount += 'text-bg-danger';
-          break;
-      }
+import StatusCount from '@/components/StatusCount.vue'
+import { useUserDataStore } from '@/stores/userdata'
+const userData = useUserDataStore()
+//
+function haveListLink(list) {
+  var haveLink = userData.userListsReady
+  if (list.TroveListLoadState != 'Cached') haveLink = false;
+  if (list.TroveListItemCount == 0) haveLink = false;
+  if (userData.userDuplicateListIds.indexOf(Number(list.TroveListId)) > -1) haveLink = false; // Disable Link if it is the list holding duplicate articles
+  return haveLink
+}
+//
+function statusBadge(status, count) {
+  var classCount = 'badge ';
+  if (Number(count) == 0) {
+    classCount += 'text-bg-light';
+  } else {
+    switch (Number(status)) {
+      case 0:
+        classCount += 'text-bg-dark';
+        break;
+      case 1:
+        classCount += 'text-bg-secondary';
+        break;
+      case 2:
+        classCount += 'text-bg-warning';
+        break;
+      case 3:
+        classCount += 'text-bg-primary';
+        break;
+      case 4:
+        classCount += 'text-bg-info';
+        break;
+      case 5:
+        classCount += 'text-bg-success';
+        break;
+      default:
+        classCount += 'text-bg-danger';
+        break;
     }
-    return classCount
   }
-  //
+  return classCount
+}
+//
 </script>
 <template>
   <div>
-    <h1>Trove Lists for User {{ userData.troveUserId }}
-      <!-- <%= troveDetails.troveUserId ? troveDetails.troveUserId : strLoading %> -->
+    <h1>Trove Lists for User {{ userData.troveDetails.troveUserId }}
     </h1>
-    <br> 
+    <br>
     <div class="card">
       <div class="card-body">
-        <p>This is a table of the {{ userData.troveQueryTotal }} lists currently stored in Your Lists in Trove that have {{ userData.troveQueryArticleTotal }} Articles linked
+        <p>This is a table of the {{ userData.troveQueryTotal }} lists currently stored in Your Lists in Trove that have
+          {{ userData.troveQueryArticleTotal }} Articles linked
         </p>
         <table class="table w-100">
           <tr>
             <th>List Name</th>
-            <th>Description</th> 
+            <th>Description</th>
             <th style="text-align:right">Trove List Id (Articles)</th>
             <th style="text-align:center">Article Status</th>
             <th style="text-align:center" class="text-nowrap">Link to Trove</th>
           </tr>
           <tr v-for="list in userData.userLists" :key="list.TroveListId" class="align-top">
             <td class="text-nowrap">
-              <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"  class="active link-primary">{{ list.TroveListName }}</router-link>
+              <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"
+                class="active link-primary">{{ list.TroveListName }}</router-link>
               <p v-else>
                 {{ list.TroveListName }}
               </p>
@@ -72,10 +74,11 @@
             <td style="text-align:right">{{ list.TroveListId }}({{ list.TroveListItemCount }})</td>
             <td style="text-align:center" class="text-nowrap">
               <template v-for="(count, index) in list.TroveListArticleMinedStatusCounts">
-                <span :class="statusBadge (index, count)">{{ count > 0 ? count :  '-'}}</span>
+                <span :class="statusBadge(index, count)">{{ count > 0 ? count : '-' }}</span>
               </template>
             </td>
-            <td style="text-align:center"><a :href="list.TroveListViewUrl" target='_blank' class="link-primary">TroveLink</a></td>
+            <td style="text-align:center"><a :href="list.TroveListViewUrl" target='_blank'
+                class="link-primary">TroveLink</a></td>
           </tr>
         </table>
       </div>
@@ -83,5 +86,4 @@
   </div>
 </template>
 
-<style>
-</style>
+<style></style>
