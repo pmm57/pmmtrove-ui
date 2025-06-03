@@ -11,6 +11,7 @@ import { useUserDataStore } from '@/stores/userdata';
 import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
 const userData = useUserDataStore();
+const props = defineProps(['person']);
 //
 let sourceLoadPerson = null;
 let loadingPerson = ref(false);
@@ -51,6 +52,8 @@ let updatePerson = reactive({
   chgRelated: []
 });
 //
+
+console.log('Passed Person: ', props);
 const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999';
 popoverForMetadata.value = popoverPersonMetadata;
@@ -322,7 +325,7 @@ function delPerson(deletePerson, emptyPerson) {
 //
 function linkListToPerson(linkList) {
   linkListText.value = "Link to List " + linkList;
-  updatePerson.chgLinkedListId = Number(linkList.split("|")[0].trim());
+  updatePerson.chgLinkedListId = parseInt(linkList.split("|")[0].trim());
   console.log('Link List ', updatePerson.chgLinkedListId, linkList);
   showModalLists.value = false;
   setPersonActions("chg");
@@ -496,7 +499,7 @@ function initScreen() {
   linkListText.value = "Link to a List";
   linkedListText.value = "";
   savedPerson.arrayRelated = [];
-  updatePerson.chgName = "";
+  updatePerson.chgName = "blank";
   updatePerson.chgLinkedListId = 0;
   updatePerson.chgRelated = [];
   partners.value = [];;
