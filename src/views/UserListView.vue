@@ -15,11 +15,11 @@ navStore.listHref = "/userListPage/" + props.listId;
 navStore.listTabTitle = "List " + props.listId;
 //
 var idxList = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
-// console.log ('UserListView.viewIndex ', props.listId, idxList)
+console.log('Linked Person ', userData.userLists[idxList].TroveListLinkedPerson)
 //
 function haveLink(article) {
   var haveLink = true;
-  console.log(`haveLink article.TroveListArticleViewedIdx:%s`, article.TroveListArticleViewedIdx)
+  // console.log(`ListView haveLink article.TroveListArticleViewedIdx:%s`, article.TroveListArticleViewedIdx)
   if (article.TroveListArticleViewedIdx === undefined || article.TroveListArticleViewedIdx < 0) haveLink = false;
   return haveLink;
 }
@@ -97,11 +97,24 @@ loadListArticles('true')
   <div class="card">
     <div class="card-body">
       <div class="card">
-        {{ userData.userLists[idxList].TroveListItemCount }} Linked Articles
+        - Linked Articles : {{ userData.userLists[idxList].TroveListItemCount }}
         <span v-if="userData.userLists[idxList].TroveListDescription.length > 1">
-          - Description - {{ userData.userLists[idxList].TroveListDescription }}
+          - Description : {{ userData.userLists[idxList].TroveListDescription }}
         </span>
-        - Updated {{ userData.userLists[idxList].TroveListUpdatedText }}
+        - Updated : {{ userData.userLists[idxList].TroveListUpdatedText }}
+        <span v-if="userData.userLists[idxList].TroveListLinkedPerson.length > 0">
+          - Linked Person :
+          <router-link
+            :to="'/userPersonList/' + userData.userLists[idxList].TroveListLinkedPerson.replaceAll(' ', '%20')"
+            class="link-primary">
+            {{ userData.userLists[idxList].TroveListLinkedPerson }}
+          </router-link>
+        </span>
+        <span v-else>
+          - Link a <RouterLink to="/userPersonList/blank" class="link-primary"
+            :class="{ disabled: navStore.disablePersonList }">
+            Person</RouterLink>
+        </span>
       </div>
       <div class="row">
         <div class="col">

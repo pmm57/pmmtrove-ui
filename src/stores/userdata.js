@@ -22,6 +22,7 @@ export const useUserDataStore = defineStore('userData', () => {
 // listItem.TroveListName
 // listItem.TroveListViewUrl FROm TroveViewUrl
 // listItem.TroveListLoadState
+// listItem.TroveListLinkedPerson
 // listItem.TroveListArticleMinedStatusCounts
 // listItem.TroveListArticles []
 
