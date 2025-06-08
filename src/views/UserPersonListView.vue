@@ -11,6 +11,7 @@ import { useUserDataStore } from '@/stores/userdata';
 import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
 const userData = useUserDataStore();
+const props = defineProps(['person']);
 //
 let sourceLoadPerson = null;
 let loadingPerson = ref(false);
@@ -51,6 +52,8 @@ let updatePerson = reactive({
   chgRelated: []
 });
 //
+
+console.log('Passed Person: ', props);
 const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999';
 popoverForMetadata.value = popoverPersonMetadata;
@@ -136,6 +139,7 @@ function handleLoadPersonMessage(e, intervalApersonData, idxPartner) {
   savedPerson.readName = returnedData.readPerson;
   savedPerson.linkedListId = returnedData.linkedListId;
   linkedListText.value = "Unlink from List " + savedPerson.linkedListId;
+  linkedListIdx.value = -1;
   if (savedPerson.linkedListId > 0) {
     linkedListIdx.value = userData.userLists.findIndex((item) => item.TroveListId === returnedData.linkedListId.toString());
     if (linkedListIdx.value > -1) {
@@ -270,6 +274,8 @@ function editPersonClick() {
 // On clicking the check edit button
 function checkPersonNameClick() {
   var errorTip = '';
+  // Trim Blanks
+  updatePerson.chgName = updatePerson.chgName.trim();;
   // Check Non-Blank
   if (updatePerson.chgName.length < 1) {
     errorTip = 'Is Blank';
@@ -322,7 +328,7 @@ function delPerson(deletePerson, emptyPerson) {
 //
 function linkListToPerson(linkList) {
   linkListText.value = "Link to List " + linkList;
-  updatePerson.chgLinkedListId = Number(linkList.split("|")[0].trim());
+  updatePerson.chgLinkedListId = parseInt(linkList.split("|")[0].trim());
   console.log('Link List ', updatePerson.chgLinkedListId, linkList);
   showModalLists.value = false;
   setPersonActions("chg");
@@ -495,6 +501,7 @@ function initScreen() {
   savedPerson.linkedListId = 0;
   linkListText.value = "Link to a List";
   linkedListText.value = "";
+  linkedListIdx.value = -1;
   savedPerson.arrayRelated = [];
   updatePerson.chgName = "";
   updatePerson.chgLinkedListId = 0;
@@ -503,7 +510,7 @@ function initScreen() {
 }
 // Initaliase
 initScreen();
-console.log("UserPersonListView - persons ", userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata);
+// console.log("UserPersonListView - persons ", userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata);
 //
 </script>
 
@@ -592,7 +599,7 @@ console.log("UserPersonListView - persons ", userData.metadataTypeByMetadata[idx
                 <button @click="addPerson()" class="btn btn-primary">Add Person</button>
               </div>
             </div>
-            <!-- Buttons to confiirm actions -->
+            <!-- Buttons to confirm actions -->
             <div v-show="showDelPerson" class="col">
               <div class="card">
                 <button @click="delPerson(savedPerson, updatePerson)" class="btn btn-primary">Confirm Delete
@@ -605,55 +612,56 @@ console.log("UserPersonListView - persons ", userData.metadataTypeByMetadata[idx
                   Person</button>
               </div>
             </div>
-          </div>
-          <div v-show="showPersonDetails">
-            <div v-if="(linkedListIdx > -1)" class="card-body">
-              Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
-                class="active link-primary">
-                {{ userData.userLists[linkedListIdx].TroveListId + ' ' + userData.userLists[linkedListIdx].TroveListName
-                }}
-              </router-link>
-              <br><span>List Articles </span>
-              <ArticleUrls :inline="true" :articleListArray="userData.userLists[linkedListIdx].TroveListArticles"
-                :troveListId="userData.userLists[linkedListIdx].TroveListId">
-              </ArticleUrls>
-            </div>
-            <div v-else class="card-body">No Linked List</div>
-            <div
-              v-if="(savedPerson.personIndex > -1) && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray.length > 0)"
-              class="card-body">
-              <span>Linked Articles </span>
-              <ArticleUrls :inline="true"
-                :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray"
-                :troveListId="0">
-              </ArticleUrls>
-            </div>
-            <div v-else class="card-body">No Linked Articles</div>
-            <div v-if="updatePerson.chgRelated.length > 0" class="card-body overflow-auto">
-              <RelatedTable :personName="updatePerson.chgName" :arrayRelated="updatePerson.chgRelated" :enableDel="true"
-                @del-relative="(index) => delRelativeClick(index)"
-                @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
-              <div v-show="partners.length > 0" v-for="(partner, index) in partners">
-                <div>Partner - {{ partner.readName }}</div>
-                <RelatedTable :personName="partner.readName" :arrayRelated="partner.arrayRelated" :enableDel="false"
-                  @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
+            <div v-show="showPersonDetails">
+              <div v-if="(linkedListIdx > -1)" class="card-body">
+                Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
+                  class="active link-primary">
+                  {{ userData.userLists[linkedListIdx].TroveListId + ' ' +
+                    userData.userLists[linkedListIdx].TroveListName
+                  }}
+                </router-link>
+                <br><span>List Articles </span>
+                <ArticleUrls :inline="true" :articleListArray="userData.userLists[linkedListIdx].TroveListArticles"
+                  :troveListId="userData.userLists[linkedListIdx].TroveListId">
+                </ArticleUrls>
               </div>
+              <div v-else class="card-body">No Linked List</div>
+              <div
+                v-if="(savedPerson.personIndex > -1) && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray.length > 0)"
+                class="card-body">
+                <span>Linked Articles </span>
+                <ArticleUrls :inline="true"
+                  :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray"
+                  :troveListId="0">
+                </ArticleUrls>
+              </div>
+              <div v-else class="card-body">No Linked Articles</div>
+              <div v-if="updatePerson.chgRelated.length > 0" class="card-body overflow-auto">
+                <RelatedTable :personName="updatePerson.chgName" :arrayRelated="updatePerson.chgRelated"
+                  :enableDel="true" @del-relative="(index) => delRelativeClick(index)"
+                  @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
+                <div v-show="partners.length > 0" v-for="(partner, index) in partners">
+                  <div>Partner - {{ partner.readName }}</div>
+                  <RelatedTable :personName="partner.readName" :arrayRelated="partner.arrayRelated" :enableDel="false"
+                    @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
+                </div>
+              </div>
+              <div v-else class="card-body">No Related People</div>
+              <Teleport to="#positionModals">
+                <ModalLists v-if="showModalLists" @close="showModalLists = false"
+                  @link-list="(linkList) => linkListToPerson(linkList)" :listPerson="updatePerson.chgName" />
+              </Teleport>
+              <Teleport to="#positionModals">
+                <ModalRelative v-if="showModalRelative" @close="showModalRelative = false"
+                  @add-relative="(relatedPerson) => addRelatedPerson(relatedPerson)" :savedPerson="savedPerson"
+                  :updatedPerson="updatePerson" />
+              </Teleport>
+              <Teleport to="#positionModals">
+                <ModalPartner v-if="showModalPartner" @close="showModalPartner = false"
+                  @add-to-partner="(idxOtherParent) => addToRelatedPartner(idxOtherParent)"
+                  :chgRelations="updatePerson.chgRelated" :partners="partners" />
+              </Teleport>
             </div>
-            <div v-else class="card-body">No Related People</div>
-            <Teleport to="#positionModals">
-              <ModalLists v-if="showModalLists" @close="showModalLists = false"
-                @link-list="(linkList) => linkListToPerson(linkList)" :listPerson="updatePerson.chgName" />
-            </Teleport>
-            <Teleport to="#positionModals">
-              <ModalRelative v-if="showModalRelative" @close="showModalRelative = false"
-                @add-relative="(relatedPerson) => addRelatedPerson(relatedPerson)" :savedPerson="savedPerson"
-                :updatedPerson="updatePerson" />
-            </Teleport>
-            <Teleport to="#positionModals">
-              <ModalPartner v-if="showModalPartner" @close="showModalPartner = false"
-                @add-to-partner="(idxOtherParent) => addToRelatedPartner(idxOtherParent)"
-                :chgRelations="updatePerson.chgRelated" :partners="partners" />
-            </Teleport>
           </div>
         </div>
       </div>

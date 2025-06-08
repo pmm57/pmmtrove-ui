@@ -674,7 +674,7 @@ function postSearch(blnNew) {
     newSearch.nextURL = searchData.nextURL;
   }
   console.log('Post this Search', JSON.stringify(newSearch));
-  const url = import.meta.env.VITE_SERVER_URL + "/searchTrove";
+  const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/";
   const options = {
     method: "post",
     mode: "cors",

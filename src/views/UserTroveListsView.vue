@@ -5,9 +5,10 @@ const userData = useUserDataStore()
 //
 function haveListLink(list) {
   var haveLink = userData.userListsReady
-  if (list.TroveListLoadState != 'Cached') haveLink = false;
+  if (!(list.TroveListLoadState == 'Cached' || list.TroveListLoadState == 'Loaded' || list.TroveListLoadState == 'Partial')) haveLink = false;
   if (list.TroveListItemCount == 0) haveLink = false;
   if (userData.userDuplicateListIds.indexOf(Number(list.TroveListId)) > -1) haveLink = false; // Disable Link if it is the list holding duplicate articles
+  console.log(`TroveListView haveLink LoadState:%s ItemCount:%s`, list.TroveListLoadState, list.TroveListItemCount)
   return haveLink
 }
 //
