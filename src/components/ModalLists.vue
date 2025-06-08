@@ -7,7 +7,7 @@ const emit = defineEmits(['link-list', 'close']);
 //
 var disableLink = ref(true);
 const nameParts = props.listPerson.split(" ");
-const linkList = nameParts[0] + " " + nameParts[1];
+var linkList = nameParts[0] + " " + nameParts[1];
 // console.log('ModalLists:', props.listPerson, linkList);
 //
 var filterListDropdown = [];
