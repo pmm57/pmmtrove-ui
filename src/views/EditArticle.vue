@@ -2,7 +2,7 @@
 import ModalEntities from '@/components/ModalEntities.vue'
 import ModalDuplicates from '@/components/ModalDuplicates.vue'
 import EditItem from '@/components/EditItem.vue'
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
 import { useNavBarStore } from '@/stores/navbar'
@@ -184,6 +184,13 @@ function setupEditedFields(index) {
     popoverForMetadata.value = ''
     const metadataType = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index][0]
     console.log('Change editMetadata ', index, metadataType)
+    // Wait for DOM update, then focus on the new select field
+    nextTick(() => {
+        const thisId = "select-" + index
+        const newSelect = document.getElementById(thisId);
+        // console.log('Focus:', thisId, newSelect)
+        if (newSelect) newSelect.focus();
+    });
     if (metadataType.length == 0) return
     // Popover
     switch (metadataType) {
@@ -517,7 +524,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                             <template v-if="editMetadata > -1"> <!-- In Edit Mode-->
                                                 <template v-if="editMetadata == index"> <!-- Row to Edit -->
                                                     <td> <!-- Metadata Type -->
-                                                        <select v-model="articleMetadata[0]"
+                                                        <select v-model="articleMetadata[0]" :id="'select-' + index"
                                                             @change="setupEditedFields(editMetadata)">
                                                             <option v-for="option in userData.arrayMetadataTypes"
                                                                 :value="option">{{ option }}
