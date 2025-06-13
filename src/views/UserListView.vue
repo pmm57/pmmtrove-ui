@@ -125,12 +125,13 @@ loadListArticles('true')
         </div>
         <div class="col">
           <div class="card">
-            <a @click="loadListArticles('false')" class="btn btn-primary" role="button">Reload List from Trove</a>
+            <a @click.prevent="loadListArticles('false')" class="btn btn-primary" role="button">Reload List from
+              Trove</a>
           </div>
         </div>
         <div class="col">
           <div class="card">
-            <a @click="ignoreArticles()" class="btn btn-primary" role="button">Ignore All Articles</a>
+            <a @click.prevent="ignoreArticles()" class="btn btn-primary" role="button">Ignore All Articles</a>
           </div>
         </div>
       </div>

@@ -785,8 +785,8 @@ if (props.person != 'blank') {
           </div>
         </div>
         <div class="form-group">
-          <input @click="postSearch(true)" :class="{ disabled: disableSearch }" class="btn btn-primary" type="button"
-            value="Search">
+          <input @click.prevent="postSearch(true)" :class="{ disabled: disableSearch }" class="btn btn-primary"
+            type="button" value="Search">
         </div>
       </div>
     </details>
@@ -802,11 +802,12 @@ if (props.person != 'blank') {
         <div v-show="searchData.maxPageNbr > 1" id="currentPage">
           Page {{ searchData.pageNbr }} of {{ searchData.maxPageNbr }}
         </div>
-        <button @click="postSearch(false)" type="button" :class="{ disabled: disableNext }" class="btn btn-primary">Next
+        <button @click.prevent="postSearch(false)" type="button" :class="{ disabled: disableNext }"
+          class="btn btn-primary">Next
           Page</button>
-        - <button @click="postIgnoredArticles" type="button" class="btn btn-primary"
+        - <button @click.prevent="postIgnoredArticles" type="button" class="btn btn-primary"
           :class="{ disabled: disableSaveIgnored }">Save {{ searchCounts.nbrToIgnore }} Ignored Articles</button>
-        - <button @click="postUnignoreArticles" type="button" class="btn btn-primary"
+        - <button @click.prevent="postUnignoreArticles" type="button" class="btn btn-primary"
           :class="{ disabled: disableSaveUnignore }">Save {{ searchCounts.nbrToUnignore }} Unignore Articles</button>
         <br>
         <div class="form-check-inline">

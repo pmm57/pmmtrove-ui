@@ -41,6 +41,7 @@ export const useUserDataStore = defineStore('userData', () => {
 //   TroveListArticleMinedStatustext FROM listArticleMinedStatustext => 
 //   TroveListArticleNote FROM note => 
 //
+  const userReloadLists = ref(false)
   const userListsReady = ref(false)
   const viewedArticles = ref([])
   // viewedArticles FROM displayedArticles = []; => 
@@ -98,6 +99,7 @@ export const useUserDataStore = defineStore('userData', () => {
     userDuplicateListIds, 
     userLists, 
     userListsReady, 
+    userReloadLists,
     viewedArticles, 
     metadataValueTotal, 
     metadataTypeByMetadata, clearStore}

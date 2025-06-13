@@ -44,16 +44,23 @@ function loadingTick() {
 function tick() {
     loadingMsg.value += '.';
 }
-// Astnch method in App.vue will set this
+// Asynch method in App.vue will set this
 watch(
     () => userData.userLists,
     (userLists) => {
         loading.value = false;
         clearInterval(intervalLoading);
         navBarStore.disableTroveLists = false;
+        // If this was a refresh - but the full load never completed force a refresh
+        if (userData.userReloadLists) {
+            userData.userReloadLists = false;
+            if (userLists[userLists.length - 1].TroveListArticles.length == 0) {
+                updTroveLists()
+            }
+        }
     }
 )
-async function verifyUser() {
+async function verifyUser(refresh) {
     errorsStore.arrayErrors = [];
     const url = import.meta.env.VITE_SERVER_URL + "/";
     console.log('Verify User-', inUserId)
@@ -67,7 +74,8 @@ async function verifyUser() {
         },
         //make sure to serialize your JSON body
         body: JSON.stringify({
-            UserId: inUserId
+            UserId: inUserId,
+            refresh: refresh
         })
     };
     const request = new Request(url, options);
@@ -85,9 +93,16 @@ async function verifyUser() {
     // }
     if (response.status == 200) {
         const data = await response.json();
-        console.log('verifyUSer data ', data)
-        userData.troveDetails = data; // There is a watch function in App.vue that will be triggered
+        console.log('verifyUser data ', data)
+        userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
         navBarStore.disableSearch = false;
+        if (!data.newLogon) {
+            // Previous cookie existed on server
+            // Trigger setup of sse
+            userData.userListsReady = true;
+            // Doing a reload
+            userData.userReloadLists = true;
+        }
         loadingTick();
         loading.value = true
     } else {
@@ -98,13 +113,15 @@ async function verifyUser() {
     }
 }
 function updTroveLists() {
-    console.log('Reload User Trove Lists')
+    console.log('Refresh User Trove Lists')
     loading.value = true
     loadingMsg.value = 'Loading from TROVE.'
     inUserId = userData.troveDetails.troveUserId
+    // Doing a refresh not a reload
+    userData.userReloadLists = false;
     // as this is a reload  reset the users cached data
     userData.clearStore
-    verifyUser()
+    verifyUser(true)
 }
 </script>
 
@@ -116,13 +133,13 @@ function updTroveLists() {
             {{ loadingMsg }}
         </div>
         <div v-else>
-            <button @click="updTroveLists()" class="btn btn-primary">Refresh Your Trove Lists</button>
+            <button @click.prevent="updTroveLists()" class="btn btn-primary">Refresh Your Trove Lists</button>
         </div>
     </div>
     <div v-else class="card col-sm-4 text-center">
         <label for="UserId" class="form-label h2">Trove User Id</label>
-        <input v-model="inUserId" @keyup.enter="verifyUser()" class="form-control" id="UserId"
+        <input v-model="inUserId" @keyup.enter="verifyUser(false)" class="form-control" id="UserId"
             placeholder="Enter Trove User Id" autofocus>
-        <button @click="verifyUser()" id="UserID" class="btn btn-primary">Verify</button>
+        <button @click.prevent="verifyUser(false)" id="UserID" class="btn btn-primary">Verify</button>
     </div>
 </template>

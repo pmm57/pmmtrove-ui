@@ -6,10 +6,10 @@ const props = defineProps(['savedPerson', 'updatedPerson']);
 const emit = defineEmits(['add-relative', 'close']);
 //
 var disableAdd = ref(true);
-const relatedPerson = reactive ({
-    relatedType : '',
-    relatedPerson : '',
-    relatedAction : 'ADD',
+const relatedPerson = reactive({
+    relatedType: '',
+    relatedPerson: '',
+    relatedAction: 'ADD',
     relatedIdxPerson: -1
 });
 relatedPerson.relatedPerson = props.savedPerson.readName.split(",")[0];
@@ -27,7 +27,7 @@ for (const el of userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadat
 }
 // console.log('ModalRelative:', arrayRelationDropdown.value)
 //
-function validateRelation () {
+function validateRelation() {
     disableAdd.value = true;
     // Check we have some info
     if ((relatedPerson.relatedPerson.length == 0) || (relatedPerson.relatedType.length == 0)) {
@@ -38,23 +38,24 @@ function validateRelation () {
         disableAdd.value = false;
     }
     relatedPerson.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relatedPerson.relatedPerson);
-    console.log ('ModalRelative SelectedPerson', disableAdd, arrayRelationDropdown.findIndex((x) => x == relatedPerson.relatedPerson), JSON.stringify(relatedPerson));
+    console.log('ModalRelative SelectedPerson', disableAdd, arrayRelationDropdown.findIndex((x) => x == relatedPerson.relatedPerson), JSON.stringify(relatedPerson));
 }
 //
 </script>
 <template>
     <div class="modal">
-        <div class="container-fluid"  style="width: 25rem;">
+        <div class="container-fluid" style="width: 25rem;">
             <div class="card">
                 <div class="card">
                     <h5>Select Related Person and Type
-                        <a @click="$emit('close')" href="#"><i class="bi-x-square"></i></a>
+                        <a @click.prevent="$emit('close')" href="#"><i class="bi-x-square"></i></a>
                     </h5>
-                    <p>{{props.savedPerson.readName}}</p>
+                    <p>{{ props.savedPerson.readName }}</p>
                 </div>
                 <div class="card">
                     Related Person
-                    <input v-model="relatedPerson.relatedPerson" list="datalistPersonDropDown" @change="validateRelation"/>
+                    <input v-model="relatedPerson.relatedPerson" list="datalistPersonDropDown"
+                        @change="validateRelation" />
                     <datalist id="datalistPersonDropDown">
                         <option v-for="option in arrayRelationDropdown" :value="option"></option>
                     </datalist>
@@ -62,15 +63,12 @@ function validateRelation () {
                 <div class="card">
                     Relationship Type
                     <select v-model="relatedPerson.relatedType" @change="validateRelation">
-                        <option v-for="option in ['ChildOf', 'ChildWith']" :value="option">{{option}}</option>
+                        <option v-for="option in ['ChildOf', 'ChildWith']" :value="option">{{ option }}</option>
                     </select>
                 </div>
                 <div class="card">
-                    <button
-                    :class="{disabled:disableAdd}"
-                    @click="$emit('add-relative', relatedPerson)"
-                    class="btn btn-primary"
-                    >Select Related Person (need to update)
+                    <button :class="{ disabled: disableAdd }" @click.prevent="$emit('add-relative', relatedPerson)"
+                        class="btn btn-primary">Select Related Person (need to update)
                     </button>
                 </div>
             </div>
