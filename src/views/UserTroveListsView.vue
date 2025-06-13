@@ -56,31 +56,35 @@ function statusBadge(status, count) {
           {{ userData.troveQueryArticleTotal }} Articles linked
         </p>
         <table class="table w-100">
-          <tr>
-            <th>List Name</th>
-            <th>Description</th>
-            <th style="text-align:right">Trove List Id (Articles)</th>
-            <th style="text-align:center">Article Status</th>
-            <th style="text-align:center" class="text-nowrap">Link to Trove</th>
-          </tr>
-          <tr v-for="list in userData.userLists" :key="list.TroveListId" class="align-top">
-            <td class="text-nowrap">
-              <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"
-                class="active link-primary">{{ list.TroveListName }}</router-link>
-              <p v-else>
-                {{ list.TroveListName }}
-              </p>
-            </td>
-            <td>{{ list.TroveListDescription }}</td>
-            <td style="text-align:right">{{ list.TroveListId }}({{ list.TroveListItemCount }})</td>
-            <td style="text-align:center" class="text-nowrap">
-              <template v-for="(count, index) in list.TroveListArticleMinedStatusCounts">
-                <span :class="statusBadge(index, count)">{{ count > 0 ? count : '-' }}</span>
-              </template>
-            </td>
-            <td style="text-align:center"><a :href="list.TroveListViewUrl" target='_blank'
-                class="link-primary">TroveLink</a></td>
-          </tr>
+          <thead>
+            <tr>
+              <th>List Name</th>
+              <th>Description</th>
+              <th style="text-align:right">Trove List Id (Articles)</th>
+              <th style="text-align:center">Article Status</th>
+              <th style="text-align:center" class="text-nowrap">Link to Trove</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="list in userData.userLists" :key="list.TroveListId" class="align-top">
+              <td class="text-nowrap">
+                <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"
+                  class="active link-primary">{{ list.TroveListName }}</router-link>
+                <p v-else>
+                  {{ list.TroveListName }}
+                </p>
+              </td>
+              <td>{{ list.TroveListDescription }}</td>
+              <td style="text-align:right">{{ list.TroveListId }}({{ list.TroveListItemCount }})</td>
+              <td style="text-align:center" class="text-nowrap">
+                <template v-for="(count, index) in list.TroveListArticleMinedStatusCounts">
+                  <span :class="statusBadge(index, count)">{{ count > 0 ? count : '-' }}</span>
+                </template>
+              </td>
+              <td style="text-align:center"><a :href="list.TroveListViewUrl" target='_blank'
+                  class="link-primary">TroveLink</a></td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>

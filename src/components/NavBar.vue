@@ -11,7 +11,8 @@ const errorsStore = useErrorsArrayStore()
                 <RouterLink to="/" class="nav-link" :class="{ disabled: navStore.disableHome }">Home</RouterLink>
             </li>
             <li class="nav-item">
-                <RouterLink to="/userTroveLists" class="nav-link" :class="{ disabled: navStore.disableTroveLists }">Trove
+                <RouterLink to="/userTroveLists" class="nav-link" :class="{ disabled: navStore.disableTroveLists }">
+                    Trove
                     Lists</RouterLink>
             </li>
             <li class="nav-item">
@@ -27,20 +28,24 @@ const errorsStore = useErrorsArrayStore()
                     Metadata Items</RouterLink>
             </li>
             <li class="nav-item">
-                <RouterLink to="/userPersonList/blank" class="nav-link" :class="{ disabled: navStore.disablePersonList }">
+                <RouterLink to="/userPersonList/blank" class="nav-link"
+                    :class="{ disabled: navStore.disablePersonList }">
                     People</RouterLink>
             </li>
             <li class="nav-item">
-                <RouterLink to="/searchTrove/blank" class="nav-link" :class="{ disabled: navStore.disableSearch }">Search
+                <RouterLink to="/searchTrove/blank" class="nav-link" :class="{ disabled: navStore.disableSearch }">
+                    Search
                 </RouterLink>
             </li>
             <li class="nav-item">
-                <RouterLink to="/about" class="nav-link" :class="{ disabled: navStore.disableAbout }">About us</RouterLink>
+                <RouterLink to="/about" class="nav-link" :class="{ disabled: navStore.disableAbout }">About us
+                </RouterLink>
             </li>
         </ul>
     </div>
     <div v-show="errorsStore.arrayErrors.length > 0" class="card col-sm-4 text-center">
-        <button @click="errorsStore.arrayErrors = []" type="button" class="btn btn-primary">Clear Errors</button>
+        <button @click.prevent="errorsStore.arrayErrors = []" type="button" class="btn btn-primary">Clear
+            Errors</button>
         <ul>
             <li v-for="error in errorsStore.arrayErrors">
                 {{ error.msg + "-" + error.param }}

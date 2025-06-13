@@ -152,6 +152,9 @@ function handleLoadPersonMessage(e, intervalApersonData, idxPartner) {
   savedPerson.personIndex = returnedData.personIndex;
   savedPerson.action = "LOAD";
   console.log('Return Savedperson', JSON.stringify(savedPerson));
+  // Updated Linked Article URLS
+  // userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray = returnedData.linkedArticleUrls.arrayArticleUrls
+  console.log('Return Linked Article URLs ', JSON.stringify(userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray));
   setPersonActions('');
   updatePerson.chgName = savedPerson.readName;
   updatePerson.chgLinkedListId = savedPerson.linkedListId;
@@ -523,7 +526,7 @@ initScreen();
         <div class="card col-6 pre-scrollable" style="max-height: 75vh">
           <div class="card border-0 overflow-auto">
             <a v-for="(metadataValue, idxValue) in userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata"
-              @click="loadPerson(idxValue, -1)" href="#">
+              @click.prevent="loadPerson(idxValue, -1)" href="#">
               {{ metadataValue.metadataValue }} [{{ metadataValue.articleListArray.length }}]
             </a>
           </div>
@@ -552,16 +555,16 @@ initScreen();
             <div v-show="!showDefaultPersonAction">
               <div v-show="showRestorePersonAction" class="col">
                 <div class="card">
-                  <button @click="initScreen()" class="btn btn-primary">Clear Details</button>
+                  <button @click.prevent="initScreen()" class="btn btn-primary">Clear Details</button>
                 </div>
               </div>
               <div v-show="showLinkPersonAction" class="col">
                 <div v-if="savedPerson.linkedListId == 0" class="card">
-                  <button @click="showModalLists = true" class="btn btn-primary"
+                  <button @click.prevent="showModalLists = true" class="btn btn-primary"
                     :class="{ disabled: savedPerson.action == 'CHG' }">{{ linkListText }}</button>
                 </div>
                 <div v-else class="card">
-                  <button @click="unlinkListToPerson" class="btn btn-primary"
+                  <button @click.prevent="unlinkListToPerson" class="btn btn-primary"
                     :class="{ disabled: savedPerson.action == 'CHG' }">{{ linkedListText }}</button>
                 </div>
               </div>
@@ -575,40 +578,41 @@ initScreen();
               </div>
               <div v-show="showEditPersonAction" class="col">
                 <div class="card">
-                  <button @click="editPersonClick()" class="btn btn-primary">Edit Person</button>
+                  <button @click.prevent="editPersonClick()" class="btn btn-primary">Edit Person</button>
                 </div>
               </div>
               <div v-show="showCheckPersonNameAction" class="col">
                 <div class="card">
-                  <button @click="checkPersonNameClick()" class="btn btn-primary">Check Person</button>
+                  <button @click.prevent="checkPersonNameClick()" class="btn btn-primary">Check Person</button>
                 </div>
               </div>
               <div v-show="showDeletePersonAction" class="col">
                 <div class="card">
-                  <button @click="delPersonClick()" class="btn btn-primary">Delete Person</button>
+                  <button @click.prevent="delPersonClick()" class="btn btn-primary">Delete Person</button>
                 </div>
               </div>
               <div v-show="showAddRelativeAction" class="col">
                 <div class="card">
-                  <button @click="showModalRelative = true" class="btn btn-primary">Add Relative</button>
+                  <button @click.prevent="showModalRelative = true" class="btn btn-primary">Add Relative</button>
                 </div>
               </div>
             </div>
             <div v-show="showAddPerson" class="col">
               <div class="card">
-                <button @click="addPerson()" class="btn btn-primary">Add Person</button>
+                <button @click.prevent="addPerson()" class="btn btn-primary">Add Person</button>
               </div>
             </div>
             <!-- Buttons to confirm actions -->
             <div v-show="showDelPerson" class="col">
               <div class="card">
-                <button @click="delPerson(savedPerson, updatePerson)" class="btn btn-primary">Confirm Delete
+                <button @click.prevent="delPerson(savedPerson, updatePerson)" class="btn btn-primary">Confirm Delete
                   Person</button>
               </div>
             </div>
             <div v-show="showChgPerson" class="col">
               <div class="card">
-                <button @click="chgPerson(savedPerson, updatePerson, true)" class="btn btn-primary">Apply Updates to
+                <button @click.prevent="chgPerson(savedPerson, updatePerson, true)" class="btn btn-primary">Apply
+                  Updates to
                   Person</button>
               </div>
             </div>

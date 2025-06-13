@@ -406,7 +406,8 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         </div>
                                         <div class="col">
                                             <div class="card">
-                                                <button @click="loadArticle(false)" class="btn btn-primary">Refresh
+                                                <button @click.prevent="loadArticle(false)"
+                                                    class="btn btn-primary">Refresh
                                                     Trove Article</button>
                                             </div>
                                         </div>
@@ -427,7 +428,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                             <div class="card">
                                                 <button
                                                     :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticlePossibleDupArticle.length == 0 }"
-                                                    @click="showModalDuplicates = true" type="button"
+                                                    @click.prevent="showModalDuplicates = true" type="button"
                                                     class="btn btn-primary">
                                                     Possible Duplicates
                                                 </button>
@@ -441,7 +442,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                             <div class="card">
                                                 <button
                                                     :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticleEntities.length == 0 }"
-                                                    @click="showModalEntities = true" type="button"
+                                                    @click.prevent="showModalEntities = true" type="button"
                                                     class="btn btn-primary">Possible Metadata
                                                 </button>
                                             </div>
@@ -467,7 +468,8 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                                         <li v-for="minedStatus in userData.arrayMinedStatus[1]"
                                                             :value="minedStatus" :key="minedStatus">
                                                             <a class="dropdown-item"
-                                                                @click="changeMinedStatus(minedStatus)" href="#">{{
+                                                                @click.prevent="changeMinedStatus(minedStatus)"
+                                                                href="#">{{
                                                                     minedStatus
                                                                 }}</a>
                                                         </li>
@@ -479,7 +481,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                     <div class="row">
                                         <div class="col">
                                             <div class="card">
-                                                <button :class="{ disabled: disableUpdate }" @click="saveData"
+                                                <button :class="{ disabled: disableUpdate }" @click.prevent="saveData"
                                                     class="btn btn-primary">Update
                                                     Data</button>
                                             </div>

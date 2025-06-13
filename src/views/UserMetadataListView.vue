@@ -96,7 +96,7 @@ async function getArticleLinks(idxType, idxMetadataValue) {
     </p>
     <div v-for="(type, idxType) in userData.metadataTypeByMetadata" :key="type.metadataType" class="card">
       <div class="card-header px-0 py-0">
-        <button class="btn btn-link" @click="showMetadataType(idxType)">{{ type.metadataType }} [{{
+        <button class="btn btn-link" @click.prevent="showMetadataType(idxType)">{{ type.metadataType }} [{{
           type.arrayMetadata.length }}]
         </button>
       </div>
@@ -106,7 +106,7 @@ async function getArticleLinks(idxType, idxMetadataValue) {
             <span>&nbsp;&nbsp;&nbsp;-&nbsp;</span>
             <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{ value.articleListArray.length
             }}]</span>
-            <button v-else class="btn btn-link px-0 py-0" @click="showMetadataValue(idxType, idxValue)">{{
+            <button v-else class="btn btn-link px-0 py-0" @click.prevent="showMetadataValue(idxType, idxValue)">{{
               value.metadataValue }} [{{ value.articleListArray.length }}]</button>
           </div>
           <div v-show="flagMetadataValue[idxValue]" class="card-body ml-3 px-0 py-0">
