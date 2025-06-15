@@ -94,10 +94,12 @@ function getArticleTitle(article) {
   if (article.TroveListArticleViewedIdx === undefined || article.TroveListArticleViewedIdx < 0) return article.TroveListArticleHeading;
   //
   const viewedArticle = userData.viewedArticles[article.TroveListArticleViewedIdx];
-  console.log('Article Title - SUmmary Text ', viewedArticle.ViewedArticleSummaryText)
-  if (viewedArticle.ViewedArticleSummaryText.length > 0) return viewedArticle.ViewedArticleSummaryText
+  if ((viewedArticle.hasOwnProperty("ViewedArticleSummaryText")) && (viewedArticle.ViewedArticleSummaryText.length > 0)) {
+    console.log('Article Title - SUmmary Text ', viewedArticle.ViewedArticleSummaryText)
+    return viewedArticle.ViewedArticleSummaryText
+  }
   //
-  console.log('Artilce Title - Event ', JSON.stringify(viewedArticle.ViewedArticleMetadata))
+  // console.log('Artilcle Title - Event ', JSON.stringify(viewedArticle.ViewedArticleMetadata))
   const idxEvent = viewedArticle.ViewedArticleMetadata.findIndex((item) => item[0] == "Event");
   if (idxEvent < 0) return article.TroveListArticleHeading;
   return viewedArticle.ViewedArticleMetadata[idxEvent][1];

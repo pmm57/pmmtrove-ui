@@ -95,20 +95,11 @@ function handleMessage(e) {
         var arrayViewedArticleMetadata = []
         userData.userLists[listIdx].TroveListArticles.forEach((listArticle) => {
           if (listArticle.TroveListArticleViewedIdx < 0) return
-          console.log('sseUserListWithArticles ', listArticle.TroveListArticleViewedIdx, userData.viewedArticles[listArticle.TroveListArticleViewedIdx].ViewedArticleMetadata)
-          userData.viewedArticles[listArticle.TroveListArticleViewedIdx].ViewedArticleMetadata.forEach((metadata) => {
-            if (metadata[2] == 'Sel') {
-              arrayViewedArticleMetadata.push({
-                MetadataType: metadata[0],
-                MetadataValue: metadata[1],
-                troveArticleId: Number(listArticle.TroveListArticleId),
-                troveListId: Number(sseRetrieve.listId),
-                idxViewedArticle: listArticle.TroveListArticleViewedIdx
-              })
-            }
-          })
+          console.log('sseUserListWithArticles - Metadata 1 ', sseRetrieve.listId,
+            JSON.stringify(userData.viewedArticles[listArticle.TroveListArticleViewedIdx].ViewedArticleMetadata))
+          updMetadataTypeArticleLinks(sseRetrieve.listId, listArticle.TroveListArticleId, listArticle.TroveListArticleViewedIdx,
+            userData.viewedArticles[listArticle.TroveListArticleViewedIdx].ViewedArticleMetadata)
         })
-        updMetadataTypeArticleLinks(arrayViewedArticleMetadata)
         break
       case 'sseArticlePossibleDupArticle':
         articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
@@ -119,7 +110,7 @@ function handleMessage(e) {
         console.log("sseReloadViewedArticle ", sseRetrieve)
         // Update List Article Status
         updListsArticleStatus(sseRetrieve.viewedListId, sseRetrieve.viewedArticleId, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatus, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatusText)
-        // Update Viewd Artcile
+        // Update Viewed Article
         articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
         if (articleIdx < 0) { // New Viewed Article
           console.log("sseReloadViewedArticle userData New Viewed Article", sseRetrieve.cacheViewedArticle)
@@ -127,20 +118,7 @@ function handleMessage(e) {
         }
         userData.viewedArticles.splice(articleIdx, 1, sseRetrieve.cacheViewedArticle) // Triggers Reactivity
         // console.log ("sseReloadViewedArticle userData", articleIdx, userData.viewedArticles[articleIdx])
-        // Collect ViewedArticle Metadata
-        var arrayViewedArticleMetadata = []
-        sseRetrieve.cacheViewedArticle.ViewedArticleMetadata.forEach((metadata) => {
-          if (metadata[2] == 'Sel') {
-            arrayViewedArticleMetadata.push({
-              MetadataType: metadata[0],
-              MetadataValue: metadata[1],
-              troveArticleId: Number(sseRetrieve.viewedArticleId),
-              troveListId: Number(sseRetrieve.viewedListId),
-              idxViewedArticle: articleIdx
-            })
-          }
-        })
-        updMetadataTypeArticleLinks(arrayViewedArticleMetadata)
+        updMetadataTypeArticleLinks(sseRetrieve.viewedArticleId, sseRetrieve.viewedListId, articleIdx, sseRetrieve.cacheViewedArticle.ViewedArticleMetadata)
         break
       case 'sseUpdateListsArticleStatus':
         updListsArticleStatus(sseRetrieve.listId, sseRetrieve.articleId, sseRetrieve.cacheListsArticleStatus, sseRetrieve.cacheListsArticleStatusText)
@@ -177,12 +155,26 @@ function updListsArticleStatus(listId, articleId, articleStatus, articleStatusTe
 
 }
 // Whenever viewedArticles is updated update metadataTypeByMetadata to indicate Article link is enabled
-function updMetadataTypeArticleLinks(arrayViewedArticleMetadata) {
+function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata) {
   // Wait until Metadata has been loaded
   // console.log('App.vue updMetadataTypeArticleLinks: ', userData.metadataTypeByMetadata.length, arrayViewedArticleMetadata);
   if (userData.metadataTypeByMetadata.length == 0) {
     setTimeout(updMetadataTypeArticleLinks, 3000, arrayViewedArticleMetadata);
   }
+  // Collect ViewedArticle Metadata
+  var arrayViewedArticleMetadata = []
+  viewedArticleMetadata.forEach((metadata) => {
+    if (metadata[2] == 'Sel') {
+      arrayViewedArticleMetadata.push({
+        MetadataType: metadata[0],
+        MetadataValue: metadata[1],
+        troveArticleId: Number(viewedArticleId),
+        troveListId: Number(viewedListId),
+        idxViewedArticle: idxViewdArticle
+      })
+    }
+  })
+  console.log('sseUserListWithArticles - Metadata 2 ', JSON.stringify(arrayViewedArticleMetadata))
   // Sort into order
   arrayViewedArticleMetadata.sort(sortMetadataTypeAndValue)
   // console.log('App.vue arrayViewedArticleMetadata: ', JSON.stringify(arrayViewedArticleMetadata));
