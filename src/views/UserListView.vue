@@ -88,6 +88,20 @@ function ignoreArticles() {
   navStore.listTabTitle = "List";
   router.push({ name: 'userTroveLists' });
 }
+// Get best Article Title
+function getArticleTitle(article) {
+  // Needs to have been read into viewedArticles
+  if (article.TroveListArticleViewedIdx === undefined || article.TroveListArticleViewedIdx < 0) return article.TroveListArticleHeading;
+  //
+  const viewedArticle = userData.viewedArticles[article.TroveListArticleViewedIdx];
+  console.log('Article Title - SUmmary Text ', viewedArticle.ViewedArticleSummaryText)
+  if (viewedArticle.ViewedArticleSummaryText.length > 0) return viewedArticle.ViewedArticleSummaryText
+  //
+  console.log('Artilce Title - Event ', JSON.stringify(viewedArticle.ViewedArticleMetadata))
+  const idxEvent = viewedArticle.ViewedArticleMetadata.findIndex((item) => item[0] == "Event");
+  if (idxEvent < 0) return article.TroveListArticleHeading;
+  return viewedArticle.ViewedArticleMetadata[idxEvent][1];
+}
 //
 loadListArticles('true')
 </script>
@@ -162,7 +176,7 @@ loadListArticles('true')
           <td><span :class="statusColour(article.TroveListArticleMinedStatus)">{{
             article.TroveListArticleMinedStatustext }}</span>
           </td>
-          <td>{{ article.TroveListArticleHeading }}</td>
+          <td>{{ getArticleTitle(article) }}</td>
           <td>{{ article.TroveListArticleSource }}</td>
           <td><a :href="article.TroveListArticleViewUrl" target="_blank">Trove Link</a></td>
         </tr>

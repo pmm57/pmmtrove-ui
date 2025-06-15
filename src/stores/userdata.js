@@ -74,7 +74,7 @@ export const useUserDataStore = defineStore('userData', () => {
   // ViewedArticleMinedStatus FROM TroveArticleMinedStatus => 
   // ViewedArticleMinedStatusText FROM TroveArticleMinedStatusText => 
   // ViewedArticleMetadata FROM TroveArticleMetadata [] => 
-	// MetadataType, Metadata, "Auto"/"Sel"
+	// Array [MetadataType, Metadata, "Auto"/"Sel"]
 
   const metadataValueTotal = ref(0)
   const metadataTypeByMetadata = ref([])
