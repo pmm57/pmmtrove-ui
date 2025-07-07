@@ -25,7 +25,7 @@ idxListArticle.value = userData.userLists[idxList.value].TroveListArticles.findI
 var idxViewed = ref(0)
 idxViewed.value = userData.userLists[idxList.value].TroveListArticles[idxListArticle.value].TroveListArticleViewedIdx
 console.log('Edit Article View  ', idxList.value, idxListArticle.value, idxViewed.value)
-console.log(`userData.viewedArticles:%s`, userData.viewedArticles)
+// console.log(`userData.viewedArticles:%s`, userData.viewedArticles)
 var disableUpdate = ref(true)
 var showModalEntities = ref(false)
 var showModalDuplicates = ref(false)

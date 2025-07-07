@@ -39,7 +39,7 @@ function statusColour(status) {
     case 50:
       return "badge text-bg-success";
     case 60:
-      return "badge text-bg-danger";
+      return "badge  custom-badge";
     default:
       return "";
   }
@@ -95,7 +95,7 @@ function getArticleTitle(article) {
   //
   const viewedArticle = userData.viewedArticles[article.TroveListArticleViewedIdx];
   if ((viewedArticle.hasOwnProperty("ViewedArticleSummaryText")) && (viewedArticle.ViewedArticleSummaryText.length > 0)) {
-    console.log('Article Title - SUmmary Text ', viewedArticle.ViewedArticleSummaryText)
+    // console.log('Article Title - SUmmary Text ', viewedArticle.ViewedArticleSummaryText)
     return viewedArticle.ViewedArticleSummaryText
   }
   //
@@ -157,31 +157,35 @@ loadListArticles('true')
   <div class="card">
     <div class="card-body w-100">
       <table>
-        <tr>
-          <th>Trove Id</th>
-          <th>Date</th>
-          <th>Article Status</th>
-          <th>Article Name</th>
-          <th>Article Source</th>
-          <th>Link to Trove</th>
-        </tr>
-        <tr v-for="article in userData.userLists[idxList].TroveListArticles" :key="article.TroveListArticleId">
-          <td class="text-nowrap">
-            <router-link v-if="haveLink(article)"
-              :to="'/editArticle/' + userData.userLists[idxList].TroveListId + '/' + article.TroveListArticleId"
-              class="active link-primary">{{ article.TroveListArticleId }}</router-link>
-            <p v-else>
-              {{ article.TroveListArticleId }}
-            </p>
-          </td>
-          <td class="text-nowrap">{{ article.TroveListArticlePubDate }}</td>
-          <td><span :class="statusColour(article.TroveListArticleMinedStatus)">{{
-            article.TroveListArticleMinedStatustext }}</span>
-          </td>
-          <td>{{ getArticleTitle(article) }}</td>
-          <td>{{ article.TroveListArticleSource }}</td>
-          <td><a :href="article.TroveListArticleViewUrl" target="_blank">Trove Link</a></td>
-        </tr>
+        <thead>
+          <tr>
+            <th>Trove Id</th>
+            <th>Date</th>
+            <th>Article Status</th>
+            <th>Article Name</th>
+            <th>Article Source</th>
+            <th>Link to Trove</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="article in userData.userLists[idxList].TroveListArticles" :key="article.TroveListArticleId">
+            <td class="text-nowrap">
+              <router-link v-if="haveLink(article)"
+                :to="'/editArticle/' + userData.userLists[idxList].TroveListId + '/' + article.TroveListArticleId"
+                class="active link-primary">{{ article.TroveListArticleId }}</router-link>
+              <p v-else>
+                {{ article.TroveListArticleId }}
+              </p>
+            </td>
+            <td class="text-nowrap">{{ article.TroveListArticlePubDate }}</td>
+            <td><span :class="statusColour(article.TroveListArticleMinedStatus)">{{
+              article.TroveListArticleMinedStatustext }}</span>
+            </td>
+            <td>{{ getArticleTitle(article) }}</td>
+            <td>{{ article.TroveListArticleSource }}</td>
+            <td><a :href="article.TroveListArticleViewUrl" target="_blank">Trove Link</a></td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </div>
