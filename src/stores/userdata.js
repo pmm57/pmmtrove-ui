@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useUserDataStore = defineStore('userData', () => {
@@ -8,13 +8,14 @@ export const useUserDataStore = defineStore('userData', () => {
   const troveQueryTotal = ref(0)
   const troveQueryArticleTotal = ref(0)
   const userDuplicateListIds = ref([])
-  const userLists = ref([])
+  const userLists = reactive([])
 //   All the Trove Lists of a user - read from Trove
 // userLists = []; /
 // List element object definition
 // listItem = {};
 // listItem.TroveListId
 // listItem.TroveListUpdatedText
+// listItem.TroveListViewedDateText added June 2025 - Date time that the UI got it
 // listItem.TroveListUpdated
 // listItem.TroveListItemCount
 // listItem.TroveListDescription
@@ -43,12 +44,13 @@ export const useUserDataStore = defineStore('userData', () => {
 //
   const userReloadLists = ref(false)
   const userListsReady = ref(false)
-  const viewedArticles = ref([])
+  const viewedArticles = reactive([])
   // viewedArticles FROM displayedArticles = []; => 
   // ViewedArticleId FROM TroveArticleId
   // ViewedArticleLastTroveUpdated FROM TroveArticleLastUpdated
-  // ViewedArticleTroveUpdate
-  // ViewedArticleDBUpdate??
+  // ViewedArticleLastTroveUpdatedText added June 2025 DUmmy daye / troveArticle.lastCorrection.lastupdated / Latest List Updated Date
+  // ViewedArticleDbUpdateDateText added June 2025 - Date time updated in DB
+  // ViewedArticleViewedDateText added June 2025 - Date time that the UI got it
   // ViewedArticleUpdatedBy FROM TroveArticleLastUpdatedBy
   // ViewedArticleHeading FROM TroveArticleHeading
   // ViewedArticleSource FROM TroveArticleSource => 
@@ -84,9 +86,9 @@ export const useUserDataStore = defineStore('userData', () => {
     troveQueryTotal.value = 0
     troveQueryArticleTotal.value = 0
     userDuplicateListIds.value = []
-    userLists.value = []
+    userLists = []
     userListsReady.value = false
-    viewedArticles.value = []
+    viewedArticles = []
     metadataValueTotal.value = 0
     metadataTypeByMetadata.value = []
     }

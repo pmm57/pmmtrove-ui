@@ -8,7 +8,7 @@ function haveListLink(list) {
   if (!(list.TroveListLoadState == 'Cached' || list.TroveListLoadState == 'Loaded' || list.TroveListLoadState == 'Partial')) haveLink = false;
   if (list.TroveListItemCount == 0) haveLink = false;
   if (userData.userDuplicateListIds.indexOf(Number(list.TroveListId)) > -1) haveLink = false; // Disable Link if it is the list holding duplicate articles
-  console.log(`TroveListView haveLink LoadState:%s ItemCount:%s`, list.TroveListLoadState, list.TroveListItemCount)
+  // console.log(`TroveListView haveLink LoadState:%s ItemCount:%s`, list.TroveListLoadState, list.TroveListItemCount)
   return haveLink
 }
 //
@@ -37,7 +37,7 @@ function statusBadge(status, count) {
         classCount += 'text-bg-success';
         break;
       default:
-        classCount += 'text-bg-danger';
+        classCount += 'custom-badge';
         break;
     }
   }

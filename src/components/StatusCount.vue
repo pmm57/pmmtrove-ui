@@ -25,17 +25,16 @@ if (Number(props.count) == 0) {
       break;
     case 5:
       classCount += 'text-bg-success';
-      break;  
+      break;
     default:
-      classCount += 'text-bg-danger';
+      classCount += 'custom-badge';
       break;
   }
 }
 </script>
 
 <template>
-    <span :class="classCount">{{ outCount }}</span>
+  <span :class="classCount">{{ outCount }}</span>
 </template>
 
-<style>
-</style>
+<style></style>

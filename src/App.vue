@@ -12,12 +12,12 @@ const navStore = useNavBarStore()
 var eventSourceUserCache = null
 //
 // This code handles the following SSE events from the server
-//    sseUserLists
+//    sseUserLists - Sent by Init User on initial login and relogin
 //    sseRemoveUserList
-//    sseUserListsArticles
+//    sseUserListsArticles - Sent by Init User to Cache Trove Lists and Linked Articles for Lists
 //    sseUserListsCounts
 //    sseMetaData
-//    sseUserListWithArticles
+//    sseUserListWithArticles - Sent from dispArticle - LoadListArticles  - 
 //    sseArticlePossibleDupArticle
 //    sseReloadViewedArticle
 //    sseUpdateListsArticleStatus
@@ -39,6 +39,27 @@ function handleMessage(e) {
         userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
         userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
         userData.userLists = sseRetrieve.cacheUserLists
+        userData.viewedArticles = sseRetrieve.cacheViewedArticles // Only has data on resendUserData
+        // console.log('sseUserLists - Viewed Articles ', JSON.stringify(sseRetrieve.cacheViewedArticles))
+
+        // Collect All Viewed Article Metadata
+        userData.userLists.forEach((listItem) => {
+          listItem.TroveListArticles.forEach((listArticle) => {
+            if (!listArticle.hasOwnProperty("TroveListArticleViewedIdx")) return
+            if (listArticle.TroveListArticleViewedIdx < 0) return
+            console.log('sseUserLists - Metadata 1 ', JSON.stringify(listArticle))
+            const viewedArticle = userData.viewedArticles[listArticle.TroveListArticleViewedIdx]
+            console.log('sseUserLists - Metadata 2 ', listItem.TroveListId,
+              JSON.stringify(viewedArticle))
+            if ((viewedArticle === undefined) || (!viewedArticle.hasOwnProperty("ViewedArticleMetadata"))) return
+            const viewedArticleMetadata = userData.viewedArticles[listArticle.TroveListArticleViewedIdx].ViewedArticleMetadata
+            if (viewedArticleMetadata.length < 1) return
+            console.log('sseUserLists - Metadata 3 ', listItem.TroveListId,
+              JSON.stringify(viewedArticleMetadata))
+            updMetadataTypeArticleLinks(listItem.TroveListId, listArticle.TroveListArticleId, listArticle.TroveListArticleViewedIdx,
+              viewedArticleMetadata)
+          })
+        })
         break
       case 'sseRemoveUserList':
         // console.log (JSON.stringify(sseRetrieve)) 
@@ -60,8 +81,16 @@ function handleMessage(e) {
         if (sseRetrieve.updatedListIndex == -1) {
           userData.userLists = sseRetrieve.cacheUserLists
         } else {
+          // Only One List
+          // var tempList = userData.userLists[sseRetrieve.updatedListIndex];
+          // var tempCache = sseRetrieve.cacheUserLists
+          // // Check if List Information has changed
+          // if (tempList.TroveListViewedDateText != tempCache.TroveListViewedDateText) {
+          //   userData.userLists[sseRetrieve.updatedListIndex].TroveListArticleMinedStatusCounts = tempCache.TroveListArticleMinedStatusCounts;
+          // }
+          // Check which List articles have changed
+          // console.log('sseUserListsArticles Update Index %s Have %s With %s', sseRetrieve.updatedListIndex, JSON.stringify(userData.userLists[sseRetrieve.updatedListIndex]), JSON.stringify(sseRetrieve.cacheUserLists))
           userData.userLists.splice(sseRetrieve.updatedListIndex, 1, sseRetrieve.cacheUserLists) // Triggers Reactivity
-          userData.userLists[sseRetrieve.updatedListIndex].TroveListArticleMinedStatusCounts = sseRetrieve.cacheUserLists.TroveListArticleMinedStatusCounts;
         }
         break
       case 'sseUserListsCounts':
@@ -81,25 +110,29 @@ function handleMessage(e) {
         navStore.disablePersonList = false
         break
       case 'sseUserListWithArticles':
-        // console.log (JSON.stringify(sseRetrieve))
+        // console.log(`userListsWithArticles %s`, JSON.stringify(sseRetrieve))
+        // cacheListIdIdx - index into userData.userLists
+        // cacheListArticleIdx - index into userData.lists[cacheListIdIdx].TroveListArticles
+        // cacheViewedArticleIdx - Index of new or updated Viewed Article in userData.viewedArticles
+        // cacheViewedArticle - new or updated 
         // Clear Edit Article
         navStore.articleId = 0
         navStore.articleHref = "";
-        navStore.articleTabTitle = "";
-        listIdx = userData.userLists.findIndex((item) => item.TroveListId === sseRetrieve.listId);
-        userData.userLists.splice(listIdx, 1, sseRetrieve.cacheUserListWithArticles) // Triggers Reactivity
-        console.log(`userLists %s`, JSON.stringify(userData.userLists[listIdx].TroveListArticles))
-        userData.viewedArticles = sseRetrieve.cacheViewedArticles
-
-        // Collect ViewedList Article Metadata
-        var arrayViewedArticleMetadata = []
-        userData.userLists[listIdx].TroveListArticles.forEach((listArticle) => {
-          if (listArticle.TroveListArticleViewedIdx < 0) return
-          console.log('sseUserListWithArticles - Metadata 1 ', sseRetrieve.listId,
-            JSON.stringify(userData.viewedArticles[listArticle.TroveListArticleViewedIdx].ViewedArticleMetadata))
-          updMetadataTypeArticleLinks(sseRetrieve.listId, listArticle.TroveListArticleId, listArticle.TroveListArticleViewedIdx,
-            userData.viewedArticles[listArticle.TroveListArticleViewedIdx].ViewedArticleMetadata)
-        })
+        navStore.articleTabTitle = "";//
+        // Updated User List Article Viewed Idx
+        userData.userLists[sseRetrieve.cacheListIdIdx].TroveListArticles[sseRetrieve.cacheListArticleIdx].TroveListArticleViewedIdx = sseRetrieve.cacheViewedArticleIdx
+        // Updated Viewed Articles
+        if (sseRetrieve.cacheViewedArticleIdx > userData.viewedArticles.length) {
+          userData.viewedArticles.push(sseRetrieve.cacheViewedArticle)
+        } else {
+          userData.viewedArticles[sseRetrieve.cacheViewedArticleIdx] = sseRetrieve.cacheViewedArticle
+        }
+        // Collect Viewed Article Metadata
+        console.log('sseUserListWithArticles - Metadata 1 ', userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
+          JSON.stringify(sseRetrieve.cacheViewedArticle.ViewedArticleMetadata))
+        updMetadataTypeArticleLinks(userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
+          userData.userLists[sseRetrieve.cacheListIdIdx].TroveListArticles[sseRetrieve.cacheListArticleIdx].TroveListArticleId,
+          sseRetrieve.cacheViewedArticleIdx, sseRetrieve.cacheViewedArticle.ViewedArticleMetadata)
         break
       case 'sseArticlePossibleDupArticle':
         articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
@@ -157,9 +190,9 @@ function updListsArticleStatus(listId, articleId, articleStatus, articleStatusTe
 // Whenever viewedArticles is updated update metadataTypeByMetadata to indicate Article link is enabled
 function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata) {
   // Wait until Metadata has been loaded
-  // console.log('App.vue updMetadataTypeArticleLinks: ', userData.metadataTypeByMetadata.length, arrayViewedArticleMetadata);
+  // console.log('App.vue updMetadataTypeArticleLinks: ', userData.metadataTypeByMetadata.length, viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata);
   if (userData.metadataTypeByMetadata.length == 0) {
-    setTimeout(updMetadataTypeArticleLinks, 3000, arrayViewedArticleMetadata);
+    setTimeout(updMetadataTypeArticleLinks, 3000, viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata);
   }
   // Collect ViewedArticle Metadata
   var arrayViewedArticleMetadata = []
@@ -325,6 +358,12 @@ verifyServerUp()
 
 <style scoped>
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
+
+/* Use Orang Badge */
+
+:global(.custom-badge) {
+  background-color: #ff9900;
+}
 
 /* Tooltip container */
 :global(.metadataPopover) {
