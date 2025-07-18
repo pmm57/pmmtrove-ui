@@ -625,7 +625,7 @@ initScreen();
                   }}
                 </router-link>
                 <br><span>List Articles </span>
-                <ArticleUrls :inline="true" :articleListArray="userData.userLists[linkedListIdx].TroveListArticles"
+                <ArticleUrls :inline="true" :articleListArray="userData.userListArticles[linkedListIdx]"
                   :troveListId="userData.userLists[linkedListIdx].TroveListId">
                 </ArticleUrls>
               </div>

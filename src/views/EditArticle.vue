@@ -20,10 +20,10 @@ navStore.articleTabTitle = "Article " + props.articleId
 var idxList = ref(0)
 idxList.value = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
 var idxListArticle = ref(0)
-idxListArticle.value = userData.userLists[idxList.value].TroveListArticles.findIndex((item) => item.TroveListArticleId == props.articleId);
+idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == props.articleId);
 // Has it been viewed previously
 var idxViewed = ref(0)
-idxViewed.value = userData.userLists[idxList.value].TroveListArticles[idxListArticle.value].TroveListArticleViewedIdx
+idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
 console.log('Edit Article View  ', idxList.value, idxListArticle.value, idxViewed.value)
 // console.log(`userData.viewedArticles:%s`, userData.viewedArticles)
 var disableUpdate = ref(true)
