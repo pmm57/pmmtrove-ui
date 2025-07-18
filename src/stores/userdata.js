@@ -8,6 +8,7 @@ export const useUserDataStore = defineStore('userData', () => {
   const troveQueryTotal = ref(0)
   const troveQueryArticleTotal = ref(0)
   const userDuplicateListIds = ref([])
+  const loadedIndex = ref(0)
   const userLists = reactive([])
 //   All the Trove Lists of a user - read from Trove
 // userLists = []; /
@@ -25,9 +26,9 @@ export const useUserDataStore = defineStore('userData', () => {
 // listItem.TroveListLoadState
 // listItem.TroveListLinkedPerson
 // listItem.TroveListArticleMinedStatusCounts
-// listItem.TroveListArticles []
 
-// TroveListArticles [] 
+  const userListArticles = reactive([])
+// A 2 dimensional array - First index is same as listItem
 //   TroveListArticleViewedIdx 
 //   TroveListArticleId FROM id => 
 //   TroveListArticleReqUrl FROM url => 
@@ -85,24 +86,37 @@ export const useUserDataStore = defineStore('userData', () => {
     troveDetails.value = {}
     troveQueryTotal.value = 0
     troveQueryArticleTotal.value = 0
+    loadedIndex.value = 0
     userDuplicateListIds.value = []
     userLists = []
+    userListArticles = []
     userListsReady.value = false
     viewedArticles = []
     metadataValueTotal.value = 0
     metadataTypeByMetadata.value = []
     }
   //
+  function updateListItemStatusCount(listIdx, count, minedStatusCounts) {
+      // console.log(`userData updateListItemStatusCount %s %s`, listIdx, JSON.stringify(this.userLists[listIdx]))
+      this.userLists[listIdx].TroveListItemCount = count
+      this.userLists[listIdx].TroveListArticleMinedStatusCounts = minedStatusCounts
+      console.log ("userData updateListItemStatusCount")
+  }
+//
   return { arrayMinedStatus,
     arrayMetadataTypes,
     troveDetails, 
     troveQueryTotal, 
     troveQueryArticleTotal, 
-    userDuplicateListIds, 
+    userDuplicateListIds,
+    loadedIndex,
     userLists, 
     userListsReady, 
     userReloadLists,
     viewedArticles, 
     metadataValueTotal, 
-    metadataTypeByMetadata, clearStore}
+    metadataTypeByMetadata, 
+    clearStore,
+    updateListItemStatusCount
+  }
 })

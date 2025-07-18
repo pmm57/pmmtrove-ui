@@ -64,7 +64,7 @@ async function loadListArticles(firstLoad) {
 //  Post array of Ignored Article Id's
 function ignoreArticles() {
   var items = [];
-  userData.userLists[idxList].TroveListArticles.forEach((article) => {
+  userData.userListArticles[idxList].forEach((article) => {
     items.push({ id: article.TroveListArticleId });
   });
   // console.log("clicked Save Ignored action " + JSON.stringify(items));
@@ -168,7 +168,7 @@ loadListArticles('true')
           </tr>
         </thead>
         <tbody>
-          <tr v-for="article in userData.userLists[idxList].TroveListArticles" :key="article.TroveListArticleId">
+          <tr v-for="article in userData.userListArticles[idxList]" :key="article.TroveListArticleId">
             <td class="text-nowrap">
               <router-link v-if="haveLink(article)"
                 :to="'/editArticle/' + userData.userLists[idxList].TroveListId + '/' + article.TroveListArticleId"

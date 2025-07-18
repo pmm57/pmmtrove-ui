@@ -15,29 +15,29 @@ var eventSourceUserCache = null
 
 const emit = defineEmits(['setupUserSse'])
 
-function handleMessage(e) {
-    clearInterval(intervalLoading);
-    var sseRetrieve = JSON.parse(e.data);
-    console.log('User Cache Event: ', userData.troveDetails.troveUserId);
-    emit('setupUserSse')
-    if (sseRetrieve.cacheUser == userData.troveDetails.troveUserId) {
-        // console.log (JSON.stringify(sseRetrieve))
-        userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
-        userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
-        userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
-        userData.userLists = sseRetrieve.cacheUserLists
-        loading.value = false
-        navBarStore.disableTroveLists = false
-    }
-}
-function handleError(e) {
-    if (e.target.readyState == EventSource.CLOSED) {
-        console.log("Disconnected sourceUserCache");
-    }
-    else if (e.target.readyState == EventSource.CONNECTING) {
-        console.log("Connecting sourceUserCache...");
-    }
-}
+// function handleMessage(e) {
+//     clearInterval(intervalLoading);
+//     var sseRetrieve = JSON.parse(e.data);
+//     console.log('User Cache Event: ', userData.troveDetails.troveUserId);
+//     emit('setupUserSse')
+//     if (sseRetrieve.cacheUser == userData.troveDetails.troveUserId) {
+//         // console.log (JSON.stringify(sseRetrieve))
+//         userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
+//         userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
+//         userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
+//         userData.userLists = sseRetrieve.cacheUserLists
+//         loading.value = false
+//         navBarStore.disableTroveLists = false
+//     }
+// }
+// function handleError(e) {
+//     if (e.target.readyState == EventSource.CLOSED) {
+//         console.log("Disconnected sourceUserCache");
+//     }
+//     else if (e.target.readyState == EventSource.CONNECTING) {
+//         console.log("Connecting sourceUserCache...");
+//     }
+// }
 function loadingTick() {
     intervalLoading = setInterval(tick, 500);
 }
@@ -51,11 +51,23 @@ watch(
         loading.value = false;
         clearInterval(intervalLoading);
         navBarStore.disableTroveLists = false;
-        // If this was a refresh - but the full load never completed force a refresh
+        // If this was a refresh - but the full load never completed
+        // Indicated by last list that is not a duplicate having a count > 0 but no artices in its Article Array
+        //  force a refresh
         if (userData.userReloadLists) {
             userData.userReloadLists = false;
-            if (userLists[userLists.length - 1].TroveListArticles.length == 0) {
-                updTroveLists()
+            for (let i = (userLists.length - 1); i >= 0; --i) {
+                console.log(`HomeView Reload: Duplicate Ids %s, Check Id %s, Count %s, Length %s`,
+                    userData.userDuplicateListIds, userLists[i].TroveListId, userData.userListArticles[i].TroveListItemCount, userData.userListArticles[i].length)
+                if (userData.userDuplicateListIds.includes(Number(userLists[i].TroveListId))) {
+                    console.log(`HomeView Reload: Matched Duplicate ID %s`, userLists[i].TroveListId)
+                } else {
+                    console.log(`HomeView Reload: Check Array Length %s %s`, userLists[i].TroveListId, userData.userListArticles[i].length)
+                    if (userData.userListArticles[i].length == 0) {
+                        updTroveLists()
+                    }
+                    break
+                }
             }
         }
     }
@@ -129,6 +141,7 @@ function updTroveLists() {
     <div v-if="userData.troveDetails.hasOwnProperty('troveUserId')" class="card">
         <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
         <p v-if="userData.userLists.length > 0">There are {{ userData.userLists.length }} Lists in Trove to manage</p>
+        <p v-if="userData.loadedIndex > 0">{{ userData.loadedIndex }} Lists have been Loaded</p>
         <div v-if="loading">
             {{ loadingMsg }}
         </div>
