@@ -49,6 +49,7 @@ function statusColour(status) {
 //
 async function loadListArticles(firstLoad) {
   console.log('UserListView ', props.listId, firstLoad);
+  userData.userReloadList = props.listId;
   const url = import.meta.env.VITE_SERVER_URL + "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
   const options = {
     method: "get",

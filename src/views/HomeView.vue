@@ -15,29 +15,6 @@ var eventSourceUserCache = null
 
 const emit = defineEmits(['setupUserSse'])
 
-// function handleMessage(e) {
-//     clearInterval(intervalLoading);
-//     var sseRetrieve = JSON.parse(e.data);
-//     console.log('User Cache Event: ', userData.troveDetails.troveUserId);
-//     emit('setupUserSse')
-//     if (sseRetrieve.cacheUser == userData.troveDetails.troveUserId) {
-//         // console.log (JSON.stringify(sseRetrieve))
-//         userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
-//         userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
-//         userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
-//         userData.userLists = sseRetrieve.cacheUserLists
-//         loading.value = false
-//         navBarStore.disableTroveLists = false
-//     }
-// }
-// function handleError(e) {
-//     if (e.target.readyState == EventSource.CLOSED) {
-//         console.log("Disconnected sourceUserCache");
-//     }
-//     else if (e.target.readyState == EventSource.CONNECTING) {
-//         console.log("Connecting sourceUserCache...");
-//     }
-// }
 function loadingTick() {
     intervalLoading = setInterval(tick, 500);
 }
@@ -46,8 +23,8 @@ function tick() {
 }
 // Asynch method in App.vue will set this
 watch(
-    () => userData.userLists,
-    (userLists) => {
+    () => userData.userListsReady,
+    () => {
         loading.value = false;
         clearInterval(intervalLoading);
         navBarStore.disableTroveLists = false;
@@ -56,13 +33,13 @@ watch(
         //  force a refresh
         if (userData.userReloadLists) {
             userData.userReloadLists = false;
-            for (let i = (userLists.length - 1); i >= 0; --i) {
+            for (let i = (userData.userLists.length - 1); i >= 0; --i) {
                 console.log(`HomeView Reload: Duplicate Ids %s, Check Id %s, Count %s, Length %s`,
                     userData.userDuplicateListIds, userLists[i].TroveListId, userData.userListArticles[i].TroveListItemCount, userData.userListArticles[i].length)
-                if (userData.userDuplicateListIds.includes(Number(userLists[i].TroveListId))) {
-                    console.log(`HomeView Reload: Matched Duplicate ID %s`, userLists[i].TroveListId)
+                if (userData.userDuplicateListIds.includes(Number(userData.userLists[i].TroveListId))) {
+                    console.log(`HomeView Reload: Matched Duplicate ID %s`, userData.userLists[i].TroveListId)
                 } else {
-                    console.log(`HomeView Reload: Check Array Length %s %s`, userLists[i].TroveListId, userData.userListArticles[i].length)
+                    console.log(`HomeView Reload: Check Array Length %s %s`, userData.userLists[i].TroveListId, userData.userListArticles[i].length)
                     if (userData.userListArticles[i].length == 0) {
                         updTroveLists()
                     }
@@ -140,8 +117,10 @@ function updTroveLists() {
 <template>
     <div v-if="userData.troveDetails.hasOwnProperty('troveUserId')" class="card">
         <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
-        <p v-if="userData.userLists.length > 0">There are {{ userData.userLists.length }} Lists in Trove to manage</p>
-        <p v-if="userData.loadedIndex > 0">{{ userData.loadedIndex }} Lists have been Loaded</p>
+        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.</p>
+        <p v-if="userData.userLists.length > 0">With {{ userData.troveQueryArticleTotal }} Articles to manage having
+            Ignored {{ userData.nbrUserIgnoredArticles }}</p>
+        <p v-if="userData.loadedIndex > 0">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
         <div v-if="loading">
             {{ loadingMsg }}
         </div>
