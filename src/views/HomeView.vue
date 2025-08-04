@@ -108,6 +108,7 @@ function updTroveLists() {
     inUserId = userData.troveDetails.troveUserId
     // Doing a refresh not a reload
     userData.userReloadLists = false;
+    userData.userListsReady = false;
     // as this is a reload  reset the users cached data
     userData.clearStore
     verifyUser(true)

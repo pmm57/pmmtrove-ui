@@ -9,7 +9,7 @@ export const useUserDataStore = defineStore('userData', () => {
   const troveQueryArticleTotal = ref(0)
   const nbrUserIgnoredArticles = ref(0)
   const userDuplicateListIds = ref([])
-  const loadedIndex = ref(0)
+  const loadedIndex = ref(-1)
   const userLists = reactive([])
 //   All the Trove Lists of a user - read from Trove
 // userLists = []; /
@@ -88,11 +88,10 @@ export const useUserDataStore = defineStore('userData', () => {
     troveDetails.value = {}
     troveQueryTotal.value = 0
     troveQueryArticleTotal.value = 0
-    loadedIndex.value = 0
+    loadedIndex.value = -1
     userDuplicateListIds.value = []
     userLists = []
     userListArticles = []
-    userListsReady.value = false
     viewedArticles = []
     metadataValueTotal.value = 0
     metadataTypeByMetadata.value = []
@@ -195,11 +194,12 @@ export const useUserDataStore = defineStore('userData', () => {
     return comparison;
   }
   //
-  function updateListItemStatusCount(listIdx, count, minedStatusCounts) {
-      // console.log(`this updateListItemStatusCount %s %s`, listIdx, JSON.stringify(this.userLists[listIdx]))
+  function updateListItemStatusCount(listIdx, loadStatus, count, minedStatusCounts) {
+      console.log(`this updateListItemStatusCount %s %s`, listIdx, JSON.stringify(this.userLists[listIdx]))
+      this.userLists[listIdx].TroveListLoadState = loadStatus
       this.userLists[listIdx].TroveListItemCount = count
       this.userLists[listIdx].TroveListArticleMinedStatusCounts = minedStatusCounts
-      console.log ("userData updateListItemStatusCount")
+      // console.log ("userData updateListItemStatusCount")
   }
 //
   return { arrayMinedStatus,
