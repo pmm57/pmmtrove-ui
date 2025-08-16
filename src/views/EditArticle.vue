@@ -21,6 +21,8 @@ var idxList = ref(0)
 idxList.value = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
 var idxListArticle = ref(0)
 idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == props.articleId);
+var viewArticleText = ref('');
+var searchTextWord = ref('')
 // Has it been viewed previously
 var idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
@@ -36,16 +38,115 @@ var editMetadata = ref(-1)
 var notifyEditError = ref('inherit')
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName InitialAs N. b.9999-d.9999'
 const popoverDateMetadata = 'Enter as YYYY-MM-DD'
+const markSearch = '<mark class="search">'
+const markEnd = '</mark>'
+const divSelect = '<div style="text-decoration: underline;">'
+const divEnd = '</div>'
 var popoverForMetadata = ref('')
 var savedMetadata = []
 var arrayMetadataDropdown = ref([])
+//
+function loadArticleText() {
+    console.log('EditArticle loadArticleText ', userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length)
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length > 0) {
+        viewArticleText.value = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText;
+        // console.log(`EditArticle loadArticleText Snips In %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+        if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
+            // Mark Selected Text
+            const snips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips);
+            // console.log(`EditArticle loadArticleText Snips %s`, JSON.stringify(snips))
+            for (let snip of snips) {
+                if (snip.snips.length == 0) continue;
+                let pos1 = sliceMatch(0, snip.snips, viewArticleText.value);
+                // console.log(`EditArticle loadArticleText PreSnip Pos1 "%s"`, viewArticleText.value.slice(pos1, pos1 + 10))
+                // let pos2 = sliceMatch(pos1, snip.snipe, viewArticleText.value) + snip.snipe.length + 1;
+                let pos2 = sliceMatch(pos1 + snip.snipe.length, snip.snipe, viewArticleText.value);
+                // console.log(`EditArticle loadArticleText PreSnip Pos2 "%s"`, viewArticleText.value.slice(pos2 - 10, pos2))
+                // console.log(`EditArticle loadArticleText Snip Pos1 %s, Pos2 %s Text %s`, pos1, pos2, viewArticleText.value.length)
+                if ((pos1 > -1) && (pos2 > pos1)) {
+                    // console.log(`EditArticle loadArticleText Sniping Pos1 %s, Pos2 %s`, pos1, pos2)
+                    const part1 = viewArticleText.value.slice(0, pos1)
+                    const part2 = viewArticleText.value.slice(pos1, pos2)
+                    const part3 = viewArticleText.value.slice(pos2)
+                    viewArticleText.value = part1 + divSelect + part2
+                        + divEnd + part3
 
+                    // console.log(`EditArticle loadArticleText After Snips Start "%s"`, part2.slice(0, 50))
+                    // console.log(`EditArticle loadArticleText After Snips End "%s"`, part3.slice(0, 50))
+                    // console.log(`EditArticle loadArticleText Snip Marked`)
+                }
+            }
+        }
+        // Mark Search Word
+        searchTextWord.value = userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord
+        // console.log('EditArticle loadArticleText Search', searchTextWord.value, viewArticleText.value.length)
+        var re = new RegExp("(" + searchTextWord.value + ")", "gi");
+        userData.viewedArticles[idxViewed.value].ViewedArticleFoundCount = (viewArticleText.value.match(re) || []).length;
+        viewArticleText.value = viewArticleText.value.replace(re, function (matched) {
+            // console.log("matched", matched)
+            return markSearch + matched + markEnd
+        })
+        // console.log('EditArticle loadArticleText Search After', viewArticleText.value.length)
+    }
+}
+//
+function sliceMatch(start, match, text) {
+    const chunkSize = match.length + 20;
+    for (let i = start; i <= text.length; i++) {
+        const sliceText = cleanText(text.slice(i, i + chunkSize));
+        if (sliceText.startsWith(match)) {
+            // If at start - encapsulate previous <p>
+            // console.log('EditArticle loadArticleText sliceMatch found "%s" at %s in "%s"', match, i, sliceText)
+            var pos = i
+            if (start == 0) {
+                // Don't go negative
+                var st = (pos - 20)
+                if (st < 0) st = 0;
+                const ckst = text.slice(st, i);
+                pos = i + slidePos(-1, '<p>', ckst.length - 1, ckst)
+                // console.log('EditArticle loadArticleText sliceMatch slides %s at "%s"', pos, ckst)
+            } else { // at end
+                pos = pos + match.length
+                // Don't go beyond end of text
+                var en = pos + 20
+                if (pos > text.length) pos = text.length;
+                const cken = text.slice(pos, en)
+                // console.log('EditArticle loadArticleText sliceMatch before slide %s at "%s"', pos, cken)
+                const posSlide = slidePos(1, '</p>', 0, cken);
+                if (posSlide > 0) {
+                    pos = pos + posSlide + '</p>'.length
+                }
+                // console.log('EditArticle loadArticleText sliceMatch slides %s at "%s"', pos, cken)
+            }
+            return pos
+        }
+    }
+    // console.log('EditArticle loadArticleText sliceMatch NOT found %s', match)
+    return 0
+}
+//
+function slidePos(slideBy, slideFor, checkPtr, chunk) {
+    // console.log('EditArticle loadArticleText slidePos start slideBy %s, slideFor %s, checkPtr %s, chunk "%s", check "%s" ',
+    //  slideBy, slideFor, checkPtr, chunk, chunk.slice(checkPtr, checkPtr + 1))
+    var slide = slideBy
+    while (chunk.slice(checkPtr, checkPtr + slideFor.length) != slideFor) {
+        slide = slide + slideBy;
+        checkPtr = checkPtr + slideBy
+        // console.log('EditArticle loadArticleText slidePos chunk "%s", check "%s", slide %s ', chunk, chunk.slice(checkPtr, checkPtr + 2), slide)
+        if ((checkPtr < 0) || (checkPtr > chunk.length - 1)) {
+            // console.log('EditArticle loadArticleText slidePos not found %s', slideFor)
+            return 0
+        }
+    }
+    // console.log('EditArticle loadArticleText slidePos found %s at %s', slideFor, slide)
+    return slide;
+}
 // Scroll to Search Word in Trove Article, identify by <mark>
 function scrollSearchWord(event) {
-    var pattern = new RegExp("(<mark>)", "gi");
-    const searchFound = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.search(pattern)
+    const searchFound = viewArticleText.value.indexOf(markSearch)
+    // console.log(`EditArticle scrollSearchWord Searches %s`, searchFound)
     if (searchFound > 0) {
-        const textLength = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length
+        const textLength = viewArticleText.value.length
         const scrollPercent = searchFound / textLength
         const scrollPixels = event.currentTarget.scrollHeight * scrollPercent;
         // console.log(pattern, searchFound, textLength, event.currentTarget.scrollHeight, scrollPixels);
@@ -57,17 +158,25 @@ function scrollSearchWord(event) {
     }
 }
 // Capture highlighted text in Trove Article
+// Extract Snip Start and End
 function getSelectedText() {
     const selection = window.getSelection()
     var selectedText = selection.toString()
-    // Change word line break hypens to space
-    var text1 = selectedText.replace(/-\n/g, " ");
-    // Remove "- "
-    selectedText = text1.replace(/- /g, "");
-    // Change linebreak to space
-    text1 = selectedText.replace(/\n/g, " ");
-    // remove double spaces
-    selectedText = text1.replace(/  +/g, ' ');
+    var snips = [];
+    // console.log(`EditArticle getSelectedText In Snips %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
+        snips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    }
+    const snip = {
+        snips: getSnipText(selectedText, 5),
+        snipe: getSnipText(selectedText, -5)
+    };
+    snips.push(snip);
+    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(snips)
+    // console.log(`EditArticle getSelectedText Snips Out %s`, JSON.stringify(snips))
+    loadArticleText()
+    //
+    selectedText = cleanText(selectedText);
     // console.log (selection, selectedText)
     if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
         userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText += '\n' + selectedText
@@ -78,6 +187,58 @@ function getSelectedText() {
     if (userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText == "Created") {
         userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
     }
+}
+// Standardise the text
+function cleanText(inText) {
+    // Change word line break hypens to space
+    inText = inText.replace(/-\n/g, " ");
+    // Remove "- "
+    inText = inText.replace(/- /g, "");
+    // Change linebreak to space
+    inText = inText.replace(/\n/g, " ");
+    // remove double spaces
+    inText = inText.replace(/  +/g, ' ');
+    // Remove html
+    return inText.replace(/<[^>]*>/g, "");
+}
+// Ensure snips are unique
+function getSnipText(selText, len) {
+    var fullText = cleanText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
+    // console.log (`Article Text Front "%s" Back "%s"`, fullText.slice(0, 20), fullText.slice(-20))
+    selText = cleanText(selText)
+    // console.log (`Selected Text Front "%s" Back "%s"`, selText.slice(0, 20), selText.slice(-20))
+    let done = false;
+    var snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
+    do {
+        // console.log (`Len %s snipText "%s"`, len, snipText)
+        let pos1 = fullText.indexOf(snipText);
+        let pos2 = -1
+        if ((pos1 + snipText.length - 1) < fullText.length) {
+            pos2 = fullText.indexOf(snipText, pos1 + snipText.length - 1);
+        }
+        // console.log (`Match pos1 %s pos2 %s`, pos1, pos2)
+        if (pos2 > 0) {
+            console.log(`EditArticle getSnipText Found two "%s"`, snipText)
+            len = len < 0 ? len - 1 : len + 1;
+            snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
+            continue
+        }
+        if (pos1 > 0) {
+            // console.log (`Found one "%s"`, snipText)
+        } else {
+            console.log(`EditArticle getSnipText NOT FOUND "%s" %s`, snipText)
+        }
+        done = true
+    } while (!done);
+    return snipText
+}
+//
+function removeData() {
+    disableUpdate.value = false
+    userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Created"
+    userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = ''
+    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = ''
+    loadArticleText()
 }
 //
 // Async Do Fetch
@@ -130,6 +291,7 @@ function saveData() {
         'articleMinedStatusText': userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText,
         'metadata': userData.viewedArticles[idxViewed.value].ViewedArticleMetadata,
         'selectedData': userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText,
+        'selectedTextSnips': userData.viewedArticles[idxViewed.value].ViewedArticleSnips,
         'summaryData': userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText
     }
     if (updatedData.selectedData.length == 0) {
@@ -161,6 +323,11 @@ function changeMinedStatus(newMinedStatus) {
     userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = newMinedStatus
     disableUpdate.value = false
 }
+//  Set the Article Original Text
+watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText, () => {
+    loadArticleText();
+    return
+})
 //  Set the popover hint and dropdown when Edit is started
 watch(editMetadata, (newEditMetadata) => {
     if (newEditMetadata > -1) setupEditedFields(newEditMetadata)
@@ -169,13 +336,11 @@ watch(editMetadata, (newEditMetadata) => {
 //  Enable Updata Data Button
 watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText, () => {
     disableUpdate.value = false
-    return
 },
     { once: true }
 )
 watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText, () => {
     disableUpdate.value = false
-    return
 },
     { once: true }
 )
@@ -220,10 +385,10 @@ function updateMetadata(action, index) {
     switch (action) {
         case 'Cancel':
             editMetadata.value = -1;
-            if (savedMetadata.length == 0) {
-                userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index);
+            if (savedMetadata.value.length == 0) {
+                userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index, 1);
             } else {
-                userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index] = savedMetadata;
+                userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index] = savedMetadata.value;
             }
             break;
         case 'Check':
@@ -241,16 +406,16 @@ function updateMetadata(action, index) {
             }
             break;
         case 'Del':
-            userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index);
+            userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index, 1);
             disableUpdate.value = false;
             break;
         case 'Edit':
             if (index) {
                 editMetadata.value = index;
-                savedMetadata = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index];
+                savedMetadata.value = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index];
             } else {
                 editMetadata.value = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.length - 1;
-                savedMetadata = [];
+                savedMetadata.value = [];
             }
             break;
         case 'New':
@@ -364,6 +529,7 @@ function checkInputDate(stringDate) {
     return '';
 }
 //
+loadArticleText();
 loadArticle(true)
 //
 if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
@@ -599,21 +765,27 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                             <div class="card">
                                 <div @scroll.once="scrollSearchWord" @mouseup="getSelectedText" id="textTrove"
                                     class="card-body overflow-auto" style="max-height: 300px">
-                                    <span v-html="userData.viewedArticles[idxViewed].ViewedArticleOriginalText"></span>
+                                    <span v-html="viewArticleText"></span>
                                 </div>
                             </div>
                         </details>
                     </div>
                     <div class="row">
                         <details :open="showSelectedText">
-                            <summary>
-                                Your Selected Text
+                            <summary style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Your Selected Text</span>
+                                <button
+                                    :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticleSelectedText.length == 0 }"
+                                    @click.prevent="removeData" class="btn btn-primary">
+                                    Remove Selected Data
+                                </button>
                             </summary>
                             <div class="form-group pre-scrollable" style="max-height: 75vh">
-                                <textarea @input.once="disableUpdate = false"
+                                <textarea
                                     v-model.lazy.trim="userData.viewedArticles[idxViewed].ViewedArticleSelectedText"
                                     class="form-control" style="max-height: 300px" rows=40
-                                    placeholder="Select from above panel to copy here, then save" tabindex="1000">
+                                    placeholder="Select from above panel to copy here, then save" tabindex="1000"
+                                    readonly>
             </textarea>
                             </div>
                         </details>
@@ -640,7 +812,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
 </template>
 
 <style scoped>
-mark {
+mark.search {
     text-decoration: "underline"
 }
 </style>
