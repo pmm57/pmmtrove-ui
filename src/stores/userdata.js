@@ -65,6 +65,7 @@ export const useUserDataStore = defineStore('userData', () => {
   // ViewedArticleGetDB FROM TroveArticleGetDB => 
   // ViewedArticleRetrieveDB FROM TroveArticleRetrieveDB => 
   // ViewedArticleSelectedText FROM TroveArticleSelectedText => 
+  // ViewedArticleSnips FROM TroveArticleTextSnips - JSON array as string [{snips:"xxxxxx",snipe:"xxxxxxx"}, ....]
   // ViewedArticleSummaryText FROM TroveArticleSummaryText => 
   // ViewedArticlePossibleDupArticle []
   //             TroveArticleId
