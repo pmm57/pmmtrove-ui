@@ -46,6 +46,82 @@ var popoverForMetadata = ref('')
 var savedMetadata = []
 var arrayMetadataDropdown = ref([])
 //
+// Capture highlighted text in Trove Article
+// Extract Snip Start and End
+function getSelectedText() {
+    const selection = window.getSelection()
+    var selectedText = selection.toString()
+    var snips = [];
+    // console.log(`EditArticle getSelectedText In Snips %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
+        snips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    }
+    const snip = {
+        snips: getSnipText(selectedText, 5),
+        snipe: getSnipText(selectedText, -5)
+    };
+    snips.push(snip);
+    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(snips)
+    // console.log(`EditArticle getSelectedText Snips Out %s`, JSON.stringify(snips))
+    loadArticleText()
+    //
+    selectedText = cleanText(selectedText);
+    // console.log (selection, selectedText)
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
+        userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText += '\n' + selectedText
+    } else {
+        userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = selectedText
+    }
+    disableUpdate.value = false
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText == "Created") {
+        userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
+    }
+}
+// Standardise the text
+function cleanText(inText) {
+    // Change word line break hypens to space
+    inText = inText.replace(/-\n/g, " ");
+    // Remove "- "
+    inText = inText.replace(/- /g, "");
+    // Change linebreak to space
+    inText = inText.replace(/\n/g, " ");
+    // remove double spaces
+    inText = inText.replace(/  +/g, ' ');
+    // Remove html
+    return inText.replace(/<[^>]*>/g, "");
+}
+// Ensure snips are unique
+function getSnipText(selText, len) {
+    var fullText = cleanText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
+    // console.log (`Article Text Front "%s" Back "%s"`, fullText.slice(0, 20), fullText.slice(-20))
+    selText = cleanText(selText)
+    // console.log (`Selected Text Front "%s" Back "%s"`, selText.slice(0, 20), selText.slice(-20))
+    let done = false;
+    var snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
+    do {
+        // console.log (`Len %s snipText "%s"`, len, snipText)
+        let pos1 = fullText.indexOf(snipText);
+        let pos2 = -1
+        if ((pos1 + snipText.length - 1) < fullText.length) {
+            pos2 = fullText.indexOf(snipText, pos1 + snipText.length - 1);
+        }
+        // console.log (`Match pos1 %s pos2 %s`, pos1, pos2)
+        if (pos2 > 0) {
+            console.log(`EditArticle getSnipText Found two "%s"`, snipText)
+            len = len < 0 ? len - 1 : len + 1;
+            snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
+            continue
+        }
+        if (pos1 > 0) {
+            // console.log (`Found one "%s"`, snipText)
+        } else {
+            console.log(`EditArticle getSnipText NOT FOUND "%s" %s`, snipText)
+        }
+        done = true
+    } while (!done);
+    return snipText
+}
+//
 function loadArticleText() {
     console.log('EditArticle loadArticleText ', userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length)
     if (userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length > 0) {
@@ -156,81 +232,6 @@ function scrollSearchWord(event) {
             behavior: "smooth",
         });
     }
-}
-// Capture highlighted text in Trove Article
-// Extract Snip Start and End
-function getSelectedText() {
-    const selection = window.getSelection()
-    var selectedText = selection.toString()
-    var snips = [];
-    // console.log(`EditArticle getSelectedText In Snips %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
-        snips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
-    }
-    const snip = {
-        snips: getSnipText(selectedText, 5),
-        snipe: getSnipText(selectedText, -5)
-    };
-    snips.push(snip);
-    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(snips)
-    // console.log(`EditArticle getSelectedText Snips Out %s`, JSON.stringify(snips))
-    loadArticleText()
-    //
-    selectedText = cleanText(selectedText);
-    // console.log (selection, selectedText)
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
-        userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText += '\n' + selectedText
-    } else {
-        userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = selectedText
-    }
-    disableUpdate.value = false
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText == "Created") {
-        userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
-    }
-}
-// Standardise the text
-function cleanText(inText) {
-    // Change word line break hypens to space
-    inText = inText.replace(/-\n/g, " ");
-    // Remove "- "
-    inText = inText.replace(/- /g, "");
-    // Change linebreak to space
-    inText = inText.replace(/\n/g, " ");
-    // remove double spaces
-    inText = inText.replace(/  +/g, ' ');
-    // Remove html
-    return inText.replace(/<[^>]*>/g, "");
-}
-// Ensure snips are unique
-function getSnipText(selText, len) {
-    var fullText = cleanText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
-    // console.log (`Article Text Front "%s" Back "%s"`, fullText.slice(0, 20), fullText.slice(-20))
-    selText = cleanText(selText)
-    // console.log (`Selected Text Front "%s" Back "%s"`, selText.slice(0, 20), selText.slice(-20))
-    let done = false;
-    var snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
-    do {
-        // console.log (`Len %s snipText "%s"`, len, snipText)
-        let pos1 = fullText.indexOf(snipText);
-        let pos2 = -1
-        if ((pos1 + snipText.length - 1) < fullText.length) {
-            pos2 = fullText.indexOf(snipText, pos1 + snipText.length - 1);
-        }
-        // console.log (`Match pos1 %s pos2 %s`, pos1, pos2)
-        if (pos2 > 0) {
-            console.log(`EditArticle getSnipText Found two "%s"`, snipText)
-            len = len < 0 ? len - 1 : len + 1;
-            snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
-            continue
-        }
-        if (pos1 > 0) {
-            // console.log (`Found one "%s"`, snipText)
-        } else {
-            console.log(`EditArticle getSnipText NOT FOUND "%s" %s`, snipText)
-        }
-        done = true
-    } while (!done);
-    return snipText
 }
 //
 function removeData() {
