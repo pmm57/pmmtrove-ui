@@ -2,14 +2,15 @@
 import ModalEntities from '@/components/ModalEntities.vue'
 import ModalDuplicates from '@/components/ModalDuplicates.vue'
 import EditItem from '@/components/EditItem.vue'
-import { ref, watch, nextTick } from 'vue'
+import { ref, reactive, watch, nextTick } from 'vue'
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
 import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
-
+import { useToast } from 'vue-toastification'
+const toast = useToast()
 const props = defineProps(['listId', 'articleId'])
 console.log(`Edit Article View List:%s , Article:%s`, props.listId, props.articleId)
 
@@ -23,6 +24,7 @@ var idxListArticle = ref(0)
 idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == props.articleId);
 var viewArticleText = ref('');
 var searchTextWord = ref('')
+const articleRef = ref(null);
 // Has it been viewed previously
 var idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
@@ -40,45 +42,85 @@ const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName I
 const popoverDateMetadata = 'Enter as YYYY-MM-DD'
 const markSearch = '<mark class="search">'
 const markEnd = '</mark>'
-const divSelect = '<div style="text-decoration: underline;">'
+const divSelectConst = '<div class="snip-block" data-snipnbr="x">'
 const divEnd = '</div>'
+const handleStart = '&#x25C0;'
+const spanHandleStart = `<span class="snip-handle snip-handle-start" draggable="true" data-handle="start">` + handleStart + `</span>`
+const handleEnd = `&#x25B6;`
+const spanHandleEnd = `<span class="snip-handle snip-handle-end" draggable="true" data-handle="end">` + handleEnd + `</span>`
+var snipChange = -1
+var articleSnips = [];
+var articleSnipsOld = []
+var updSnip = {}
+var updSnipOld = {}
+var snipedText = ref([])
+var showToolbar = ref(false)
+var snipCancelDisabled = ref(true)
+var snipDropDisabled = ref(true)
+var snipUpdateDisabled = ref(true)
+var updSelectTextDisabled = ref(true)
+var cancelUpdTextDisabled = ref(true)
+var deleteSelectedTextDisabled = ref(true)
 var popoverForMetadata = ref('')
 var savedMetadata = []
 var arrayMetadataDropdown = ref([])
 //
 // Capture highlighted text in Trove Article
 // Extract Snip Start and End
-function getSelectedText() {
+function snipHighlightedText(event) {
+    const snipDiv = event.currentTarget
+
+    // console.log(`EditArticle snipHighlightedText`, snipDiv)
+    // if (snipDiv.querySelector('.snip-block')) return // Within Snip
     const selection = window.getSelection()
     var selectedText = selection.toString()
-    var snips = [];
-    // console.log(`EditArticle getSelectedText In Snips %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
-        snips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    if (selectedText.length < 3) return false;
+    const snip = getSnip(selectedText)
+    if ((typeof snip === 'boolean') && (!snip)) return false;
+    articleSnips.push(snip);
+    updSnip = { ...snip };
+    updSnipOld = {}
+    snipChange = articleSnips.length - 1
+    // console.log(`EditArticle snipText Snips Out %s`, JSON.stringify(snips))
+    loadArticleText()
+    // Sets articleSnipsOld = []
+    snipSelAction('endDrag', '')
+}
+//
+function getSnip(selectedText) {
+    // Check snip long enough
+    if (selectedText.length < 20) {
+        console.log(`EditArticle getSnip Snip Not Long "%s"`, selectedText)
+        toast.error('Snip to be longer then 20, pls redo')
+        return false
     }
     const snip = {
-        snips: getSnipText(selectedText, 5),
-        snipe: getSnipText(selectedText, -5)
+        snips: getSnipText(selectedText, 5),// Updates snips.text, snips.posText
+        snipe: getSnipText(selectedText, -5)// Updates snipe.text, snipe.posText
     };
-    snips.push(snip);
-    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(snips)
-    // console.log(`EditArticle getSelectedText Snips Out %s`, JSON.stringify(snips))
-    loadArticleText()
-    //
-    selectedText = cleanText(selectedText);
-    // console.log (selection, selectedText)
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
-        userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText += '\n' + selectedText
-    } else {
-        userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = selectedText
+    console.log(`EditArticle getSnip Snip %s`, JSON.stringify(snip))
+    // Check snip  is unique
+    if ((snip.snips.posText < 0) || (snip.snipe.posText < 0)) {
+        console.log(`EditArticle getSnip Snip Not Unique `)
+        toast.error('Snip not unique, pls redo')
+        return false
     }
-    disableUpdate.value = false
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText == "Created") {
-        userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
+    // Check for snip overlap
+    for (const asnip of articleSnips) {
+        if (Object.keys(asnip).length === 0) continue
+        console.log(`EditArticle getSnip Snip %s Overlap Check %s`, JSON.stringify(snip), JSON.stringify(asnip))
+        if (((snip.snips.posText >= asnip.snips.posText) && (snip.snips.posText <= asnip.snipe.posText))
+            || ((snip.snipe.posText >= asnip.snips.posText) && (snip.snipe.posText <= asnip.snipe.posText))
+            || ((snip.snips.posText < asnip.snips.posText) && (snip.snipe.posText > asnip.snipe.posText))) {
+            console.log(`EditArticle getSnip Snip Overlap `)
+            toast.error('Overlapping snip, pls redo')
+            return false
+        }
     }
+    return snip
 }
 // Standardise the text
-function cleanText(inText) {
+function cleanUpText(inText) {
     // Change word line break hypens to space
     inText = inText.replace(/-\n/g, " ");
     // Remove "- "
@@ -87,56 +129,83 @@ function cleanText(inText) {
     inText = inText.replace(/\n/g, " ");
     // remove double spaces
     inText = inText.replace(/  +/g, ' ');
+    // remove handles
+    inText = inText.replace(/\u25C0/g, "");
+    inText = inText.replace(/\u25B6/g, "");
     // Remove html
-    return inText.replace(/<[^>]*>/g, "");
+    const temp = document.createElement("div");
+    temp.innerHTML = inText;
+    const cleanUpText = temp.textContent || temp.innerText || "";
+    return cleanUpText;
 }
-// Ensure snips are unique
+// Ensure snips are unique returns posText
 function getSnipText(selText, len) {
-    var fullText = cleanText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
-    // console.log (`Article Text Front "%s" Back "%s"`, fullText.slice(0, 20), fullText.slice(-20))
-    selText = cleanText(selText)
+    var cleanText = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
+    // console.log (`Article Text Front "%s" Back "%s"`, cleanText.slice(0, 20), cleanText.slice(-20))
+    selText = cleanUpText(selText)
     // console.log (`Selected Text Front "%s" Back "%s"`, selText.slice(0, 20), selText.slice(-20))
     let done = false;
+    var tryMatch = 0
     var snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
+    let pos1 = -1
     do {
-        // console.log (`Len %s snipText "%s"`, len, snipText)
-        let pos1 = fullText.indexOf(snipText);
+        console.log(`EditArticle getSnipText Len %s snipText "%s"`, len, snipText)
+        pos1 = cleanText.indexOf(snipText);
         let pos2 = -1
-        if ((pos1 + snipText.length - 1) < fullText.length) {
-            pos2 = fullText.indexOf(snipText, pos1 + snipText.length - 1);
+        if ((pos1 + snipText.length - 1) < cleanText.length) {
+            pos2 = cleanText.indexOf(snipText, pos1 + snipText.length - 1);
         }
-        // console.log (`Match pos1 %s pos2 %s`, pos1, pos2)
+        console.log(`EditArticle getSnipText Match pos1 %s pos2 %s`, pos1, pos2)
         if (pos2 > 0) {
             console.log(`EditArticle getSnipText Found two "%s"`, snipText)
-            len = len < 0 ? len - 1 : len + 1;
-            snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
-            continue
+            tryMatch += 1
+            if (tryMatch < snipText.length) {
+                len = len < 0 ? len - 1 : len + 1;
+                snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
+                console.log(`EditArticle getSnipText try "%s"`, snipText)
+                continue
+            } else {
+                pos1 = -1;
+                console.log(`EditArticle getSnipText NOT Unique "%s"`, snipText)
+            }
         }
         if (pos1 > 0) {
-            // console.log (`Found one "%s"`, snipText)
+            console.log(`EditArticle getSnipText Found one "%s"`, snipText)
         } else {
-            console.log(`EditArticle getSnipText NOT FOUND "%s" %s`, snipText)
+            pos1 = -1;
+            console.log(`EditArticle getSnipText NOT FOUND "%s"`, snipText)
         }
         done = true
     } while (!done);
-    return snipText
+    return { text: snipText, posText: pos1 }
 }
 //
 function loadArticleText() {
-    console.log('EditArticle loadArticleText ', userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length)
+    console.log('EditArticle loadArticleText length', userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length)
     if (userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length > 0) {
         viewArticleText.value = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText;
-        // console.log(`EditArticle loadArticleText Snips In %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
-        if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
+        if (articleSnips.length > 0) {
+            snipedText.value = []
             // Mark Selected Text
-            const snips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips);
-            // console.log(`EditArticle loadArticleText Snips %s`, JSON.stringify(snips))
-            for (let snip of snips) {
-                if (snip.snips.length == 0) continue;
-                let pos1 = sliceMatch(0, snip.snips, viewArticleText.value);
+            console.log(`EditArticle loadArticleText Snips Before %s`, JSON.stringify(articleSnips))
+            var snipNbr = -1;
+            var handleStart = ''
+            var handleEnd = ''
+            for (let snip of articleSnips) {
+                if (snip.snips.text.length == 0) continue;
+                snipNbr += 1
+                const divSelect = divSelectConst.replace('x', snipNbr)
+                if (snipChange == snipNbr) {
+                    handleStart = spanHandleStart
+                    handleEnd = spanHandleEnd
+                } else {
+                    handleStart = divSelect
+                    handleEnd = divEnd
+                }
+                let pos1 = sliceMatch(0, snip.snips.text, viewArticleText.value);
                 // console.log(`EditArticle loadArticleText PreSnip Pos1 "%s"`, viewArticleText.value.slice(pos1, pos1 + 10))
                 // let pos2 = sliceMatch(pos1, snip.snipe, viewArticleText.value) + snip.snipe.length + 1;
-                let pos2 = sliceMatch(pos1 + snip.snipe.length, snip.snipe, viewArticleText.value);
+                let pos2 = sliceMatch(pos1 + snip.snipe.text.length, snip.snipe.text, viewArticleText.value);
                 // console.log(`EditArticle loadArticleText PreSnip Pos2 "%s"`, viewArticleText.value.slice(pos2 - 10, pos2))
                 // console.log(`EditArticle loadArticleText Snip Pos1 %s, Pos2 %s Text %s`, pos1, pos2, viewArticleText.value.length)
                 if ((pos1 > -1) && (pos2 > pos1)) {
@@ -144,14 +213,11 @@ function loadArticleText() {
                     const part1 = viewArticleText.value.slice(0, pos1)
                     const part2 = viewArticleText.value.slice(pos1, pos2)
                     const part3 = viewArticleText.value.slice(pos2)
-                    viewArticleText.value = part1 + divSelect + part2
-                        + divEnd + part3
-
-                    // console.log(`EditArticle loadArticleText After Snips Start "%s"`, part2.slice(0, 50))
-                    // console.log(`EditArticle loadArticleText After Snips End "%s"`, part3.slice(0, 50))
-                    // console.log(`EditArticle loadArticleText Snip Marked`)
+                    viewArticleText.value = part1 + handleStart + part2 + handleEnd + part3
+                    updSnipedTextArray(snip)
                 }
             }
+            console.log(`EditArticle loadArticleText Snips After Selects %s`, JSON.stringify(articleSnips))
         }
         // Mark Search Word
         searchTextWord.value = userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord
@@ -169,7 +235,7 @@ function loadArticleText() {
 function sliceMatch(start, match, text) {
     const chunkSize = match.length + 20;
     for (let i = start; i <= text.length; i++) {
-        const sliceText = cleanText(text.slice(i, i + chunkSize));
+        const sliceText = cleanUpText(text.slice(i, i + chunkSize));
         if (sliceText.startsWith(match)) {
             // If at start - encapsulate previous <p>
             // console.log('EditArticle loadArticleText sliceMatch found "%s" at %s in "%s"', match, i, sliceText)
@@ -217,6 +283,14 @@ function slidePos(slideBy, slideFor, checkPtr, chunk) {
     // console.log('EditArticle loadArticleText slidePos found %s at %s', slideFor, slide)
     return slide;
 }
+//
+function updSnipedTextArray(thisSnip) {
+    const cleanSource = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText)
+    const posStart = cleanSource.indexOf(thisSnip.snips.text)
+    const posEnd = cleanSource.indexOf(thisSnip.snipe.text) + thisSnip.snipe.text.length
+    const selectedText = cleanSource.slice(posStart, posEnd)
+    snipedText.value.push(selectedText)
+}
 // Scroll to Search Word in Trove Article, identify by <mark>
 function scrollSearchWord(event) {
     const searchFound = viewArticleText.value.indexOf(markSearch)
@@ -233,13 +307,201 @@ function scrollSearchWord(event) {
         });
     }
 }
+// Inject handles when snip is clicked
+function activateHandles(event) {
+    const snipDiv = event.target.closest('.snip-block');
+    if (!snipDiv || snipDiv.parentElement.classList.contains('snip-wrapper')) return;
+    snipChange = snipDiv.dataset.snipnbr
+    updSnipOld = { ...articleSnips[snipChange] }  // Save Old
+    console.log(`EditArticle activateHandles %s, %s`, snipChange, JSON.stringify(updSnipOld))
+    loadArticleText()
+    // Sets articleSnipsOld = []
+    snipSelAction('selected', '')
+}
+// Manage Selected Snip Buttons
+function snipSelAction(actionSnip, actionText) {
+    console.log(`EditArticle snipSelAction %s, %s`, actionSnip, actionText)
+    switch (actionText) {
+        case "update":
+            updSelectTextDisabled.value = false
+            cancelUpdTextDisabled.value = false
+            showToolbar.value = true
+            break
+        default:
+            updSelectTextDisabled.value = true
+            cancelUpdTextDisabled.value = true
+            articleSnipsOld.length = 0
+
+    }
+    switch (actionSnip) {
+        case "selected":
+            snipCancelDisabled.value = false
+            snipDropDisabled.value = false
+            snipUpdateDisabled.value = true
+            showToolbar.value = true
+            deleteSelectedTextDisabled.value = true
+            break
+        case "startDrag":
+            snipCancelDisabled.value = false
+            snipDropDisabled.value = true
+            snipUpdateDisabled.value = true
+            break
+        case "endDrag":
+            snipCancelDisabled.value = false
+            snipDropDisabled.value = false
+            snipUpdateDisabled.value = false
+            showToolbar.value = true // For snipText
+            break
+        default: //  ended
+            snipCancelDisabled.value = true
+            snipDropDisabled.value = true
+            snipUpdateDisabled.value = true
+            if (updSelectTextDisabled.value) {
+                showToolbar.value = false
+            }
+            if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) deleteSelectedTextDisabled.value = false
+            updSnipOld = {}
+            updSnip = {}
+    }
+}
+// Handle drag start
+function handleDragStart(event) {
+    // Sets articleSnipsOld = []
+    snipSelAction('startDrag', '')
+    const handleType = event.target.dataset.handle
+    console.log(`EditArticle handleDragStart %s`, handleType)
+    event.dataTransfer.setData('text/plain', handleType)
+}
+// Handle drop to reposition handle
+function handleDrop(event) {
+    const handleType = event.dataTransfer.getData('text/plain')
+    const range = document.caretRangeFromPoint
+        ? document.caretRangeFromPoint(event.clientX, event.clientY) : document.caretPositionFromPoint
+            ? document.caretPositionFromPoint(event.clientX, event.clientY)
+            : null
+
+    if (!range) return null
+
+    var cleanText = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
+    const preCaretRange = range.cloneRange()
+    preCaretRange.selectNodeContents(event.currentTarget)
+    const articleText = preCaretRange.toString() // The full Article Text
+    // console.log(`EditArticle handleDrop area "%s"`, preCaretRange.toString())
+    preCaretRange.setEnd(range.endContainer, range.endOffset)
+    const offset = preCaretRange.toString().length // Where the handle was dropped in articleText
+    const start = Math.max(0, offset - 20);
+    const end = Math.min(articleText.length, offset + 20);
+    console.log(`EditArticle handleDrop points start %s, offset %s, end %s`, start, offset, end)
+    // Check it is a valid snip
+    updSnip = { ...updSnipOld } // Basis for updating
+    console.log(`EditArticle handleDrop Old "%s"`, JSON.stringify(updSnip))
+    if (handleType == 'start') {
+        // Update Start
+        console.log(`EditArticle handleDrop start "%s"`, articleText.slice(offset, end))
+        updSnip.snips = getSnipText(viewArticleText.value.slice(offset, end), 5)
+        if (updSnip.snips.posText < 0) return
+        // Update End - updSnip.snipe.text is unique
+        updSnip.snipe.posText = cleanText.indexOf(updSnip.snipe.text)
+        if (updSnip.snipe.posText < 0) {
+            console.log(`EditArticle handleDrop updSnip.snipe.text Error %s`, JSON.stringify(updSnip))
+        }
+        updSnip.snipe.posText += updSnip.snipe.text.length
+    } else {
+        console.log(`EditArticle handleDrop end "%s"`, articleText.slice(start, offset))
+        updSnip.snipe = getSnipText(articleText.slice(start, offset), -5)
+        if (updSnip.snipe.posText < 0) return
+        // Update Start - updSnip.snips.text is unique
+        // Adjust for length of snipe
+        updSnip.snipe.posText += updSnip.snipe.text.length - 1
+        updSnip.snips.posText = cleanText.indexOf(updSnip.snips.text)
+        if (updSnip.snips.posText < 0) {
+            console.log(`EditArticle handleDrop updSnip.snips.text Error %s`, JSON.stringify(updSnip))
+        }
+    }
+    console.log(`EditArticle handleDrop New Texts %s`, JSON.stringify(updSnip))
+    const selectedText = cleanText.slice(updSnip.snips.posText, updSnip.snipe.posText)
+    console.log(`EditArticle handleDrop Text "%s"`, selectedText)
+    let snip = { snips: { text: '' } };
+    articleSnips[snipChange] = { ...snip } // Stops checking against itself in getSnip
+    updSnip = getSnip(selectedText)
+    console.log(`EditArticle handleDrop snip %s`, JSON.stringify(updSnip))
+    articleSnips[snipChange] = { ...updSnip }
+    loadArticleText()
+    // Sets articleSnipsOld = []
+    snipSelAction('endDrag', '')
+    console.log(`EditArticle handleDrop Inserted %s`, handleType)
+}
+// Have selected a snip but want to revert
+function revertChange() {
+    console.log(`EditArticle cancelChange %s`, snipChange)
+    if (Object.keys(updSnipOld).length > 0) {
+        articleSnips[snipChange] = { ...updSnipOld }
+        console.log(`EditArticle cancelChange Revert %s`, JSON.stringify(updSnipOld))
+    } else {
+        articleSnips.splice(snipChange, 1)
+    }
+    snipChange = -1
+    loadArticleText()
+    // Sets  updSnipOld = {} updSnip = {} articleSnipsOld = []
+    snipSelAction('ended', '')
+}
 //
-function removeData() {
+function removeSnip() {// Remove snip
+    articleSnips.splice(snipChange, 1)
+    const removeText = snipedText.value.splice(snipChange, 1)
+    console.log(`EditArticle removeSnip Remove "%s", %s`, removeText, JSON.stringify(articleSnips))
+    snipChange = -1
+    loadArticleText()
+    updateSelectedText()
+}
+// After handles have been moved - get the updated Snip
+function updateSnip() {
+    console.log(`EditArticle updateSnip %s Snip "%s" to "%s"`, snipChange, JSON.stringify(updSnipOld), JSON.stringify(updSnip))
+    articleSnips[snipChange] = { ...updSnip }
+    snipChange = -1
+    loadArticleText()
+    // updSnipOld = {}  updSnip = {}
+    snipSelAction('ended', 'update')
     disableUpdate.value = false
+}
+//
+function updateSelectedText() {
+    console.log(`EditArticle updateSelectedText %s`, snipedText.value.length)
+    userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = ''
+    for (var text of snipedText.value) {
+        if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
+            userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText += '\n' + text
+        } else {
+            userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = text
+        }
+    }
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
+        deleteSelectedTextDisabled.value = false
+        userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
+    }
+    // Clears snipUpOld, updSnip
+    snipSelAction('ended', '')
+}
+//
+function cancelUpdateSelected() {
+    console.log(`EditArticle cancelUpdateSelected %s`, JSON.stringify(articleSnipsOld))
+    articleSnips = [...articleSnipsOld];
+    loadArticleText()
+    // updSnipOld = {} updSnip = {} articleSnipsOld = []
+    snipSelAction('ended', '')
+}
+//
+function deleteSelectedText() {
     userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Created"
     userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = ''
+    deleteSelectedTextDisabled.value = true;
     userData.viewedArticles[idxViewed.value].ViewedArticleSnips = ''
+    snipedText.value.length = 0
+    articleSnips.length = 0
+    console.log(`EditArticle deleteSelectedText %s`, snipedText.value.length)
     loadArticleText()
+    // updSnipOld = {} updSnip = {} articleSnipsOld = []
+    snipSelAction('ended', '')
 }
 //
 // Async Do Fetch
@@ -285,6 +547,7 @@ function loadArticle(firstLoad) {
 //  Post updated data and wait for response in reloadArticle
 function saveData() {
     // console.log("click updateData");
+    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(articleSnips.map((sn) => ({ "snips": sn.snips.text, "snipe": sn.snipe.text })))
     var updatedData = {
         'troveUserId': userData.troveDetails.troveUserId,
         'listId': props.listId,
@@ -530,12 +793,37 @@ function checkInputDate(stringDate) {
     return '';
 }
 //
+// console.log(`EditArticle loadArticleText Snips Start %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
+    console.log(`EditArticle Load %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    const inSnips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    for (let i = 0; i < inSnips.length; i++) {
+        if ((inSnips[i].snips.length > 0) && (inSnips[i].snipe.length > 0)) {
+            const aSnip = {
+                snips: {
+                    text: inSnips[i].snips,
+                    posText: -1
+                },
+                snipe: {
+                    text: inSnips[i].snipe,
+                    posText: -1
+                }
+            };
+            articleSnips.push(aSnip)
+        } else {
+            console.log(`EditArticle ignore %s`, JSON.stringify(inSnips[i])) // ignore garbage
+        }
+    }
+}
+articleSnipsOld = [...articleSnips]; // Preserve for Cancel Select
+console.log(`EditArticle Loaded articleSnips %s`, JSON.stringify(articleSnips))
 loadArticleText();
 loadArticle(true)
 //
 if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
     showTroveText.value = false;
     showSummaryText.value = true;
+    deleteSelectedTextDisabled.value = false;
 }
 //
 </script>
@@ -755,18 +1043,65 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                     <div class="row">
                         <details :open="showTroveText">
                             <summary>
-                                <!-- <div class="card-header text-center"> -->
-                                Trove Original Text
-                                <!-- </div> -->
+                                <span>Trove Original Text</span>
                             </summary>
                             <div class="card text-center">
                                 Search Word ({{ userData.viewedArticles[idxViewed].ViewedArticleSearchWord }}) Occurs {{
                                     userData.viewedArticles[idxViewed].ViewedArticleFoundCount }}
                             </div>
+                            <div class="card text-center">
+                                <div v-if="showToolbar" class="d-flex justify-content-center gap-2 p-2">
+                                    <button :class="{ disabled: snipCancelDisabled }" @click.prevent="revertChange"
+                                        class="btn btn-primary">
+                                        Revert
+                                    </button>
+                                    <button :class="{ disabled: snipDropDisabled }" @click.prevent="removeSnip()"
+                                        class="btn btn-primary">
+                                        Drop Snip
+                                    </button>
+                                    <button :class="{ disabled: snipUpdateDisabled }" @click.prevent="updateSnip"
+                                        class="btn btn-primary">
+                                        Update Snip
+                                    </button>
+                                    <button :class="{ disabled: updSelectTextDisabled }"
+                                        @click.prevent="updateSelectedText" class="btn btn-primary">
+                                        Update Selected Text
+                                    </button>
+                                    <button :class="{ disabled: cancelUpdTextDisabled }"
+                                        @click.prevent="cancelUpdateSelected" class="btn btn-primary">
+                                        Cancel Update Text
+                                    </button>
+                                </div>
+                                <div v-else>
+                                    Select Text to Snip or Click a Snip to Modify
+                                </div>
+                            </div>
                             <div class="card">
-                                <div @scroll.once="scrollSearchWord" @mouseup="getSelectedText" id="textTrove"
-                                    class="card-body overflow-auto" style="max-height: 300px">
+                                <div @scroll.once="scrollSearchWord" @mouseup="snipHighlightedText" ref="articleRef"
+                                    @click="activateHandles($event)" @dragstart="handleDragStart" @dragover.prevent
+                                    class="card-body overflow-auto" style="max-height: 300px" @drop="handleDrop"
+                                    id="textTrove">
                                     <span v-html="viewArticleText"></span>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div v-if="showToolbar" class="card-body overflow-auto" style="max-height: 300px">
+                                    <pre class="preformatted-view" tabindex="1000">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nbr</th>
+                                <th>Snip Text</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(snip, index) in snipedText" :key="index">
+                                <td>{{ index + 1 }}</td>
+                                <td><span class="wrapped-item">{{ snip }}</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </pre>
                                 </div>
                             </div>
                         </details>
@@ -775,10 +1110,9 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                         <details :open="showSelectedText">
                             <summary style="display: flex; justify-content: space-between; align-items: center;">
                                 <span>Your Selected Text</span>
-                                <button
-                                    :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticleSelectedText.length == 0 }"
-                                    @click.prevent="removeData" class="btn btn-primary">
-                                    Remove Selected Data
+                                <button :class="{ disabled: deleteSelectedTextDisabled }"
+                                    @click.prevent="deleteSelectedText" class="btn btn-primary">
+                                    Clear All Selected Text
                                 </button>
                             </summary>
                             <div class="form-group pre-scrollable" style="max-height: 75vh">
@@ -815,5 +1149,21 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
 <style scoped>
 mark.search {
     text-decoration: "underline"
+}
+
+th,
+td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.wrapped-item {
+    display: inline-block;
+    padding: 2px 4px;
+    background-color: #eef;
+    border-radius: 4px;
 }
 </style>
