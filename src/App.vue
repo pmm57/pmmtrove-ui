@@ -435,4 +435,53 @@ verifyServerUp()
   justify-content: center;
   align-items: center;
 }
+
+:global(.snip-block) {
+  background-color: #caf8f6;
+  border-left: 3px solid #b58900;
+  padding: 6px;
+  margin: 6px 0;
+  cursor: pointer;
+}
+
+:global(.snip-handle) {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: #eee;
+  border: 1px solid #aaa;
+  cursor: grab;
+  user-select: none;
+  font-size: 14px;
+}
+
+:global(.snip-toolbar) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: linear-gradient(to right, #f0f0f0, #e0e0e0);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+:global(.snip-toolbar button) {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  background-color: #0078d4;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+:global(.snip-toolbar button:hover) {
+  background-color: #005a9e;
+}
+
+:global(.snip-toolbar button:active) {
+  background-color: #004578;
+}
 </style>
