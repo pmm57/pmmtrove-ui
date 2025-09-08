@@ -15,7 +15,7 @@ navStore.listHref = "/userListPage/" + props.listId;
 navStore.listTabTitle = "List " + props.listId;
 //
 var idxList = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
-console.log('Linked Person ', userData.userLists[idxList].TroveListLinkedPerson)
+if (userData.userLists[idxList].TroveListLinkedPerson) console.log('Linked Person ', userData.userLists[idxList].TroveListLinkedPerson)
 //
 function haveLink(article) {
   var haveLink = true;
