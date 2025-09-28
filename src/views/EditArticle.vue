@@ -193,10 +193,10 @@ function loadArticleText() {
             var snipNbr = -1;
             for (let snip of articleSnips) {
                 if (snip.snipf.text.length == 0) continue;
-                const startAt = cleanOriginalText.indexOf(snip.snipf.text)
-                let pos1 = sliceMatch('front', startAt, snip.snipf.text, viewArticleText.value);
+                // const startAt = cleanOriginalText.indexOf(snip.snipf.text)
+                let pos1 = getInsertPos('front', 0, snip.snipf.text, viewArticleText.value);
                 // console.log(`EditArticle loadArticleText PreSnip Pos1 "%s"`, viewArticleText.value.slice(pos1.pos, pos1.pos + 10))
-                let pos2 = pos1 < 0 ? -1 : sliceMatch('back', pos1.pos + snip.snipf.text.length, snip.snipb.text, viewArticleText.value);
+                let pos2 = pos1 < 0 ? -1 : getInsertPos('back', pos1.pos + snip.snipf.text.length, snip.snipb.text, viewArticleText.value);
                 // console.log(`EditArticle loadArticleText PreSnip Pos2 "%s"`, viewArticleText.value.slice(pos2.pos - 10, pos2.pos))
                 // console.log(`EditArticle loadArticleText Snip %s Pos1 %s, Pos2 %s Text %s`, snipNbr, pos1.pos, pos2.pos, viewArticleText.value.length)
                 snipNbr += 1
@@ -233,6 +233,42 @@ function loadArticleText() {
     }
 }
 //
+// Find where to insert Snip Handles
+function getInsertPos(snipEdge, start, match, text) {
+    // const matchWords = match.split("")
+    var pos = text.indexOf(match, start)
+    console.log(`EditArticle getInsertPos match "%s" from %s at %s`, match, start, pos)
+    if (pos < 0) {
+        console.log(`EditArticle getInsertPos NOT match "%s" in "%s" length %s`, match, text.slice(start), text.length)
+        return { pos: -1 }
+    }
+    if (snipEdge == 'back') pos = pos + match.length
+    const front = (pos - 25) < 0 ? 0 : (pos - 25)
+    const back = (pos + 25) > text.length - 1 ? text.length - 1 : pos + 25
+    console.log(`EditArticle getInsertPos match "%s" and "%s"`, text.slice(front, pos), text.slice(pos, back))
+    // Get the html node type and text
+    const nodeInfo = findNodeInfoByMatch(snipEdge, match)
+    if (nodeInfo.edgeMatch) { //  encpsulate tag by adjusting pos
+        const slideBy = snipEdge == 'front' ? -1 : 1
+        const slideFor = snipEdge == 'front' ? nodeInfo.nodeTagStart : nodeInfo.nodeTagEnd
+        console.log('EditArticle getInsertPos edgeMatch %s,"%s","%s"',
+            nodeInfo.edgeMatch, nodeInfo.nodeText.slice(0, 10), nodeInfo.nodeText.slice(nodeInfo.nodeText.length - 10))
+        nodeInfo.nodeTagStart = ''
+        nodeInfo.nodeTagEnd = ''
+        const strStart = pos - 10 < 0 ? 0 : pos - 10
+        const strEnd = pos + 10 > text.length ? text.length : pos + 10
+        const chunk = snipEdge == 'front' ? text.slice(strStart, pos) : text.slice(pos, strEnd)
+        const checkPtr = snipEdge == 'front' ? chunk.length - 1 : 0
+        const slide = slidePos(slideBy, slideFor, checkPtr, chunk)
+        var slideAdj = 0
+        if (slide != 0) slideAdj = snipEdge == 'front' ? slide : slide + slideFor.length
+        console.log('EditArticle getInsertPos slide %s', slideAdj)
+        pos = pos + slideAdj
+    }
+    console.log('EditArticle getInsertPos Found "%s" in "%s" at %s Node Tag "%s"', match,
+        text.slice(pos - match.length, pos) + "|" + text.slice(pos, pos + match.length), pos, nodeInfo.nodeTagStart)
+    return { pos: pos, nodeInfo: nodeInfo }
+}
 function sliceMatch(snipEdge, start, match, text) {
     // const chunkSize = match.length;
     // const matchStr = match.replace(/[^a-zA-Z0-9]/g, "\u2423");
