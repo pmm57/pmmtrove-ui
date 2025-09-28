@@ -45,9 +45,10 @@ const markEnd = '</mark>'
 const divSelectConst = '<div class="snip-block" data-snipnbr="x">'
 const divEnd = '</div>'
 const handleStart = '&#x25C0;'
-const spanHandleStart = `<span class="snip-handle snip-handle-start" draggable="true" data-handle="start">` + handleStart + `</span>`
+const spanHandleStart = `<span class="snip-handle snip-handle-front" draggable="true" data-handle="front">` + handleStart + `</span>`
 const handleEnd = `&#x25B6;`
-const spanHandleEnd = `<span class="snip-handle snip-handle-end" draggable="true" data-handle="end">` + handleEnd + `</span>`
+const spanHandleEnd = `<span class="snip-handle snip-handle-back" draggable="true" data-handle="back">` + handleEnd + `</span>`
+var parsedArticleText = {}
 var cleanOriginalText = ''
 var snipChange = -1
 var articleSnips = [];
@@ -67,9 +68,9 @@ var savedMetadata = []
 var arrayMetadataDropdown = ref([])
 //
 // Capture highlighted text in Trove Article
-// Extract Snip Start and End
+// Extract Snip Front and Back Edges
 function snipHighlightedText(event) {
-    const snipDiv = event.currentTarget
+    // const snipDiv = event.currentTarget
 
     // console.log(`EditArticle snipHighlightedText`, snipDiv)
     // if (snipDiv.querySelector('.snip-block')) return // Within Snip
@@ -96,12 +97,12 @@ function getSnip(selectedText) {
         return false
     }
     const snip = {
-        snips: getSnipText(selectedText, 5),// Updates snips.text, snips.posText
-        snipe: getSnipText(selectedText, -5)// Updates snipe.text, snipe.posText
+        snipf: getSnipText(selectedText, 5),// Updates snipf.text, snipf.posText
+        snipb: getSnipText(selectedText, -5)// Updates snipb.text, snipb.posText
     };
     console.log(`EditArticle getSnip Snip %s`, JSON.stringify(snip))
     // Check snip  is unique
-    if ((snip.snips.posText < 0) || (snip.snipe.posText < 0)) {
+    if ((snip.snipf.posText < 0) || (snip.snipb.posText < 0)) {
         console.log(`EditArticle getSnip Snip Not Unique `)
         toast.error('Snip not unique, pls redo')
         return false
@@ -110,9 +111,9 @@ function getSnip(selectedText) {
     for (const asnip of articleSnips) {
         if (Object.keys(asnip).length === 0) continue
         console.log(`EditArticle getSnip Snip %s Overlap Check %s`, JSON.stringify(snip), JSON.stringify(asnip))
-        if (((snip.snips.posText >= asnip.snips.posText) && (snip.snips.posText <= asnip.snipe.posText))
-            || ((snip.snipe.posText >= asnip.snips.posText) && (snip.snipe.posText <= asnip.snipe.posText))
-            || ((snip.snips.posText < asnip.snips.posText) && (snip.snipe.posText > asnip.snipe.posText))) {
+        if (((snip.snipf.posText >= asnip.snipf.posText) && (snip.snipf.posText <= asnip.snipb.posText))
+            || ((snip.snipb.posText >= asnip.snipf.posText) && (snip.snipb.posText <= asnip.snipb.posText))
+            || ((snip.snipf.posText < asnip.snipf.posText) && (snip.snipb.posText > asnip.snipb.posText))) {
             console.log(`EditArticle getSnip Snip Overlap `)
             toast.error('Overlapping snip, pls redo')
             return false
@@ -122,26 +123,27 @@ function getSnip(selectedText) {
 }
 // Standardise the text
 function cleanUpText(inText) {
-    // Change word line break hypens to space
     inText = inText.replace(/-\n/g, " ");
-    // Remove "- "
     inText = inText.replace(/- /g, "");
-    // Change linebreak to space
     inText = inText.replace(/\n/g, " ");
-    // remove double spaces
-    inText = inText.replace(/  +/g, ' ');
-    // remove handles
     inText = inText.replace(/\u25C0/g, "");
     inText = inText.replace(/\u25B6/g, "");
-    // Remove html
+
+    // Strip HTML
     const temp = document.createElement("div");
     temp.innerHTML = inText;
-    const cleanUpText = temp.textContent || temp.innerText || "";
+    let cleanUpText = temp.textContent || temp.innerText || "";
+
+    // Normalize whitespace and strip invisible characters
+    cleanUpText = cleanUpText.replace(/[\u200B-\u200D\uFEFF\u00AD\u202A-\u202E]/g, '');
+    cleanUpText = cleanUpText.replace(/\s+/g, ' ').trim();
+
     return cleanUpText;
 }
 // Ensure snips are unique returns posText
 function getSnipText(selText, len) {
-    // console.log (`Article Text Front "%s" Back "%s"`, cleanOriginalText.slice(0, 20), cleanOriginalText.slice(-20))
+    const maxTry = selText.length
+    console.log(`Article Text Front "%s" Back "%s"`, cleanOriginalText.slice(0, 20), cleanOriginalText.slice(-20))
     selText = cleanUpText(selText)
     // console.log (`Selected Text Front "%s" Back "%s"`, selText.slice(0, 20), selText.slice(-20))
     let done = false;
@@ -159,7 +161,7 @@ function getSnipText(selText, len) {
         if ((pos1 < 0) || (pos2 > 0)) {
             console.log(`EditArticle getSnipText Extend pos1 %s, pos2 %s, check "%s"`, pos1, pos2, snipText)
             tryMatch += 1
-            if (tryMatch < snipText.length) {
+            if (tryMatch < maxTry) {
                 len = len < 0 ? len - 1 : len + 1;
                 snipText = len < 0 ? selText.slice(len) : selText.slice(0, len);
                 console.log(`EditArticle getSnipText try %s, "%s"`, tryMatch, snipText)
@@ -169,7 +171,7 @@ function getSnipText(selText, len) {
                 console.log(`EditArticle getSnipText NOT Unique "%s"`, snipText)
             }
         }
-        if (pos1 > 0) {
+        if (pos1 >= 0) {
             console.log(`EditArticle getSnipText Found one "%s"`, snipText)
         } else {
             pos1 = -1;
@@ -190,10 +192,11 @@ function loadArticleText() {
             console.log(`EditArticle loadArticleText Snips Before %s`, JSON.stringify(articleSnips))
             var snipNbr = -1;
             for (let snip of articleSnips) {
-                if (snip.snips.text.length == 0) continue;
-                let pos1 = sliceMatch('start', 0, snip.snips.text, viewArticleText.value);
+                if (snip.snipf.text.length == 0) continue;
+                // const startAt = cleanOriginalText.indexOf(snip.snipf.text)
+                let pos1 = getInsertPos('front', 0, snip.snipf.text, viewArticleText.value);
                 // console.log(`EditArticle loadArticleText PreSnip Pos1 "%s"`, viewArticleText.value.slice(pos1.pos, pos1.pos + 10))
-                let pos2 = sliceMatch('end', pos1.pos, snip.snipe.text, viewArticleText.value);
+                let pos2 = pos1 < 0 ? -1 : getInsertPos('back', pos1.pos + snip.snipf.text.length, snip.snipb.text, viewArticleText.value);
                 // console.log(`EditArticle loadArticleText PreSnip Pos2 "%s"`, viewArticleText.value.slice(pos2.pos - 10, pos2.pos))
                 // console.log(`EditArticle loadArticleText Snip %s Pos1 %s, Pos2 %s Text %s`, snipNbr, pos1.pos, pos2.pos, viewArticleText.value.length)
                 snipNbr += 1
@@ -201,15 +204,18 @@ function loadArticleText() {
                     const part1 = viewArticleText.value.slice(0, pos1.pos)
                     const part2 = viewArticleText.value.slice(pos1.pos, pos2.pos)
                     const part3 = viewArticleText.value.slice(pos2.pos)
-                    // console.log(`EditArticle loadArticleText Snip %s Pos1 %s "%s", Pos2 %s "%s"`, snipNbr, pos1.pos, part2.slice(0, 50), pos2.pos, part2.slice(-50))
+                    console.log(`EditArticle loadArticleText Snip %s Pos1 %s "%s", Pos2 %s "%s"`, snipNbr, pos1.pos, part2.slice(0, 50), pos2.pos, part2.slice(-50))
                     if (snipChange == snipNbr) {
                         viewArticleText.value = part1 + spanHandleStart + part2 + spanHandleEnd + part3
                     } else {
                         const divSelect = divSelectConst.replace('x', snipNbr)
-                        viewArticleText.value = part1 + cleanInsert('start', divSelect, pos1.nodeInfo, pos2.nodeInfo)
-                            + part2 + cleanInsert('end', divEnd, pos1.nodeInfo, pos2.nodeInfo) + part3
+                        viewArticleText.value = part1 + cleanInsert('front', divSelect, pos1.nodeInfo, pos2.nodeInfo)
+                            + part2 + cleanInsert('back', divEnd, pos1.nodeInfo, pos2.nodeInfo) + part3
                     }
                     updSnipedTextArray(snip)
+                } else {
+                    console.log(`EditArticle loadArticleText Snip %s NOT FOUND %s`, snipNbr, JSON.stringify(snip))
+                    toast.info('Snip not Found ' + (snipNbr + 1))
                 }
             }
             // console.log(`EditArticle loadArticleText Snips After Selects %s`, JSON.stringify(articleSnips))
@@ -227,56 +233,148 @@ function loadArticleText() {
     }
 }
 //
-function sliceMatch(posType, start, match, text) {
-    const chunkSize = match.length + 20;
-    var regex = new RegExp("^" + match);
-    if (posType == 'end') regex = new RegExp(match + "$")
+// Find where to insert Snip Handles
+function getInsertPos(snipEdge, start, match, text) {
+    // const matchWords = match.split("")
+    var pos = text.indexOf(match, start)
+    console.log(`EditArticle getInsertPos match "%s" from %s at %s`, match, start, pos)
+    if (pos < 0) {
+        console.log(`EditArticle getInsertPos NOT match "%s" in "%s" length %s`, match, text.slice(start), text.length)
+        return { pos: -1 }
+    }
+    if (snipEdge == 'back') pos = pos + match.length
+    const front = (pos - 25) < 0 ? 0 : (pos - 25)
+    const back = (pos + 25) > text.length - 1 ? text.length - 1 : pos + 25
+    console.log(`EditArticle getInsertPos match "%s" and "%s"`, text.slice(front, pos), text.slice(pos, back))
+    // Get the html node type and text
+    const nodeInfo = findNodeInfoByMatch(snipEdge, match)
+    if (nodeInfo.edgeMatch) { //  encpsulate tag by adjusting pos
+        const slideBy = snipEdge == 'front' ? -1 : 1
+        const slideFor = snipEdge == 'front' ? nodeInfo.nodeTagStart : nodeInfo.nodeTagEnd
+        console.log('EditArticle getInsertPos edgeMatch %s,"%s","%s"',
+            nodeInfo.edgeMatch, nodeInfo.nodeText.slice(0, 10), nodeInfo.nodeText.slice(nodeInfo.nodeText.length - 10))
+        nodeInfo.nodeTagStart = ''
+        nodeInfo.nodeTagEnd = ''
+        const strStart = pos - 10 < 0 ? 0 : pos - 10
+        const strEnd = pos + 10 > text.length ? text.length : pos + 10
+        const chunk = snipEdge == 'front' ? text.slice(strStart, pos) : text.slice(pos, strEnd)
+        const checkPtr = snipEdge == 'front' ? chunk.length - 1 : 0
+        const slide = slidePos(slideBy, slideFor, checkPtr, chunk)
+        var slideAdj = 0
+        if (slide != 0) slideAdj = snipEdge == 'front' ? slide : slide + slideFor.length
+        console.log('EditArticle getInsertPos slide %s', slideAdj)
+        pos = pos + slideAdj
+    }
+    console.log('EditArticle getInsertPos Found "%s" in "%s" at %s Node Tag "%s"', match,
+        text.slice(pos - match.length, pos) + "|" + text.slice(pos, pos + match.length), pos, nodeInfo.nodeTagStart)
+    return { pos: pos, nodeInfo: nodeInfo }
+}
+function sliceMatch(snipEdge, start, match, text) {
+    // const chunkSize = match.length;
+    // const matchStr = match.replace(/[^a-zA-Z0-9]/g, "\u2423");
+    // // Step 1: Extract unique non-alphanumeric characters
+    const preserveSet = new Set(match.match(/[^a-zA-Z0-9]/g));
+    // Step 2: Build a regex that excludes preserved characters
+    const preserve = Array.from(preserveSet).join('');
+    const escapedPreserve = preserve.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&');
+    const regexPreserve = new RegExp(`[^a-zA-Z0-9${escapedPreserve}]`, 'g');
+    // Step 3: Replace only non-preserved non-alphanumerics with ␣
+    const matchStr = match.replace(regexPreserve, "\u2423");
+    const chunkSize = matchStr.length + 10;
+    var regex = new RegExp("^" + matchStr);
+    if (snipEdge == 'back') regex = new RegExp(matchStr + "$")
     var sliceText = ''
-    // console.log('EditArticle sliceMatch type %s start %s', posType, start)
+    console.log('EditArticle sliceMatch START type %s start %s for "%s"', snipEdge, start, matchStr)
     for (let i = start; i <= text.length; i++) {
-        sliceText = text.slice(i, 1) + cleanUpText(text.slice(i + 1, i + chunkSize)); // Don't clean first char as chunk might get cleaned
-        if (posType == 'end') sliceText = cleanUpText(text.slice(i, i + chunkSize - 1)) + text.slice(i + chunkSize, 1)
+        var expand = 0
+        sliceText = text.slice(i, i + chunkSize + expand).replace(regexPreserve, "\u2423");
+        // while (sliceText.length < matchStr.length) {
+        //     sliceText = text.slice(i, i + chunkSize + expand).replace(/[^a-zA-Z0-9]/g, "|");
+        //     // const cleaned = input.replace(/^.*?>\s*/, '');
+        //     // console.log(`EditArticle sliceMatch at %s expand %s "%s"`, i, expand, sliceText)
+        //     ++expand
+        //     if (expand > matchStr.length) {
+        //         // console.log(`EditArticle sliceMatch at Char %s expand %s "%s"`, i, expand, sliceText)
+        //         break
+        //     }
+        // }
+        // console.log(`EditArticle sliceMatch at Char %s "%s"`, i, sliceText)
         if (regex.test(sliceText)) {
+            //     var shrink = 5
+            //     var adjustInsert = -1
+            //     // Adjust for cleaned characters
+            //     // console.log(`EditArticle sliceMatch at Char %s "%s"`, i, text.slice(i, i + chunkSize + expand))
+            //     do {
+            //         adjustInsert = text.slice(i, i + chunkSize + expand).indexOf(match.slice(0, shrink))
+            //         // console.log(`EditArticle sliceMatch adjust %s on "%s"`, adjustInsert, match.slice(0, shrink))
+            //         --shrink;
+            //     } while ((adjustInsert < 0) && (shrink > 0))
+            //     var pos = i + adjustInsert
             var pos = i
-            if (posType == 'end') pos = pos + chunkSize - 1
-            // console.log(`EditArticle sliceMatch match "%s" in "%s" at %s of "%s"`, match, sliceText, pos, text.slice(pos - 25, pos + 25))
+            if (snipEdge == 'back') pos = pos + chunkSize
+            console.log(`EditArticle sliceMatch match "%s" in "%s" at %s of "%s" and "%s"`, matchStr, sliceText, pos, text.slice(pos - 25, pos), text.slice(pos, pos + 25))
             // Get the html node type and text
-            const nodeInfo = findNodeInfoByOffset(match)
-            // Flag if match at Front / Back
-            const edgeMatch = regex.test(nodeInfo.nodeText)
-            // console.log('EditArticle sliceMatch edgeMatch %s,"%s","%s"', edgeMatch, nodeInfo.nodeText.slice(0, 10), nodeInfo.nodeText.slice(nodeInfo.nodeText.length - 10))
-            if (edgeMatch) { //  encpsulate tag by adjusting pos
-                const slideBy = posType == 'start' ? -1 : 1
-                const slideFor = posType == 'start' ? nodeInfo.nodeTagStart : nodeInfo.nodeTagEnd
+            const nodeInfo = findNodeInfoByMatch(snipEdge, match)
+            if (nodeInfo.edgeMatch) { //  encpsulate tag by adjusting pos
+                const slideBy = snipEdge == 'front' ? -1 : 1
+                const slideFor = snipEdge == 'front' ? nodeInfo.nodeTagStart : nodeInfo.nodeTagEnd
+                console.log('EditArticle sliceMatch edgeMatch %s,"%s","%s"',
+                    nodeInfo.edgeMatch, nodeInfo.nodeText.slice(0, 10), nodeInfo.nodeText.slice(nodeInfo.nodeText.length - 10))
                 nodeInfo.nodeTagStart = ''
                 nodeInfo.nodeTagEnd = ''
                 const strStart = pos - 10 < 0 ? 0 : pos - 10
                 const strEnd = pos + 10 > text.length ? text.length : pos + 10
-                const chunk = posType == 'start' ? text.slice(strStart, pos) : text.slice(pos, strEnd)
-                const checkPtr = posType == 'start' ? chunk.length - 1 : 0
+                const chunk = snipEdge == 'front' ? text.slice(strStart, pos) : text.slice(pos, strEnd)
+                const checkPtr = snipEdge == 'front' ? chunk.length - 1 : 0
                 const slide = slidePos(slideBy, slideFor, checkPtr, chunk)
-                const slideAdj = posType == 'start' ? slide : slide + slideFor.length
-                // console.log('EditArticle sliceMatch slide %s', slideAdj)
+                var slideAdj = 0
+                if (slide != 0) slideAdj = snipEdge == 'front' ? slide : slide + slideFor.length
+                console.log('EditArticle sliceMatch slide %s', slideAdj)
                 pos = pos + slideAdj
             }
-            console.log('EditArticle sliceMatch Found "%s" in "%s" at %s Node Tag %s', match, sliceText, pos, nodeInfo.nodeTagStart)
+            console.log('EditArticle sliceMatch Found "%s" in "%s" at %s Node Tag "%s"', match, text.slice(i, i + chunkSize), pos, nodeInfo.nodeTagStart)
             return { pos: pos, nodeInfo: nodeInfo }
         }
     }
-    // console.log('EditArticle sliceMatch NOT found %s', match)
-    return 0
+    console.log('EditArticle sliceMatch NOT found "%s", "%s"', match, sliceText)
+    return { pos: -1 }
 }
 // Get Node where insert is to happen
-function findNodeInfoByOffset(match) {
+function findNodeInfoByMatch(snipEdge, match) {
     // Create html portion to find node at insert point
-    const parsedArticleText = parseHTMLFragment(viewArticleText.value)
+    const matchStr = match.replaceAll(" ", "")
+    parsedArticleText = parseHTMLFragment(viewArticleText.value)
     const walker = document.createTreeWalker(parsedArticleText, NodeFilter.SHOW_TEXT, null)
     let nodesWalked = 0
+    let nodeText = ''
+    let nodeTexts = []
     while (walker.nextNode()) {
-        const node = walker.currentNode
-        const text = cleanUpText(node.outerHTML || node.textContent || '')
+        var node = walker.currentNode
+        var text = cleanUpText(node.outerHTML || node.textContent || '')
+        nodeTexts.push({ node: node, nodeText: text })
+        nodeText += text.replaceAll(" ", "")
         ++nodesWalked
-        if (text.indexOf(match) > -1) {
+        const matchIndex = nodeText.indexOf(matchStr)
+        // console.log('EditArticle findNodeInfoByMatch Walk %s match "%s" in "%s" at %s', nodesWalked, matchStr, nodeText, matchIndex)
+        if (matchIndex > -1) {
+            var edgeMatch = false;
+            var textStr = text.replaceAll(" ", "")
+            if (snipEdge == 'front') {
+                // Find which node the front starts in
+                while (textStr.indexOf(matchStr) < 0) {
+                    const aNodeText = nodeTexts.pop()
+                    node = aNodeText.node
+                    textStr = aNodeText.nodeText.replaceAll(" ", "") + textStr
+                    console.log('EditArticle findNodeInfoByMatch Find Front of string Node Check %s "%s"', nodesWalked, textStr)
+                    --nodesWalked
+                    if (nodesWalked < 1) break
+                }
+                edgeMatch = textStr.startsWith(matchStr)
+            } else {
+                // snipEdge is back - check if it is at back of node text
+                console.log('EditArticle findNodeInfoByMatch Find Back of string Node Check %s "%s"', nodesWalked, textStr)
+                edgeMatch = textStr.endsWith(matchStr)
+            }
             var tagStart = ''
             var tagEnd = ''
             var nodeType = node.parentElement?.tagName?.toLowerCase()
@@ -284,20 +382,23 @@ function findNodeInfoByOffset(match) {
                 tagStart = '<' + nodeType + '>'
                 tagEnd = '</' + nodeType + '>'
             }
-            // console.log('EditArticle findNodeInfoByOffset checked %s Node Type %s Node Start "%s"', nodesWalked, nodeType, node.textContent.slice(0, 20))
+            console.log('EditArticle findNodeInfoByMatch checked %s Node Type %s Node Front "%s" Back "%s" edgeMatch %s',
+                nodesWalked, nodeType, node.textContent.slice(0, 20), node.textContent.slice(text.length - 20), edgeMatch)
             return {
+                edgeMatch: edgeMatch,
                 nodeTagStart: tagStart,
                 nodeTagEnd: tagEnd,
-                nodeText: node.textContent.trim()
+                nodeText: node.textContent
             }
         }
     }
-    return { nodeTagStart: '', nodeTagEnd: '', nodeText: '' }
+    console.log('EditArticle findNodeInfoByMatch NOT FOUND "%s"', matchStr)
+    return { edgeMatch: false, nodeTagStart: '', nodeTagEnd: '', nodeText: '' }
 }
 //
-function cleanInsert(posType, handle, nodeInfoStart, nodeInfoEnd) {
-    // console.log(`EditArticle cleanInsert Start %s, End %s`, JSON.stringify(nodeInfoStart), JSON.stringify(nodeInfoEnd))
-    if (posType == "start") {
+function cleanInsert(snipEdge, handle, nodeInfoStart, nodeInfoEnd) {
+    // console.log(`EditArticle cleanInsert Front %s, Back %s`, JSON.stringify(nodeInfoStart), JSON.stringify(nodeInfoEnd))
+    if (snipEdge == "front") {
         if (nodeInfoStart.nodeText === nodeInfoEnd.nodeText) { // No need to wrap text
             nodeInfoStart.nodeTagEnd = ''
         }
@@ -306,15 +407,15 @@ function cleanInsert(posType, handle, nodeInfoStart, nodeInfoEnd) {
             nodeInfoEnd.nodeTagStart = ''
         }
     }
-    const tag1 = posType == "start" ? nodeInfoStart.nodeTagEnd : nodeInfoEnd.nodeTagEnd
-    const tag2 = posType == "start" ? nodeInfoStart.nodeTagStart : nodeInfoEnd.nodeTagStart
-    // console.log(`EditArticle cleanInsert pos %s, %s-%s-%s`, posType, tag1, handle, tag2)
+    const tag1 = snipEdge == "front" ? nodeInfoStart.nodeTagEnd : nodeInfoEnd.nodeTagEnd
+    const tag2 = snipEdge == "front" ? nodeInfoStart.nodeTagStart : nodeInfoEnd.nodeTagStart
+    // console.log(`EditArticle cleanInsert pos %s, %s-%s-%s`, snipEdge, tag1, handle, tag2)
     return tag1 + handle + tag2
 }
 //
 function slidePos(slideBy, slideFor, checkPtr, chunk) {
-    // console.log('EditArticle loadArticleText slidePos start slideBy %s, slideFor %s, checkPtr %s, chunk "%s", check "%s" ',
-    //     slideBy, slideFor, checkPtr, chunk, chunk.slice(checkPtr, checkPtr + 1))
+    console.log('EditArticle loadArticleText slidePos start slideBy %s, slideFor %s, checkPtr %s, chunk "%s", check "%s" ',
+        slideBy, slideFor, checkPtr, chunk, chunk.slice(checkPtr, checkPtr + 1))
     var slide = slideBy
     while (chunk.slice(checkPtr, checkPtr + slideFor.length) != slideFor) {
         slide = slide + slideBy;
@@ -331,9 +432,9 @@ function slidePos(slideBy, slideFor, checkPtr, chunk) {
 //
 function updSnipedTextArray(thisSnip) {
     const cleanSource = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText)
-    const posStart = cleanSource.indexOf(thisSnip.snips.text)
-    const posEnd = cleanSource.indexOf(thisSnip.snipe.text) + thisSnip.snipe.text.length
-    const selectedText = cleanSource.slice(posStart, posEnd)
+    const posStart = cleanSource.indexOf(thisSnip.snipf.text)
+    const snipEdge = cleanSource.indexOf(thisSnip.snipb.text) + thisSnip.snipb.text.length
+    const selectedText = cleanSource.slice(posStart, snipEdge)
     snipedText.value.push(selectedText)
 }
 // Scroll to Search Word in Trove Article, identify by <mark>
@@ -413,13 +514,13 @@ function snipSelAction(actionSnip, actionText) {
 function handleDragStart(event) {
     // Sets articleSnipsOld = []
     snipSelAction('startDrag', '')
-    const handleType = event.target.dataset.handle
-    console.log(`EditArticle handleDragStart %s`, handleType)
-    event.dataTransfer.setData('text/plain', handleType)
+    const snipEdge = event.target.dataset.handle
+    console.log(`EditArticle handleDragStart %s`, snipEdge)
+    event.dataTransfer.setData('text/plain', snipEdge)
 }
 // Handle drop to reposition handle
 function handleDrop(event) {
-    const handleType = event.dataTransfer.getData('text/plain')
+    const snipEdge = event.dataTransfer.getData('text/plain')
     const range = document.caretRangeFromPoint
         ? document.caretRangeFromPoint(event.clientX, event.clientY) : document.caretPositionFromPoint
             ? document.caretPositionFromPoint(event.clientX, event.clientY)
@@ -434,47 +535,52 @@ function handleDrop(event) {
     // console.log(`EditArticle handleDrop area "%s"`, preCaretRange.toString())
     preCaretRange.setEnd(range.endContainer, range.endOffset)
     const offset = preCaretRange.toString().length // Where the handle was dropped in articleText
-    const start = Math.max(0, offset - 20);
-    const end = Math.min(articleText.length, offset + 20);
+    const start = Math.max(0, offset - 30);
+    const end = Math.min(articleText.length, offset + 30);
     console.log(`EditArticle handleDrop points start %s, offset %s, end %s`, start, offset, end)
+    const toMatch = snipEdge == 'front' ? articleText.slice(offset, end) : articleText.slice(start, offset)
+    // // Get Node
+    // const nodeMatch = findNodeInfoByMatch(snipEdge, toMatch)
+    // console.log(`EditArticle handleDrop Match "%s" Node "%s"`, toMatch, JSON.stringify(nodeMatch))
     // Check it is a valid snip
     updSnip = { ...updSnipOld } // Basis for updating
     console.log(`EditArticle handleDrop Old "%s"`, JSON.stringify(updSnip))
-    if (handleType == 'start') {
-        // Update Start
-        console.log(`EditArticle handleDrop start "%s"`, articleText.slice(offset, end))
-        updSnip.snips = getSnipText(viewArticleText.value.slice(offset, end), 5)
-        if (updSnip.snips.posText < 0) return
-        // Update End - updSnip.snipe.text is unique
-        updSnip.snipe.posText = cleanOriginalText.indexOf(updSnip.snipe.text)
-        if (updSnip.snipe.posText < 0) {
-            console.log(`EditArticle handleDrop updSnip.snipe.text Error %s`, JSON.stringify(updSnip))
+    if (snipEdge == 'front') {
+        // Update Front
+        console.log(`EditArticle handleDrop start "%s"`, toMatch)
+        updSnip.snipf = getSnipText(toMatch, 5)
+        if (updSnip.snipf.posText < 0) return
+        // Update back - updSnip.snipb.text is unique
+        updSnip.snipb.posText = cleanOriginalText.indexOf(updSnip.snipb.text)
+        if (updSnip.snipb.posText < 0) {
+            console.log(`EditArticle handleDrop updSnip.snipb.text Error %s`, JSON.stringify(updSnip))
         }
-        updSnip.snipe.posText += updSnip.snipe.text.length
+        updSnip.snipb.posText += updSnip.snipb.text.length
     } else {
-        console.log(`EditArticle handleDrop end "%s"`, articleText.slice(start, offset))
-        updSnip.snipe = getSnipText(articleText.slice(start, offset), -5)
-        if (updSnip.snipe.posText < 0) return
-        // Update Start - updSnip.snips.text is unique
-        // Adjust for length of snipe
-        updSnip.snipe.posText += updSnip.snipe.text.length - 1
-        updSnip.snips.posText = cleanOriginalText.indexOf(updSnip.snips.text)
-        if (updSnip.snips.posText < 0) {
-            console.log(`EditArticle handleDrop updSnip.snips.text Error %s`, JSON.stringify(updSnip))
+        console.log(`EditArticle handleDrop end "%s"`, toMatch)
+        updSnip.snipb = getSnipText(toMatch, -5)
+        if (updSnip.snipb.posText < 0) return
+        // Update Front - updSnip.snipf.text is unique
+        // Adjust for length of snipb
+        updSnip.snipb.posText += updSnip.snipb.text.length - 1
+        updSnip.snipf.posText = cleanOriginalText.indexOf(updSnip.snipf.text)
+        if (updSnip.snipf.posText < 0) {
+            console.log(`EditArticle handleDrop updSnip.snipf.text Error %s`, JSON.stringify(updSnip))
         }
     }
     console.log(`EditArticle handleDrop New Texts %s`, JSON.stringify(updSnip))
-    const selectedText = cleanOriginalText.slice(updSnip.snips.posText, updSnip.snipe.posText)
+    const selectedText = cleanOriginalText.slice(updSnip.snipf.posText, updSnip.snipb.posText)
     console.log(`EditArticle handleDrop Text "%s"`, selectedText)
-    let snip = { snips: { text: '' } };
+    let snip = { snipf: { text: '' } };
     articleSnips[snipChange] = { ...snip } // Stops checking against itself in getSnip
     updSnip = getSnip(selectedText)
+    if ((typeof snip === 'boolean') && (!snip)) return false;
     console.log(`EditArticle handleDrop snip %s`, JSON.stringify(updSnip))
     articleSnips[snipChange] = { ...updSnip }
     loadArticleText()
     // Sets articleSnipsOld = []
     snipSelAction('endDrag', '')
-    console.log(`EditArticle handleDrop Inserted %s`, handleType)
+    console.log(`EditArticle handleDrop Inserted %s`, snipEdge)
 }
 // Have selected a snip but want to revert
 function revertChange() {
@@ -592,7 +698,7 @@ function loadArticle(firstLoad) {
 //  Post updated data and wait for response in reloadArticle
 function saveData() {
     // console.log("click updateData");
-    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(articleSnips.map((sn) => ({ "snips": sn.snips.text, "snipe": sn.snipe.text })))
+    userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(articleSnips.map((sn) => ({ "snipf": sn.snipf.text, "snipb": sn.snipb.text })))
     var updatedData = {
         'troveUserId': userData.troveDetails.troveUserId,
         'listId': props.listId,
@@ -845,19 +951,20 @@ function parseHTMLFragment(htmlString) {
 }
 // Create clean Text for later
 cleanOriginalText = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
-// console.log(`EditArticle loadArticleText Snips Start %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+// console.log(`EditArticle loadArticleText Snips Front %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
 if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
     console.log(`EditArticle Load %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
-    const inSnips = JSON.parse(userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
+    const inSnipf = userData.viewedArticles[idxViewed.value].ViewedArticleSnips.replaceAll("snips", "snipf")
+    const inSnips = JSON.parse(inSnipf.replaceAll("snipe", "snipb"))
     for (let i = 0; i < inSnips.length; i++) {
-        if ((inSnips[i].snips.length > 0) && (inSnips[i].snipe.length > 0)) {
+        if ((inSnips[i].snipf.length > 0) && (inSnips[i].snipb.length > 0)) {
             const aSnip = {
-                snips: {
-                    text: inSnips[i].snips,
+                snipf: {
+                    text: inSnips[i].snipf,
                     posText: -1
                 },
-                snipe: {
-                    text: inSnips[i].snipe,
+                snipb: {
+                    text: inSnips[i].snipb,
                     posText: -1
                 }
             };
