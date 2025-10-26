@@ -22,10 +22,12 @@ let linkedListIdx = ref(-1);
 let showPersonDetails = ref(false);
 let showSearchPerson = ref(false);
 let showEditPersonName = ref(false);
+let showEditRefInfo = ref(false);
 let notifyEditError = ref('inherit');
 let popoverForMetadata = ref('');
 let showDefaultPersonAction = ref(true);
 let showEditPersonAction = ref(false);
+let showEditRefInfoAction = ref(false);
 let showCheckPersonNameAction = ref(false);
 let showDeletePersonAction = ref(false);
 let showRestorePersonAction = ref(false);
@@ -37,23 +39,26 @@ let showDelPerson = ref(false);
 let showModalLists = ref(false);
 let showModalRelative = ref(false);
 let showModalPartner = ref(false);
+let buttonRefInfo = ''
 let savedPerson = reactive({
   action: "",
   personIndex: -1,
   readName: "",
+  readRefInfo: '',
   linkedListId: 0,
   arrayRelated: []
 });
 let partners = ref([]);
 //
 let updatePerson = reactive({
-  chgName: [],
+  chgName: '',
+  chgRefInfo: '',
   chgLinkedListId: 0,
   chgRelated: []
 });
 //
 
-console.log('Passed Person: ', props);
+console.log('Passed Person: ', JSON.stringify(props));
 const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999';
 popoverForMetadata.value = popoverPersonMetadata;
@@ -84,7 +89,7 @@ function setPersonNameActions(showActions) {
     if ((userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray.length == 0) &&
       (savedPerson.arrayRelated.length == 0) &&
       (linkedListIdx.value == -1)) {
-      // As not linked articles or Relatives or List - Person can be deleted
+      // As no linked articles or Relatives or List - Person can be deleted
       showActions += ' delete';
     };
   };
@@ -96,8 +101,10 @@ function setPersonNameActions(showActions) {
   };
   if (showActions.includes("edit")) {
     showEditPersonAction.value = true
+    showEditRefInfoAction.value = true
   } else {
     showEditPersonAction.value = false
+    showEditRefInfoAction.value = false
   };
   if (showActions.includes("search")) {
     showSearchPerson.value = true
@@ -137,6 +144,13 @@ function handleLoadPersonMessage(e, intervalApersonData, idxPartner) {
   console.log('Return Loadperson', JSON.stringify(returnedData));
   // savedPerson = JSON.parse(e.data);
   savedPerson.readName = returnedData.readPerson;
+  savedPerson.readRefInfo = ''
+  buttonRefInfo = 'Add Reference Information'
+  showEditRefInfo.value = false
+  if (returnedData.hasOwnProperty("ReferenceInformation")) {
+    savedPerson.readRefInfo = returnedData.ReferenceInformation
+    buttonRefInfo = 'Edit Reference Information'
+  }
   savedPerson.linkedListId = returnedData.linkedListId;
   linkedListText.value = "Unlink from List " + savedPerson.linkedListId;
   linkedListIdx.value = -1;
@@ -157,6 +171,7 @@ function handleLoadPersonMessage(e, intervalApersonData, idxPartner) {
   console.log('Return Linked Article URLs ', JSON.stringify(userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray));
   setPersonActions('');
   updatePerson.chgName = savedPerson.readName;
+  updatePerson.chgRefInfo = savedPerson.readRefInfo;
   updatePerson.chgLinkedListId = savedPerson.linkedListId;
   updatePerson.chgRelated = [];
   if (savedPerson.hasOwnProperty('arrayRelated')) {
@@ -183,7 +198,7 @@ function handleLoadPersonMessage(e, intervalApersonData, idxPartner) {
   showEditPersonName.value = false;
   setPersonNameActions('');
   // Load partner details
-  console.log('Load Person Partners', partners.value);
+  console.log('Load Person Partners', JSON.stringify(partners.value));
   for (var idx = 0; idx < partners.value.length; ++idx) {
     loadPerson(partners.value[idx].personIndex, idx);
   };
@@ -230,6 +245,7 @@ function loadPerson(idxValue, idxPartner) {
       loadingPersonText.value = "Loading Person Details";
       showPersonDetails.value = false;
       showEditPersonName.value = false;
+      showEditRefInfo.value = false;
       sourceLoadPerson.addEventListener("LoadPerson", (e) => handleLoadPersonMessage(e, intervalLoadPerson, idxPartner), false);
     }
     // Close if still open when window closed
@@ -263,16 +279,38 @@ function addPerson() {
   loadingPerson.value = false;
   showPersonDetails.value = false;
   showEditPersonName.value = true;
+  showEditRefInfo.value = false;
   setPersonNameActions('check restore');
   setPersonActions('');
 }
 // Set editPersonName editable
 function editPersonClick() {
   showEditPersonName.value = true;
+  showEditRefInfo.value = false;
   showPersonDetails.value = false;
   setPersonNameActions('check restore');
   setPersonActions('');
   savedPerson.action = 'CHG';
+}
+// Set editPersonName editable
+function editRefInfoClick() {
+  if (buttonRefInfo == "Update Reference Information") {
+    console.log('editRefInfoClick Update');
+    buttonRefInfo = "Edit Reference Information"
+    savedPerson.action = 'CHG';
+    setPersonNameActions('restore');
+    setPersonActions("chg");
+    showEditRefInfoAction.value = false;
+    showEditRefInfo.value = false;
+    showPersonDetails.value = true;
+  } else {
+    buttonRefInfo = "Update Reference Information"
+    showEditRefInfo.value = true;
+    showPersonDetails.value = false;
+    setPersonNameActions('restore');
+    setPersonActions('');
+    showEditRefInfoAction.value = true;
+  }
 }
 // On clicking the check edit button
 function checkPersonNameClick() {
@@ -307,6 +345,7 @@ function checkPersonNameClick() {
     notifyEditError.value = 'inherit';
     popoverForMetadata.value = popoverPersonMetadata;
     showEditPersonName.value = false;
+    showEditRefInfo.value = false;
     showPersonDetails.value = true;
     setPersonNameActions("restore");
     setPersonActions("chg");
@@ -495,6 +534,7 @@ function saveData(currentDetails, newDetails) {
 // Initialise Screen
 function initScreen() {
   showEditPersonName.value = false;
+  showEditRefInfo.value = false;
   showPersonDetails.value = false;
   setPersonActions('add');
   setPersonNameActions('start');
@@ -578,12 +618,17 @@ initScreen();
               </div>
               <div v-show="showEditPersonAction" class="col">
                 <div class="card">
-                  <button @click.prevent="editPersonClick()" class="btn btn-primary">Edit Person</button>
+                  <button @click.prevent="editPersonClick()" class="btn btn-primary">Edit Person Name</button>
+                </div>
+              </div>
+              <div v-show="showEditRefInfoAction" class="col">
+                <div class="card">
+                  <button @click.prevent="editRefInfoClick()" class="btn btn-primary">{{ buttonRefInfo }}</button>
                 </div>
               </div>
               <div v-show="showCheckPersonNameAction" class="col">
                 <div class="card">
-                  <button @click.prevent="checkPersonNameClick()" class="btn btn-primary">Check Person</button>
+                  <button @click.prevent="checkPersonNameClick()" class="btn btn-primary">Check Person Name</button>
                 </div>
               </div>
               <div v-show="showDeletePersonAction" class="col">
@@ -616,7 +661,19 @@ initScreen();
                   Person</button>
               </div>
             </div>
+            <div v-if="showEditRefInfo">
+              <form>
+                <div class="form-group">
+                  <label for="inputRefInfo">{{ buttonRefInfo }}: </label>
+                  <input v-model="updatePerson.chgRefInfo" id="inputRefInfo">
+                  </input>
+                </div>
+              </form>
+            </div>
             <div v-show="showPersonDetails">
+              <div v-if="(updatePerson.chgRefInfo.length > 0)" class="card-body">Reference - {{
+                updatePerson.chgRefInfo }}</div>
+              <div v-else class="card-body">No Reference Information</div>
               <div v-if="(linkedListIdx > -1)" class="card-body">
                 Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
                   class="active link-primary">
