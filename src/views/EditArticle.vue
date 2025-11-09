@@ -109,7 +109,7 @@ function snipHighlightedText(event) {
     const snip = getSnipFrontBack(emptySnip, selectedText)
     if ((typeof snip === 'boolean') && (!snip)) {
         selection.removeAllRanges();
-        returnfalse;
+        return false;
     }
     articleSnips.push(snip);
     updSnip = { ...snip };
@@ -174,7 +174,7 @@ function frontWordMatch(allText, start, selTextWords) {
     do {
         const matchs = matchWordArray(selTextWords.slice(0, matchWords), allText)
         if (matchs.length == 0) {
-            console.log('frontWordMatch Selected Text Front NON Match "%s"', selTextWords.slice(matchWords))
+            console.log('frontWordMatch Selected Text Front NON Match "%s"', selTextWords.slice(0, matchWords + 1))
             return false
         }
         if (matchs.length == 1) {
@@ -184,7 +184,7 @@ function frontWordMatch(allText, start, selTextWords) {
             return matchs[0]
         }
         ++matchWords
-    } while (matchWords < selTextWords.length / 2)
+    } while (matchWords < selTextWords.length)
     console.log('frontWordMatch Selected Text Front Not Unique')
     return false
 }
@@ -203,33 +203,38 @@ function backWordMatch(allText, start, selTextWords) {
             return matchs[0]
         }
         --matchWords
-    } while (matchWords > (selTextWords.length / 2))
-    console.log('backWordMatch Selected Text Front Not Unique')
+    } while (matchWords > 1)
+    console.log('backWordMatch Selected Text Back Not Unique')
     return false
 }
 //
 function matchWordArray(matchWords, allText) {
     const regex = regxMatchWords(matchWords)
     const matchs = [...allText.matchAll(regex)];
-    // console.log('matchWordArray matchs %s', matchs.length)
+    console.log('matchWordArray matchs %s', matchs.length)
     return matchs.map(m => ({ text: m[0], posText: m.index }));
 }
 //
 function regxMatchWords(matchWords) {
-    // console.log('matchWordArray matchWords %s', matchWords)
+    // console.log('regxMatchWords matchWords %s', matchWords)
     const gap = '(?:\\s|\\u0000|<[^>]+>|—|\')*';
     const escMatchWords = matchWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     const pattern = escMatchWords.map(w => `(?<=\\W|^)${w}(?=\\W|$)`).join(gap);
-    console.log('matchWordArray pattern %s', pattern)
+    console.log('regxMatchWords pattern %s', pattern)
     return new RegExp(pattern, 'g');
 }
 // Standardise the text
 function cleanUpText(inText) {
+    inText = inText.replace(/—/g, ' ')
+    inText = inText.replace(/^—+|—+$/g, '') // remove leading or trailing -
     inText = inText.replace(/-\n/g, " ");
     // inText = inText.replace(/- /g, "");
     inText = inText.replace(/\n/g, " ");
     inText = inText.replace(/\u25C0/g, "");
     inText = inText.replace(/\u25B6/g, "");
+    inText = inText.replace(/(\S)—(\S)/g, '$1 — $2')  // no spaces on either side
+        .replace(/(\S)—/g, '$1 —')         // missing space before
+        .replace(/—(\S)/g, '— $1');         // missing space after
 
     // Strip HTML
     const temp = document.createElement("div");
@@ -347,7 +352,7 @@ function findNodeInfo(snipEdge, match) {
         const edgeMatch = snipEdge == 'front' ? nodeText.startsWith(matchStrLen) : nodeText.endsWith(matchStrLen)
         const matchIndex = nodeText.indexOf(matchStr)
         if ((edgeMatch) || (matchIndex > -1)) {
-            console.log('EditArticle findNodeInfo match "%s" against "%s"', matchStrLen, nodeText)
+            // console.log('EditArticle findNodeInfo match "%s" against "%s"', matchStrLen, nodeText)
             var nodeType = node.parentElement?.tagName?.toLowerCase()
             if (!(['p', 'span'].includes(nodeType))) {
                 nodeType = ''
