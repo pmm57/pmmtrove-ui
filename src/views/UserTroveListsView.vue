@@ -4,12 +4,16 @@ import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
 //
 function haveListLink(list) {
-  var haveLink = userData.userListsReady
-  if (!(list.TroveListLoadState == 'Cached' || list.TroveListLoadState == 'Loaded' || list.TroveListLoadState == 'Partial')) {
+  // var haveLink = userData.userListsReady
+  var haveLink = true
+  // console.log(`TroveListView haveLink LoadState:%s, Items:%s`, list.TroveListLoadState, list.TroveListItemCount)
+  if (!(list.TroveListLoadState == 'Cached' || list.TroveListLoadState == 'Loaded' || list.TroveListLoadState == 'Partial' || list.TroveListLoadState == 'Inited')) {
     // console.log(`TroveListView haveLink LoadState:%s`, list.TroveListLoadState)
     haveLink = false;
   }
-  if (list.TroveListItemCount == 0) haveLink = false;
+  if (list.TroveListItemCount == 0) {
+    if (list.TroveListLoadState != 'Inited') haveLink = false
+  };
   if (userData.userDuplicateListIds.indexOf(Number(list.TroveListId)) > -1) haveLink = false; // Disable Link if it is the list holding duplicate articles
   // console.log(`TroveListView haveLink LoadState:%s ItemCount:%s`, list.TroveListLoadState, list.TroveListItemCount)
   return haveLink
