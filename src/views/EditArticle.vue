@@ -153,7 +153,7 @@ function getSnipFrontBack(inSnip, selectedText) {
         snipf: snipf,
         snipb: snipb
     };
-    console.log(`EditArticle getSnip Snip %s`, JSON.stringify(snip))
+    // console.log(`EditArticle getSnip Snip %s`, JSON.stringify(snip))
     // Check for snip overlap
     for (const asnip of articleSnips) {
         if (Object.keys(asnip).length === 0) continue
@@ -211,7 +211,7 @@ function backWordMatch(allText, start, selTextWords) {
 function matchWordArray(matchWords, allText) {
     const regex = regxMatchWords(matchWords)
     const matchs = [...allText.matchAll(regex)];
-    console.log('matchWordArray matchs %s', matchs.length)
+    // console.log('matchWordArray matchs %s', matchs.length)
     return matchs.map(m => ({ text: m[0], posText: m.index }));
 }
 //
@@ -220,7 +220,7 @@ function regxMatchWords(matchWords) {
     const gap = '(?:\\s|\\u0000|<[^>]+>|—|\')*';
     const escMatchWords = matchWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     const pattern = escMatchWords.map(w => `(?<=\\W|^)${w}(?=\\W|$)`).join(gap);
-    console.log('regxMatchWords pattern %s', pattern)
+    // console.log('regxMatchWords pattern %s', pattern)
     return new RegExp(pattern, 'g');
 }
 // Standardise the text
@@ -250,13 +250,13 @@ function cleanUpText(inText) {
 // Ensure snips are unique returns posText
 //
 function loadArticleText() {
-    console.log('EditArticle loadArticleText length', userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length)
+    // console.log('EditArticle loadArticleText length', userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length)
     if (userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length > 0) {
         viewArticleText.value = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText;
         if (articleSnips.length > 0) {
             snipedText.value = []
             // Mark Selected Text
-            console.log(`EditArticle loadArticleText Snips Before %s`, JSON.stringify(articleSnips))
+            // console.log(`EditArticle loadArticleText Snips Before %s`, JSON.stringify(articleSnips))
             var snipNbr = -1;
             for (let snip of articleSnips.slice()) {
                 if (snip.snipf.text.length == 0) continue;
@@ -290,6 +290,8 @@ function loadArticleText() {
             }
             console.log(`EditArticle loadArticleText Snips After Selects %s`, JSON.stringify(articleSnips))
         }
+        // 
+        if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
         // Mark Search Word
         searchTextWord.value = userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord
         // console.log('EditArticle loadArticleText Search', searchTextWord.value, viewArticleText.value.length)
@@ -308,7 +310,7 @@ function getInsertPos(snipEdge, match, text) {
     const matchWords = cleanMatch.split(' ')
     const regex = regxMatchWords(matchWords)
     var pos = text.search(regex)
-    console.log(`EditArticle getInsertPos match "%s" at %s`, cleanMatch, pos)
+    // console.log(`EditArticle getInsertPos match "%s" at %s`, cleanMatch, pos)
     if (pos < 0) {
         console.log(`EditArticle getInsertPos NOT match "%s"`, cleanMatch)
         return { pos: -1 }
@@ -357,8 +359,8 @@ function findNodeInfo(snipEdge, match) {
             if (!(['p', 'span'].includes(nodeType))) {
                 nodeType = ''
             }
-            console.log('EditArticle findNodeInfo checked %s Node Type %s edgeMatch %s',
-                snipEdge, nodeType, edgeMatch)
+            // console.log('EditArticle findNodeInfo checked %s Node Type %s edgeMatch %s',
+            //     snipEdge, nodeType, edgeMatch)
             return {
                 edgeMatch: edgeMatch,
                 nodeType: nodeType,
@@ -369,60 +371,6 @@ function findNodeInfo(snipEdge, match) {
     console.log('EditArticle findNodeInfo NOT FOUND "%s" at Edge', matchStr)
     return { edgeMatch: false, nodeType: '', nodeText: '' }
 }
-// Get Node where insert is to happen
-// function findNodeInfoByMatch(snipEdge, match) {
-//     // Create html portion to find node at insert point
-//     const matchStr = match.replaceAll(" ", "")
-//     parsedArticleText = parseHTMLFragment(viewArticleText.value)
-//     const walker = document.createTreeWalker(parsedArticleText, NodeFilter.SHOW_TEXT, null)
-//     let nodesWalked = 0
-//     let nodeText = ''
-//     let nodeTexts = []
-//     while (walker.nextNode()) {
-//         var node = walker.currentNode
-//         var text = cleanUpText(node.outerHTML || node.textContent || '')
-//         nodeTexts.push({ node: node, nodeText: text })
-//         nodeText += text.replaceAll(" ", "")
-//         ++nodesWalked
-//         const matchIndex = nodeText.indexOf(matchStr)
-//         // console.log('EditArticle findNodeInfoByMatch Walk %s match "%s" in "%s" at %s', nodesWalked, matchStr, nodeText, matchIndex)
-//         if (matchIndex > -1) {
-//             var edgeMatch = false;
-//             var textStr = text.replaceAll(" ", "") // Work backwards from last node
-//             if (snipEdge == 'front') {
-//                 // Find which node the front starts in
-//                 while (textStr.indexOf(matchStr) < 0) {
-//                     const aNodeText = nodeTexts.pop()
-//                     node = aNodeText.node
-//                     textStr = aNodeText.nodeText.replaceAll(" ", "") + textStr
-//                     // console.log('EditArticle findNodeInfoByMatch Find Front of string Node %s Check "%s" "%s"',
-//                     //     nodesWalked, matchStr, textStr.slice(0, matchStr.length + 10))
-//                     --nodesWalked
-//                     if (nodesWalked < 1) break
-//                 }
-//                 edgeMatch = textStr.startsWith(matchStr)
-//             } else {
-//                 // snipEdge is back - check if it is at back of node text
-//                 // console.log('EditArticle findNodeInfoByMatch Find Back of string Node %s Check "%s", "%s"',
-//                 //     nodesWalked, matchStr, textStr.slice(textStr.length - matchStr.length - 10))
-//                 edgeMatch = textStr.endsWith(matchStr)
-//             }
-//             var nodeType = node.parentElement?.tagName?.toLowerCase()
-//             if (!(['p', 'span'].includes(nodeType))) {
-//                 nodeType = ''
-//             }
-//             // console.log('EditArticle findNodeInfoByMatch checked %s Node Type %s Edge %s edgeMatch %s',
-//             //     nodesWalked, nodeType, snipEdge, edgeMatch)
-//             return {
-//                 edgeMatch: edgeMatch,
-//                 nodeType: nodeType,
-//                 nodeText: node.textContent
-//             }
-//         }
-//     }
-//     console.log('EditArticle findNodeInfoByMatch NOT FOUND "%s"', matchStr)
-//     return { edgeMatch: false, nodeType: '', nodeText: '' }
-// }
 //
 function cleanInsert(snipEdge, handle, nodeInfoStart, nodeInfoEnd) {
     // console.log(`EditArticle cleanInsert Front %s, Back %s`, JSON.stringify(nodeInfoStart), JSON.stringify(nodeInfoEnd))
@@ -465,7 +413,7 @@ function slidePos(slideBy, slideFor, checkPtr, chunk) {
             return 0
         }
     }
-    console.log('EditArticle loadArticleText slidePos found %s at %s', slideFor, slide)
+    // console.log('EditArticle loadArticleText slidePos found %s at %s', slideFor, slide)
     return slide;
 }
 // Snip the Clean Text to display
@@ -484,7 +432,7 @@ function updSnipedTextArray(thisSnip) {
         toast.error('Snip Back not unique to enable snip, pls redo')
         return false
     }
-    const selectedText = cleanOriginalText.slice(matchsFront[0].posText, matchsBack[0].posText + thisSnip.snipb.text.length - 1)
+    const selectedText = cleanOriginalText.slice(matchsFront[0].posText, matchsBack[0].posText + thisSnip.snipb.text.length)
     snipedText.value.push(selectedText)
 }
 // Scroll to Search Word in Trove Article, identify by <mark>
@@ -516,7 +464,7 @@ function activateHandles(event) {
 }
 // Manage Selected Snip Buttons
 function snipSelAction(actionSnip, actionText) {
-    console.log(`EditArticle snipSelAction %s, %s`, actionSnip, actionText)
+    // console.log(`EditArticle snipSelAction %s, %s`, actionSnip, actionText)
     switch (actionText) {
         case "update":
             updSelectTextDisabled.value = false
@@ -668,6 +616,16 @@ function updateSnip() {
 //
 function updateSelectedText() {
     console.log(`EditArticle updateSelectedText %s`, snipedText.value.length)
+    copySelectedText()
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
+        deleteSelectedTextDisabled.value = false
+        userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
+    }
+    // Clears snipUpOld, updSnip
+    snipSelAction('ended', '')
+}
+function copySelectedText() {
+    console.log(`EditArticle copySelectedText %s`, snipedText.value.length)
     userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = ''
     for (var text of snipedText.value) {
         if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
@@ -676,12 +634,6 @@ function updateSelectedText() {
             userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = text
         }
     }
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
-        deleteSelectedTextDisabled.value = false
-        userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
-    }
-    // Clears snipUpOld, updSnip
-    snipSelAction('ended', '')
 }
 //
 function cancelUpdateSelected() {
@@ -800,9 +752,11 @@ watch(editMetadata, (newEditMetadata) => {
     if (newEditMetadata > -1) setupEditedFields(newEditMetadata)
     return
 })
-//  Enable Updata Data Button
-watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText, () => {
+//  Enable Update Data Button
+watch(() => userData.viewedArticles[idxViewed.value], () => {
+    console.log('Change ViewedArticleSelectedText ', idxViewed.value)
     disableUpdate.value = false
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
 },
     { once: true }
 )
