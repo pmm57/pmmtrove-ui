@@ -757,8 +757,7 @@ watch(() => userData.viewedArticles[idxViewed.value], () => {
     console.log('Change ViewedArticleSelectedText ', idxViewed.value)
     disableUpdate.value = false
     if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
-},
-    { once: true }
+}
 )
 watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText, () => {
     disableUpdate.value = false
