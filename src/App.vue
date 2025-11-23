@@ -1,5 +1,5 @@
 <script setup>
-import { watch } from 'vue'
+import { watch, reactive } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import NavBar from '@/components/NavBar.vue'
@@ -63,7 +63,7 @@ function handleMessage(e) {
         break
       case 'sseUserListArticles':
         // console.log(sseRetrieve.event);
-        // console.log ('sseUserListsArticles ', JSON.stringify(sseRetrieve))
+        // console.log('*** sseUserListsArticles ', JSON.stringify(sseRetrieve))
         userData.userListsReady = true
         // Only One List
         userData.loadedIndex = sseRetrieve.updatedListIndex
@@ -158,7 +158,7 @@ function handleMessage(e) {
         userData.viewedArticles[articleIdx].ViewedArticlePossibleDupArticle = sseRetrieve.cacheViewedArticlePossibleDupArticle
         break
       case 'sseReloadViewedArticle':
-        console.log("sseReloadViewedArticle ", sseRetrieve)
+        // console.log("sseReloadViewedArticle ", JSON.stringify(sseRetrieve))
         // Update List Article Status
         updAListArticle(sseRetrieve.viewedListId, sseRetrieve.viewedArticleId, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatus, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatusText)
         // Update Viewed Article
@@ -167,7 +167,7 @@ function handleMessage(e) {
           // console.log("sseReloadViewedArticle userData New Viewed Article", sseRetrieve.cacheViewedArticle)
           articleIdx = userData.viewedArticles.length;
         }
-        userData.viewedArticles.splice(articleIdx, 1, sseRetrieve.cacheViewedArticle) // Triggers Reactivity
+        userData.viewedArticles.splice(articleIdx, 1, reactive(sseRetrieve.cacheViewedArticle)) // Triggers Reactivity
         // console.log ("sseReloadViewedArticle userData", articleIdx, userData.viewedArticles[articleIdx])
         userData.updMetadataTypeArticleLinks(sseRetrieve.viewedListId, sseRetrieve.viewedArticleId, articleIdx, sseRetrieve.cacheViewedArticle.ViewedArticleMetadata)
         break
