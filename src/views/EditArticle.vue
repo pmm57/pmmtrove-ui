@@ -2,6 +2,7 @@
 import ModalEntities from '@/components/ModalEntities.vue'
 import ModalDuplicates from '@/components/ModalDuplicates.vue'
 import EditItem from '@/components/EditItem.vue'
+import ModalSearchText from '@/components/ModalSearchText.vue'
 import { ref, reactive, watch, nextTick } from 'vue'
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
@@ -23,8 +24,11 @@ idxList.value = userData.userLists.findIndex((item) => item.TroveListId == props
 var idxListArticle = ref(0)
 idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == props.articleId);
 var viewArticleText = ref('');
-var searchTextWord = ref('')
+var searchText = ref('');
+var searchTextCount = ref(0);
+var showModalSearchText = ref(false)
 const articleRef = ref(null);
+const hasScrolledOnce = ref(false)
 // Has it been viewed previously
 var idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
@@ -292,17 +296,26 @@ function loadArticleText() {
         }
         // 
         if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
-        // Mark Search Word
-        searchTextWord.value = userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord
-        // console.log('EditArticle loadArticleText Search', searchTextWord.value, viewArticleText.value.length)
-        var re = new RegExp("(" + searchTextWord.value + ")", "gi");
-        userData.viewedArticles[idxViewed.value].ViewedArticleFoundCount = (viewArticleText.value.match(re) || []).length;
-        viewArticleText.value = viewArticleText.value.replace(re, function (matched) {
-            // console.log("matched", matched)
-            return markSearch + matched + markEnd
-        })
-        // console.log('EditArticle loadArticleText Search After', viewArticleText.value.length)
+        markSearchText(userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord)
     }
+}
+// Mark Search Text
+function markSearchText(searchTextIn) {
+    var doScroll = false;
+    if (searchText.value.length > 0) doScroll = true // We are changing the Search Text
+    console.log(`EditArticle/markSearchText Search "%s", %s`, searchTextIn, viewArticleText.value.length)
+    if (searchTextIn.length > 0) searchText.value = searchTextIn
+    if (searchText.value.length == 0) return
+    viewArticleText.value = viewArticleText.value.replaceAll(markSearch, "").replaceAll(markEnd, "");
+    console.log('EditArticle/markSearchText Search', searchText.value, viewArticleText.value.length)
+    var re = new RegExp("(" + searchText.value + ")", "gi");
+    searchTextCount = (viewArticleText.value.match(re) || []).length;
+    viewArticleText.value = viewArticleText.value.replace(re, function (matched) {
+        // console.log("EditArticle markSearchText matched", matched)
+        return markSearch + matched + markEnd
+    })
+    // console.log('EditArticle markSearchText Search After', viewArticleText.value.length)
+    if (doScroll) triggerScrollAgain()
 }
 // Find where to insert Snip Handles
 function getInsertPos(snipEdge, match, text) {
@@ -437,18 +450,65 @@ function updSnipedTextArray(thisSnip) {
 }
 // Scroll to Search Word in Trove Article, identify by <mark>
 function scrollSearchWord(event) {
-    const searchFound = viewArticleText.value.indexOf(markSearch)
-    // console.log(`EditArticle scrollSearchWord Searches %s`, searchFound)
-    if (searchFound > 0) {
-        const textLength = viewArticleText.value.length
-        const scrollPercent = searchFound / textLength
-        const scrollPixels = event.currentTarget.scrollHeight * scrollPercent;
-        // console.log(pattern, searchFound, textLength, event.currentTarget.scrollHeight, scrollPixels);
-        event.currentTarget.scrollTo({
-            top: scrollPixels,
+    const container = event.currentTarget; // the .card-body div
+    const searchTerm = searchText.value;
+
+    if (hasScrolledOnce.value) {
+        // console.log("EditArticle/scrollSearchWord Scroll ignored (already ran once)");
+        return;
+    }
+
+    // Find the span that holds the article text
+    const span = container.querySelector("span");
+    if (!span) return;
+
+    // Use Range + TreeWalker to locate the text node
+    console.log("EditArticle/scrollSearchWord scroll event");
+    const walker = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
+    let node, index, found = false;
+    while ((node = walker.nextNode())) {
+        index = node.nodeValue.indexOf(searchTerm);
+        if (index !== -1) {
+            const range = document.createRange();
+            range.setStart(node, index);
+            range.setEnd(node, index + searchTerm.length);
+
+            const rect = range.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+
+            var offsetTop = rect.top - containerRect.top + container.scrollTop;
+            // Adjust to scroll one line above
+            const lineHeight = parseFloat(getComputedStyle(container).lineHeight) || 20;
+            offsetTop = Math.max(0, offsetTop - lineHeight);
+            container.scrollTo({
+                top: offsetTop,
+                left: 0,
+                behavior: "smooth",
+            });
+
+            console.log("EditArticle/scrollSearchWord First scroll triggered");
+            hasScrolledOnce.value = true;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        console.log("EditArticle/scrollSearchWord Search term not found, scrolling to top");
+        hasScrolledOnce.value = true;
+        container.scrollTo({
+            top: 0,
             left: 0,
             behavior: "smooth",
         });
+    }
+}
+//
+function triggerScrollAgain() {
+    if ((articleRef.value) && (searchText.value.length > 0)) {
+        console.log("EditArticle/triggerScrollAgain");
+        hasScrolledOnce.value = false   // reset flag
+        articleRef.value.scrollTop = articleRef.value.scrollHeight
+        articleRef.value.dispatchEvent(new Event('scroll'))
     }
 }
 // Inject handles when snip is clicked
@@ -758,11 +818,6 @@ watch(() => userData.viewedArticles[idxViewed.value], () => {
     disableUpdate.value = false
     if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
 }
-)
-watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText, () => {
-    disableUpdate.value = false
-},
-    { once: true }
 )
 //
 function setupEditedFields(index) {
@@ -1210,9 +1265,20 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                             <summary>
                                 <span>Trove Original Text</span>
                             </summary>
-                            <div class="card text-center">
-                                Search Word ({{ userData.viewedArticles[idxViewed].ViewedArticleSearchWord }}) Occurs {{
-                                    userData.viewedArticles[idxViewed].ViewedArticleFoundCount }}
+                            <div class="card text-center d-flex justify-content-center gap-2 p-2 flex-row">
+                                <span class="d-flex align-items-center">
+                                    Search Text '{{ searchText }}' Occurs {{ searchTextCount }}
+                                </span>
+                                <button @click.prevent="triggerScrollAgain" class="btn btn-primary">
+                                    Search
+                                </button>
+                                <button @click.prevent="showModalSearchText = true" class="btn btn-primary">
+                                    Change
+                                </button>
+                                <Teleport to="#positionModals">
+                                    <ModalSearchText v-if="showModalSearchText" @close="showModalSearchText = false"
+                                        @chgSearch="markSearchText" :inSearchText="searchText" />
+                                </Teleport>
                             </div>
                             <div class="card text-center">
                                 <div v-if="showToolbar" class="d-flex justify-content-center gap-2 p-2">
@@ -1242,7 +1308,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 </div>
                             </div>
                             <div class="card">
-                                <div @scroll.once="scrollSearchWord" @mouseup="snipHighlightedText" ref="articleRef"
+                                <div @scroll="scrollSearchWord" @mouseup="snipHighlightedText" ref="articleRef"
                                     @click="activateHandles($event)" @dragstart="handleDragStart" @dragover.prevent
                                     class="card-body overflow-auto" style="max-height: 300px" @drop="handleDrop"
                                     id="textTrove">
