@@ -40,6 +40,7 @@ function handleMessage(e) {
         userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
         userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
         userData.nbrUserIgnoredArticles = sseRetrieve.cacheNbrIgnored
+        userData.userListsReady = true
         // In UI have split Articles from the List - so do split
         userData.updateAllLists(sseRetrieve.cacheUserLists)
         if (sseRetrieve.cacheViewedArticles.length > 0) {

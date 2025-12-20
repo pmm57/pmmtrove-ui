@@ -1,6 +1,6 @@
 <script setup>
 const props = defineProps(['inline', 'articleListArray', 'troveListId'])
-console.log("ArticleUrls", JSON.stringify(props))
+// console.log("ArticleUrls", JSON.stringify(props))
 //
 function compareFn(a, b) {
     if (Number(a.troveArticleId) < Number(b.troveArticleId)) {
@@ -24,7 +24,7 @@ if (props.troveListId > 0) {
     });
 }
 articleUrls.sort(compareFn);
-console.log("Article Urls -2 - ", JSON.stringify(articleUrls));
+// console.log("Article Urls -2 - ", JSON.stringify(articleUrls));
 </script>
 //
 <template>

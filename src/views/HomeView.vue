@@ -126,7 +126,9 @@ function updTroveLists() {
             {{ loadingMsg }}
         </div>
         <div v-else>
-            <button @click.prevent="updTroveLists()" class="btn btn-primary">Refresh Your Trove Lists</button>
+            <button @click.prevent="updTroveLists()" class="btn btn-primary"
+                :disabled="(userData.loadedIndex + 1) < userData.troveQueryTotal">Refresh
+                Your Trove Lists</button>
         </div>
     </div>
     <div v-else class="card col-sm-4 text-center">

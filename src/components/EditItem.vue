@@ -29,11 +29,18 @@ a .tooltiptext {
   border-radius: 6px;
   border-style: solid;
   border-color: lightgrey;
-  /* Position the tooltip text - see examples below! */
+  /* Position the tooltip text */
   position: absolute;
   z-index: 1;
-  top: -5px;
-  right: 105%;
+  top: 100%;
+  /* place below the anchor */
+  left: 50%;
+  /* start at the horizontal center */
+  transform: translateX(-50%);
+  /* shift back half its width */
+  margin-top: 5px;
+  /* small gap below the anchor */
+
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
