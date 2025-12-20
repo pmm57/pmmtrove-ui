@@ -28,12 +28,15 @@ const errorsStore = useErrorsArrayStore()
                     Metadata Items</RouterLink>
             </li>
             <li class="nav-item">
-                <RouterLink to="/userPersonList/blank" class="nav-link"
-                    :class="{ disabled: navStore.disablePersonList }">
+                <RouterLink to="/userPersonList" class="nav-link" :class="{ disabled: navStore.disablePersonList }">
                     People</RouterLink>
             </li>
             <li class="nav-item">
-                <RouterLink to="/searchTrove/blank" class="nav-link" :class="{ disabled: navStore.disableSearch }">
+                <RouterLink to="/userPersonStory" class="nav-link" :class="{ disabled: navStore.disablePersonStory }">
+                    Person Story</RouterLink>
+            </li>
+            <li class="nav-item">
+                <RouterLink to="/searchTrove" class="nav-link" :class="{ disabled: navStore.disableSearch }">
                     Search
                 </RouterLink>
             </li>

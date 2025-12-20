@@ -8,12 +8,17 @@ import ModalPartner from '@/components/ModalPartner.vue';
 import { useCheckName } from '@/components/CheckName.js';
 import { useDoFetch } from '@/components/DoFetch.js';
 import { useUserDataStore } from '@/stores/userdata';
+const userData = useUserDataStore();
+import { useRouter } from 'vue-router';
+const router = useRouter();
+import { useNavBarStore } from '@/stores/navbar';
+const navStore = useNavBarStore();
 import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
-const userData = useUserDataStore();
-const props = defineProps(['person']);
 //
 let sourceLoadPerson = null;
+let eventSourceReadArticles = null;
+let sourceLoadPersonStory = null;
 let loadingPerson = ref(false);
 let loadingPersonText = ref("");
 let linkListText = ref("Link to a List");
@@ -23,6 +28,8 @@ let showPersonDetails = ref(false);
 let showSearchPerson = ref(false);
 let showEditPersonName = ref(false);
 let showEditRefInfo = ref(false);
+let personStoryText = ref('Person Story')
+let readArticlesText = ref('')
 let notifyEditError = ref('inherit');
 let popoverForMetadata = ref('');
 let showDefaultPersonAction = ref(true);
@@ -39,15 +46,7 @@ let showDelPerson = ref(false);
 let showModalLists = ref(false);
 let showModalRelative = ref(false);
 let showModalPartner = ref(false);
-let buttonRefInfo = ''
-let savedPerson = reactive({
-  action: "",
-  personIndex: -1,
-  readName: "",
-  readRefInfo: '',
-  linkedListId: 0,
-  arrayRelated: []
-});
+let buttonRefInfo = ref('Add Reference Information')
 let partners = ref([]);
 //
 let updatePerson = reactive({
@@ -57,8 +56,15 @@ let updatePerson = reactive({
   chgRelated: []
 });
 //
-
-console.log('Passed Person: ', JSON.stringify(props));
+// navStore.savedPerson = {
+//   action: "",
+//   personIndex: -1,
+//   readName: "",
+//   readRefInfo: '',
+//   linkedListId: 0,
+//   arrayRelated: []
+// };
+console.log('Passed Person: ', JSON.stringify(navStore.savedPerson));
 const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999';
 popoverForMetadata.value = popoverPersonMetadata;
@@ -86,8 +92,8 @@ function setPersonNameActions(showActions) {
   // 
   if (showActions.length == 0) {
     showActions = 'edit link relatives restore search';
-    if ((userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray.length == 0) &&
-      (savedPerson.arrayRelated.length == 0) &&
+    if ((userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.length == 0) &&
+      (navStore.savedPerson.arrayRelated.length == 0) &&
       (linkedListIdx.value == -1)) {
       // As no linked articles or Relatives or List - Person can be deleted
       showActions += ' delete';
@@ -139,69 +145,34 @@ function setPersonNameActions(showActions) {
   return;
 }
 //
-function handleLoadPersonMessage(e, intervalApersonData, idxPartner) {
+function handleLoadPersonMessage(e, intervalApersonData) {
   var returnedData = JSON.parse(e.data);
-  console.log('Return Loadperson', JSON.stringify(returnedData));
-  // savedPerson = JSON.parse(e.data);
-  savedPerson.readName = returnedData.readPerson;
-  savedPerson.readRefInfo = ''
-  buttonRefInfo = 'Add Reference Information'
-  showEditRefInfo.value = false
-  if (returnedData.hasOwnProperty("ReferenceInformation")) {
-    savedPerson.readRefInfo = returnedData.ReferenceInformation
-    buttonRefInfo = 'Edit Reference Information'
+  // console.log('Return Loadperson', JSON.stringify(returnedData));
+  navStore.savedPerson.readName = returnedData.readPerson;
+  navStore.savedPerson.readRefInfo = ''
+  if (returnedData.hasOwnProperty("referenceInformation")) {
+    navStore.savedPerson.readRefInfo = returnedData.referenceInformation
   }
-  savedPerson.linkedListId = returnedData.linkedListId;
-  linkedListText.value = "Unlink from List " + savedPerson.linkedListId;
-  linkedListIdx.value = -1;
-  if (savedPerson.linkedListId > 0) {
-    linkedListIdx.value = userData.userLists.findIndex((item) => item.TroveListId === returnedData.linkedListId.toString());
-    if (linkedListIdx.value > -1) {
-      linkedListText.value += " | " + userData.userLists[linkedListIdx.value].TroveListName;
-    } else {
-      linkedListText.value += " | No Name";
-    }
+  navStore.savedPerson.personStoryStatus = 'None'
+  if (returnedData.hasOwnProperty("personStoryStatus")) {
+    navStore.savedPerson.personStoryStatus = returnedData.personStoryStatus
   }
-  savedPerson.arrayRelated = returnedData.arrayRelated;
-  savedPerson.personIndex = returnedData.personIndex;
-  savedPerson.action = "LOAD";
-  console.log('Return Savedperson', JSON.stringify(savedPerson));
+  navStore.savedPerson.personStoryIdx = -1
+  if ((returnedData.hasOwnProperty("personStoryIdx") && (returnedData.personStoryIdx > -1))) {
+    navStore.savedPerson.personStoryIdx = returnedData.personStoryIdx
+    // userData.storyEventsForPersons[returnedData.personStoryIdx] = returnedData.storyEvents
+  }
+  navStore.savedPerson.linkedListId = returnedData.linkedListId;
+  navStore.savedPerson.arrayRelated = returnedData.arrayRelated;
+  navStore.savedPerson.personIndex = returnedData.personIndex;
+  navStore.savedPerson.action = "LOAD";
+  // console.log('Return Savedperson', JSON.stringify(navStore.savedPerson));
   // Updated Linked Article URLS
-  // userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray = returnedData.linkedArticleUrls.arrayArticleUrls
-  console.log('Return Linked Article URLs ', JSON.stringify(userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray));
-  setPersonActions('');
-  updatePerson.chgName = savedPerson.readName;
-  updatePerson.chgRefInfo = savedPerson.readRefInfo;
-  updatePerson.chgLinkedListId = savedPerson.linkedListId;
-  updatePerson.chgRelated = [];
-  if (savedPerson.hasOwnProperty('arrayRelated')) {
-    updatePerson.chgRelated = JSON.parse(JSON.stringify(savedPerson.arrayRelated));
-    partners.value = [];
-    for (var relation of updatePerson.chgRelated) {
-      // Need this for relation hyper link
-      relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson);
-      if ((idxPartner == -1) && (relation.relatedType == 'ChildWith')) {
-        //Get partner details to link new ChildOf relations for current displayed person
-        partners.value.push({
-          action: "LOAD",
-          personIndex: relation.relatedIdxPerson,
-          readName: relation.relatedPerson,
-          arrayRelated: []
-        });
-      };
-    };
-  };
+  if ((navStore.savedPerson.personStoryStatus == 'None') && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.length > 0)) navStore.savedPerson.personStoryStatus = 'Create'
+  console.log('Return Linked Article URLs ', JSON.stringify(userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray));
   sourceLoadPerson.close();
   clearInterval(intervalApersonData);
-  loadingPerson.value = false;
-  showPersonDetails.value = true;
-  showEditPersonName.value = false;
-  setPersonNameActions('');
-  // Load partner details
-  console.log('Load Person Partners', JSON.stringify(partners.value));
-  for (var idx = 0; idx < partners.value.length; ++idx) {
-    loadPerson(partners.value[idx].personIndex, idx);
-  };
+  initPersonScreen()
 }
 //
 function handleLoadPartnerMessage(e, intervalApersonData, idxPartner) {
@@ -214,7 +185,7 @@ function handleLoadPartnerMessage(e, intervalApersonData, idxPartner) {
     relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson);
   }
   partners.value[idxPartner].arrayRelated = returnedData.arrayRelated;
-  console.log('Return Load Partner', JSON.stringify(partners.value[idxPartner]));
+  // console.log('Return Load Partner', JSON.stringify(partners.value[idxPartner]));
   sourceLoadPerson.close();
   clearInterval(intervalApersonData);
 }
@@ -229,7 +200,7 @@ function handleError(e) {
 }
 //
 function loadPerson(idxValue, idxPartner) {
-  console.log('Load Person Person:', idxValue, idxPartner);
+  console.log(`UserPersonListView/loadPerson PersonIdx:%s PartnerIdx:%s`, idxValue, idxPartner);
   var intervalLoadPerson = setInterval(function () {
     loadingPersonText.value += ' .'
   }, 500);
@@ -243,10 +214,11 @@ function loadPerson(idxValue, idxPartner) {
     } else {
       loadingPerson.value = true;
       loadingPersonText.value = "Loading Person Details";
+      showDefaultPersonAction.value = true;
       showPersonDetails.value = false;
       showEditPersonName.value = false;
       showEditRefInfo.value = false;
-      sourceLoadPerson.addEventListener("LoadPerson", (e) => handleLoadPersonMessage(e, intervalLoadPerson, idxPartner), false);
+      sourceLoadPerson.addEventListener("LoadPerson", (e) => handleLoadPersonMessage(e, intervalLoadPerson), false);
     }
     // Close if still open when window closed
     // $(window).bind('beforeunload', function(){
@@ -266,13 +238,13 @@ function loadPerson(idxValue, idxPartner) {
 // If the Check Person test is OK the 'Update Person' button is shown
 // If they click "Update Person" then chgPerson function is called
 function addPerson() {
-  savedPerson.action = 'ADD';
-  savedPerson.personIndex = -1;
-  savedPerson.readName = "";
-  savedPerson.linkedListId = 0;
+  navStore.savedPerson.action = 'ADD';
+  navStore.savedPerson.personIndex = -1;
+  navStore.savedPerson.readName = "";
+  navStore.savedPerson.linkedListId = 0;
   linkListText.value = "Link to a List";
   linkedListText.value = "";
-  savedPerson.arrayRelated = [];
+  navStore.savedPerson.arrayRelated = [];
   updatePerson.chgName = "";
   updatePerson.chgLinkedListId = 0;
   updatePerson.chgRelated = [];
@@ -290,21 +262,21 @@ function editPersonClick() {
   showPersonDetails.value = false;
   setPersonNameActions('check restore');
   setPersonActions('');
-  savedPerson.action = 'CHG';
+  navStore.savedPerson.action = 'CHG';
 }
 // Set editPersonName editable
 function editRefInfoClick() {
-  if (buttonRefInfo == "Update Reference Information") {
+  if (buttonRefInfo.value == "Update Reference Information") {
     console.log('editRefInfoClick Update');
-    buttonRefInfo = "Edit Reference Information"
-    savedPerson.action = 'CHG';
+    buttonRefInfo.value = "Edit Reference Information"
+    navStore.savedPerson.action = 'CHG';
     setPersonNameActions('restore');
     setPersonActions("chg");
     showEditRefInfoAction.value = false;
     showEditRefInfo.value = false;
     showPersonDetails.value = true;
   } else {
-    buttonRefInfo = "Update Reference Information"
+    buttonRefInfo.value = "Update Reference Information"
     showEditRefInfo.value = true;
     showPersonDetails.value = false;
     setPersonNameActions('restore');
@@ -322,16 +294,16 @@ function checkPersonNameClick() {
     errorTip = 'Is Blank';
   } else {
     errorTip = useCheckName(updatePerson.chgName);
-    if (errorTip.length > 0) {
-      valid = false;
-    }
+    // if (errorTip.length > 0) {
+    //   valid = false;
+    // }
   }
   // 
   if (errorTip.length == 0) {
     for (const el of userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata) {
       // OK if Selected Person
       // console.log ('|' + updatePerson.readName + '|' + addPersonName +'|' + strPerson[0] + '|')
-      if (el.metadataValue != savedPerson.readName) {
+      if (el.metadataValue != navStore.savedPerson.readName) {
         if ((el.metadataValue.startsWith(updatePerson.chgName))
           || (updatePerson.chgName.startsWith(el.metadataValue))) {
           errorTip = 'Matches Person-' + el.metadataValue;
@@ -365,7 +337,7 @@ function delPerson(deletePerson, emptyPerson) {
   emptyPerson.chgName = [];
   emptyPerson.chgRelated = [];
   saveData(deletePerson, emptyPerson, true);
-  initScreen();
+  initScreen('clear');
 }
 //
 function linkListToPerson(linkList) {
@@ -375,7 +347,7 @@ function linkListToPerson(linkList) {
   showModalLists.value = false;
   setPersonActions("chg");
   setPersonNameActions('relatives restore');
-  savedPerson.action = 'CHG';
+  navStore.savedPerson.action = 'CHG';
 }
 //
 function unlinkListToPerson() {
@@ -383,7 +355,13 @@ function unlinkListToPerson() {
   console.log('UnLink List ', updatePerson.chgLinkedListId);
   setPersonActions("chg");
   setPersonNameActions('relatives restore');
-  savedPerson.action = 'CHG';
+  navStore.savedPerson.action = 'CHG';
+}
+//
+function troveSearch() {
+  navStore.troveSearchName = updatePerson.chgName
+  console.log(`UserPersonListView/troveSearch - Person - %s Events %s`, updatePerson.chgName);
+  router.push({ name: 'searchTrove' });
 }
 //
 function addRelatedPerson(relatedPerson) {
@@ -410,7 +388,7 @@ function addRelatedPerson(relatedPerson) {
   }
   setPersonActions("chg");
   setPersonNameActions('relatives restore');
-  savedPerson.action = 'CHG';
+  navStore.savedPerson.action = 'CHG';
 }
 //
 function addToRelatedPartner(idxOtherParent) {
@@ -452,7 +430,7 @@ function delRelativeClick(idxRelation) {
   }
   setPersonNameActions('relatives restore');
   setPersonActions("chg");
-  savedPerson.action = 'CHG';
+  navStore.savedPerson.action = 'CHG';
   if (idxPartner > -1) {
     partners.value[idxPartner].action = 'CHG';
   }
@@ -503,8 +481,97 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
   //
   saveData(preChgDetails, chgDetails);
   if (firstCall) {
-    initScreen()
+    initScreen('clear')
   }
+}
+// Person Story
+function personStory() {
+  switch (navStore.savedPerson.personStoryStatus) {
+    case "Create":
+      navStore.storyPersonNew = true
+      navStore.savedPerson.personStoryStatus = "Generating"
+      break;
+    case "Editing":
+    case "Review":
+      editPersonStory()
+      return;
+    case "Load":
+      navStore.savedPerson.personStoryStatus = "Loading"
+      break;
+    default:
+      console.log(`UserPersonListView/personStory - Invalid personStoryStatus - %s`, navStore.savedPerson.personStoryStatus);
+      return;
+  }
+  const storyPerson = {
+    "action": "STORY",
+    "personIndex": navStore.savedPerson.personIndex,
+    "readName": navStore.savedPerson.readName,
+    "personStoryStatus": navStore.savedPerson.personStoryStatus,
+    "linkedListId": navStore.savedPerson.linkedListId,
+    "arrayRelated": navStore.savedPerson.arrayRelated
+  }
+  console.log(`UserPersonLstView/personStory %s`, JSON.stringify(storyPerson));
+  saveData(storyPerson, {})
+  //
+  console.log('Set SSE Person Story:', navStore.savedPerson.personIndex);
+  var intervalLoadPersonStory = setInterval(function () {
+    personStoryText.value += ' .'
+  }, 500);
+  if (!!window.EventSource) {
+    //
+    var streamId = 'ReadArticles:' + userData.troveDetails.troveUserId
+    var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
+    console.log(`personStory ReadArticles %s`, streamName);
+    eventSourceReadArticles = new EventSource(streamName, { withCredentials: true });
+    eventSourceReadArticles.addEventListener('error', (e) => handleError(e), false);
+    eventSourceReadArticles.addEventListener(streamId, (e) => handleReadArticlesMessage(e), false);
+    //
+    streamId = 'PersonStory:' + userData.troveDetails.troveUserId + ':' + navStore.savedPerson.personIndex
+    streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
+    // console.log(streamName);
+    sourceLoadPersonStory = new EventSource(streamName, { withCredentials: true });
+    sourceLoadPersonStory.addEventListener('error', (e) => handleError(e), false);
+    sourceLoadPersonStory.addEventListener(streamId, (e) => handleLoadStoryMessage(e, intervalLoadPersonStory, navStore.savedPerson.personIndex), false);
+  } else {
+    errorsStore.arrayErrors.push({ msg: `Your browser doesn't support SSE`, param: '' });
+    console.log("Your browser doesn't support SSE");
+  }
+}
+//
+function handleLoadStoryMessage(e, intervalLoadPersonStory, idxPerson) {
+  readArticlesText.value = ''
+  var returnedData = JSON.parse(e.data);
+  console.log('Return Load Person Story', JSON.stringify(returnedData), userData.troveDetails.troveUserId, idxPerson);
+  personStoryText.value = 'Person Story'
+  // Check this message is for this Userr and Person
+  if ((returnedData.checkUserId != userData.troveDetails.troveUserId) || (returnedData.personIdx != idxPerson)) {
+    console.log('UserPersonListView/handleLoadStoryMessage ERROR');
+    navStore.savedPerson.personStoryStatus = 'ERROR'
+    return
+  }
+  navStore.savedPerson.personStoryStatus = 'Review'
+  navStore.savedPerson.personStoryIdx = returnedData.personStoryIdx
+  userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[idxPerson].personStoryIdx = returnedData.personStoryIdx
+  userData.storyEventsForPersons[returnedData.personStoryIdx] = returnedData.storyEvents
+  sourceLoadPersonStory.close();
+  eventSourceReadArticles.close();
+  clearInterval(intervalLoadPersonStory);
+  editPersonStory();
+}
+//
+function handleReadArticlesMessage(e) {
+  var returnedData = JSON.parse(e.data);
+  console.log('Read Article Message', JSON.stringify(returnedData));
+  personStoryText.value.replace('.', '')
+  readArticlesText.value = returnedData.nbrRead + ` of ` + returnedData.nbrToRead
+}
+//
+function editPersonStory() {
+  navStore.savedPerson.personStoryStatus = "Editing"
+  navStore.disablePersonStory = false
+  console.log(`UserPersonListView/personStory - Person - %s Events %s`,
+    JSON.stringify(navStore.savedPerson), JSON.stringify(userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx]));
+  router.push({ name: 'userPersonStory' });
 }
 //  Post updated data and expect ssePersonChg to trigger reload
 function saveData(currentDetails, newDetails) {
@@ -532,27 +599,85 @@ function saveData(currentDetails, newDetails) {
   useDoFetch('UserPersonListView/saveData', url, options);
 }
 // Initialise Screen
-function initScreen() {
+function initScreen(initAction) {
+  if ((navStore.savedPerson.personIndex > -1) && (initAction == '')) {
+    if (navStore.savedPerson.action == 'Load') {
+      loadPerson(navStore.savedPerson.personIndex, -1)
+    } else { // Already loaded
+      initPersonScreen()
+    }
+    return
+  }
   showEditPersonName.value = false;
   showEditRefInfo.value = false;
   showPersonDetails.value = false;
   setPersonActions('add');
   setPersonNameActions('start');
-  savedPerson.action = "";
-  savedPerson.personIndex = -1;
-  savedPerson.readName = "";
-  savedPerson.linkedListId = 0;
+  navStore.savedPerson.action = "";
+  navStore.savedPerson.personIndex = -1;
+  navStore.savedPerson.readName = "";
+  navStore.savedPerson.linkedListId = 0;
+  navStore.savedPerson.arrayRelated = [];
   linkListText.value = "Link to a List";
   linkedListText.value = "";
   linkedListIdx.value = -1;
-  savedPerson.arrayRelated = [];
   updatePerson.chgName = "";
   updatePerson.chgLinkedListId = 0;
   updatePerson.chgRelated = [];
   partners.value = [];;
 }
+//
+function initPersonScreen() {
+  showEditRefInfo.value = false
+  if (navStore.savedPerson.hasOwnProperty("referenceInformation")) {
+    buttonRefInfo.value = 'Edit Reference Information'
+  }
+  linkedListText.value = "Unlink from List " + navStore.savedPerson.linkedListId;
+  linkedListIdx.value = -1;
+  if (navStore.savedPerson.linkedListId > 0) {
+    linkedListIdx.value = userData.userLists.findIndex((item) => item.TroveListId === navStore.savedPerson.linkedListId.toString());
+    if (linkedListIdx.value > -1) {
+      linkedListText.value += " | " + userData.userLists[linkedListIdx.value].TroveListName;
+    } else {
+      linkedListText.value += " | No Name";
+    }
+    if (navStore.savedPerson.personStoryStatus == 'None') navStore.savedPerson.personStoryStatus = 'Create'
+  }
+  if (navStore.savedPerson.personStoryIdx > -1) navStore.savedPerson.personStoryStatus = 'Review'
+  setPersonActions('');
+  updatePerson.chgName = navStore.savedPerson.readName;
+  updatePerson.chgRefInfo = navStore.savedPerson.readRefInfo;
+  updatePerson.chgLinkedListId = navStore.savedPerson.linkedListId;
+  updatePerson.chgRelated = [];
+  if (navStore.savedPerson.hasOwnProperty('arrayRelated')) {
+    updatePerson.chgRelated = JSON.parse(JSON.stringify(navStore.savedPerson.arrayRelated));
+    partners.value = [];
+    for (var relation of updatePerson.chgRelated) {
+      // Need this for relation hyper link
+      relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson);
+      if (relation.relatedType == 'ChildWith') {
+        //Get partner details to link new ChildOf relations for current displayed person
+        partners.value.push({
+          action: "LOAD",
+          personIndex: relation.relatedIdxPerson,
+          readName: relation.relatedPerson,
+          arrayRelated: []
+        });
+      };
+    };
+  };
+  loadingPerson.value = false;
+  showPersonDetails.value = true;
+  showEditPersonName.value = false;
+  setPersonNameActions('');
+  // Load partner details
+  console.log('Load Person Partners', JSON.stringify(partners.value));
+  for (var idx = 0; idx < partners.value.length; ++idx) {
+    loadPerson(partners.value[idx].personIndex, idx);
+  };
+}
 // Initaliase
-initScreen();
+initScreen('');
 // console.log("UserPersonListView - persons ", userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata);
 //
 </script>
@@ -573,155 +698,163 @@ initScreen();
         </div>
         <div class="card col-6" style="max-height: 75vh">
           <div class="card-body">
-            <p v-show="showDefaultPersonAction">Select a Person to Edit or Add a new Person</p>
             <div v-if="loadingPerson">
               <div class="row">
                 <p>{{ loadingPersonText }}</p>
               </div>
             </div>
-            <div v-if="showEditPersonName" class="metadataPopover" :style="{ 'background-color': notifyEditError }">
+            <div v-else-if="showEditPersonName" class="metadataPopover"
+              :style="{ 'background-color': notifyEditError }">
               <form>
                 <div class="form-group">
                   <label for="inputName">Enter a Name</label>
-                  <input v-model="updatePerson.chgName" id="inputName">
+                  <input v-model="updatePerson.chgName" id="inputName" style="width: 400px;">
                   <span class="tooltiptext">{{ popoverForMetadata }}</span>
                   </input>
                 </div>
               </form>
             </div>
-            <div v-else class="font-weight-bold">
+            <p v-else-if="showDefaultPersonAction">Select a Person to Edit or Add a new Person</p>
+            <div v-else class="fw-bold">
               {{ updatePerson.chgName }}
             </div>
             <div v-show="!showDefaultPersonAction">
               <div v-show="showRestorePersonAction" class="col">
                 <div class="card">
-                  <button @click.prevent="initScreen()" class="btn btn-primary">Clear Details</button>
+                  <button @click.prevent="initScreen('clear')" class="btn btn-primary">Clear Details</button>
                 </div>
               </div>
               <div v-show="showLinkPersonAction" class="col">
-                <div v-if="savedPerson.linkedListId == 0" class="card">
+                <div v-if="navStore.savedPerson.linkedListId == 0" class="card">
                   <button @click.prevent="showModalLists = true" class="btn btn-primary"
-                    :class="{ disabled: savedPerson.action == 'CHG' }">{{ linkListText }}</button>
+                    :class="{ disabled: navStore.savedPerson.action == 'CHG' }">{{ linkListText }}</button>
                 </div>
                 <div v-else class="card">
                   <button @click.prevent="unlinkListToPerson" class="btn btn-primary"
-                    :class="{ disabled: savedPerson.action == 'CHG' }">{{ linkedListText }}</button>
+                    :class="{ disabled: navStore.savedPerson.action == 'CHG' }">{{ linkedListText }}</button>
                 </div>
               </div>
               <div v-show="showSearchPerson" class="col">
                 <div class="card">
-                  <router-link :to="'/searchTrove/' + updatePerson.chgName.replaceAll(' ', '%20')"
-                    class="btn btn-primary">
+                  <button @click.prevent="troveSearch()" class="btn btn-primary">
                     Search in Trove
+                  </button>
+                </div>
+                <div v-show="showEditPersonAction" class="col">
+                  <div class="card">
+                    <button @click.prevent="personStory()" class="btn btn-primary"
+                      :disabled="['Generating', 'None', 'Loading'].indexOf(navStore.savedPerson.personStoryStatus) > -1">{{
+                        navStore.savedPerson.personStoryStatus }} {{ personStoryText }}</button>
+                    <span>{{ readArticlesText }}</span>
+                  </div>
+                  <div class="card">
+                    <button @click.prevent="editPersonClick()" class="btn btn-primary">Edit Person Name</button>
+                  </div>
+                </div>
+                <div v-show="showEditRefInfoAction" class="col">
+                  <div class="card">
+                    <button @click.prevent="editRefInfoClick()" class="btn btn-primary">{{ buttonRefInfo }}</button>
+                  </div>
+                </div>
+                <div v-show="showCheckPersonNameAction" class="col">
+                  <div class="card">
+                    <button @click.prevent="checkPersonNameClick()" class="btn btn-primary">Check Person Name</button>
+                  </div>
+                </div>
+                <div v-show="showDeletePersonAction" class="col">
+                  <div class="card">
+                    <button @click.prevent="delPersonClick()" class="btn btn-primary">Delete Person</button>
+                  </div>
+                </div>
+                <div v-show="showAddRelativeAction" class="col">
+                  <div class="card">
+                    <button @click.prevent="showModalRelative = true" class="btn btn-primary">Add Relative</button>
+                  </div>
+                </div>
+              </div>
+              <div v-show="showAddPerson" class="col">
+                <div class="card">
+                  <button @click.prevent="addPerson()" class="btn btn-primary">Add Person</button>
+                </div>
+              </div>
+              <!-- Buttons to confirm actions -->
+              <div v-show="showDelPerson" class="col">
+                <div class="card">
+                  <button @click.prevent="delPerson(navStore.savedPerson, updatePerson)" class="btn btn-primary">Confirm
+                    Delete
+                    Person</button>
+                </div>
+              </div>
+              <div v-show="showChgPerson" class="col">
+                <div class="card">
+                  <button @click.prevent="chgPerson(navStore.savedPerson, updatePerson, true)"
+                    class="btn btn-primary">Apply
+                    Updates to
+                    Person</button>
+                </div>
+              </div>
+              <div v-if="showEditRefInfo">
+                <form>
+                  <div class="form-group">
+                    <label for="inputRefInfo">{{ buttonRefInfo }}: </label>
+                    <input v-model="updatePerson.chgRefInfo" id="inputRefInfo">
+                    </input>
+                  </div>
+                </form>
+              </div>
+              <div v-show="showPersonDetails">
+                <div v-if="(updatePerson.chgRefInfo.length > 0)" class="card-body">Reference - {{
+                  updatePerson.chgRefInfo }}</div>
+                <div v-else class="card-body">No Reference Information</div>
+                <div v-if="(linkedListIdx > -1)" class="card-body">
+                  Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
+                    class="active link-primary">
+                    {{ userData.userLists[linkedListIdx].TroveListId + ' ' +
+                      userData.userLists[linkedListIdx].TroveListName
+                    }}
                   </router-link>
+                  <br><span>List Articles </span>
+                  <ArticleUrls :inline="true" :articleListArray="userData.userListArticles[linkedListIdx]"
+                    :troveListId="userData.userLists[linkedListIdx].TroveListId">
+                  </ArticleUrls>
                 </div>
-              </div>
-              <div v-show="showEditPersonAction" class="col">
-                <div class="card">
-                  <button @click.prevent="editPersonClick()" class="btn btn-primary">Edit Person Name</button>
+                <div v-else class="card-body">No Linked List</div>
+                <div
+                  v-if="(navStore.savedPerson.personIndex > -1) && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.length > 0)"
+                  class="card-body">
+                  <span>Linked Articles </span>
+                  <ArticleUrls :inline="true"
+                    :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray"
+                    :troveListId="0">
+                  </ArticleUrls>
                 </div>
-              </div>
-              <div v-show="showEditRefInfoAction" class="col">
-                <div class="card">
-                  <button @click.prevent="editRefInfoClick()" class="btn btn-primary">{{ buttonRefInfo }}</button>
-                </div>
-              </div>
-              <div v-show="showCheckPersonNameAction" class="col">
-                <div class="card">
-                  <button @click.prevent="checkPersonNameClick()" class="btn btn-primary">Check Person Name</button>
-                </div>
-              </div>
-              <div v-show="showDeletePersonAction" class="col">
-                <div class="card">
-                  <button @click.prevent="delPersonClick()" class="btn btn-primary">Delete Person</button>
-                </div>
-              </div>
-              <div v-show="showAddRelativeAction" class="col">
-                <div class="card">
-                  <button @click.prevent="showModalRelative = true" class="btn btn-primary">Add Relative</button>
-                </div>
-              </div>
-            </div>
-            <div v-show="showAddPerson" class="col">
-              <div class="card">
-                <button @click.prevent="addPerson()" class="btn btn-primary">Add Person</button>
-              </div>
-            </div>
-            <!-- Buttons to confirm actions -->
-            <div v-show="showDelPerson" class="col">
-              <div class="card">
-                <button @click.prevent="delPerson(savedPerson, updatePerson)" class="btn btn-primary">Confirm Delete
-                  Person</button>
-              </div>
-            </div>
-            <div v-show="showChgPerson" class="col">
-              <div class="card">
-                <button @click.prevent="chgPerson(savedPerson, updatePerson, true)" class="btn btn-primary">Apply
-                  Updates to
-                  Person</button>
-              </div>
-            </div>
-            <div v-if="showEditRefInfo">
-              <form>
-                <div class="form-group">
-                  <label for="inputRefInfo">{{ buttonRefInfo }}: </label>
-                  <input v-model="updatePerson.chgRefInfo" id="inputRefInfo">
-                  </input>
-                </div>
-              </form>
-            </div>
-            <div v-show="showPersonDetails">
-              <div v-if="(updatePerson.chgRefInfo.length > 0)" class="card-body">Reference - {{
-                updatePerson.chgRefInfo }}</div>
-              <div v-else class="card-body">No Reference Information</div>
-              <div v-if="(linkedListIdx > -1)" class="card-body">
-                Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
-                  class="active link-primary">
-                  {{ userData.userLists[linkedListIdx].TroveListId + ' ' +
-                    userData.userLists[linkedListIdx].TroveListName
-                  }}
-                </router-link>
-                <br><span>List Articles </span>
-                <ArticleUrls :inline="true" :articleListArray="userData.userListArticles[linkedListIdx]"
-                  :troveListId="userData.userLists[linkedListIdx].TroveListId">
-                </ArticleUrls>
-              </div>
-              <div v-else class="card-body">No Linked List</div>
-              <div
-                v-if="(savedPerson.personIndex > -1) && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray.length > 0)"
-                class="card-body">
-                <span>Linked Articles </span>
-                <ArticleUrls :inline="true"
-                  :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[savedPerson.personIndex].articleListArray"
-                  :troveListId="0">
-                </ArticleUrls>
-              </div>
-              <div v-else class="card-body">No Linked Articles</div>
-              <div v-if="updatePerson.chgRelated.length > 0" class="card-body overflow-auto">
-                <RelatedTable :personName="updatePerson.chgName" :arrayRelated="updatePerson.chgRelated"
-                  :enableDel="true" @del-relative="(index) => delRelativeClick(index)"
-                  @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
-                <div v-show="partners.length > 0" v-for="(partner, index) in partners">
-                  <div>Partner - {{ partner.readName }}</div>
-                  <RelatedTable :personName="partner.readName" :arrayRelated="partner.arrayRelated" :enableDel="false"
+                <div v-else class="card-body">No Linked Articles</div>
+                <div v-if="updatePerson.chgRelated.length > 0" class="card-body overflow-auto">
+                  <RelatedTable :personName="updatePerson.chgName" :arrayRelated="updatePerson.chgRelated"
+                    :enableDel="true" @del-relative="(index) => delRelativeClick(index)"
                     @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
+                  <div v-show="partners.length > 0" v-for="(partner, index) in partners">
+                    <div>Partner - {{ partner.readName }}</div>
+                    <RelatedTable :personName="partner.readName" :arrayRelated="partner.arrayRelated" :enableDel="false"
+                      @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
+                  </div>
                 </div>
+                <div v-else class="card-body">No Related People</div>
+                <Teleport to="#positionModals">
+                  <ModalLists v-if="showModalLists" @close="showModalLists = false"
+                    @link-list="(linkList) => linkListToPerson(linkList)" :listPerson="updatePerson.chgName" />
+                </Teleport>
+                <Teleport to="#positionModals">
+                  <ModalRelative v-if="showModalRelative" @close="showModalRelative = false"
+                    @add-relative="(relatedPerson) => addRelatedPerson(relatedPerson)"
+                    :savedPerson="navStore.savedPerson" :updatedPerson="updatePerson" />
+                </Teleport>
+                <Teleport to="#positionModals">
+                  <ModalPartner v-if="showModalPartner" @close="showModalPartner = false"
+                    @add-to-partner="(idxOtherParent) => addToRelatedPartner(idxOtherParent)"
+                    :chgRelations="updatePerson.chgRelated" :partners="partners" />
+                </Teleport>
               </div>
-              <div v-else class="card-body">No Related People</div>
-              <Teleport to="#positionModals">
-                <ModalLists v-if="showModalLists" @close="showModalLists = false"
-                  @link-list="(linkList) => linkListToPerson(linkList)" :listPerson="updatePerson.chgName" />
-              </Teleport>
-              <Teleport to="#positionModals">
-                <ModalRelative v-if="showModalRelative" @close="showModalRelative = false"
-                  @add-relative="(relatedPerson) => addRelatedPerson(relatedPerson)" :savedPerson="savedPerson"
-                  :updatedPerson="updatePerson" />
-              </Teleport>
-              <Teleport to="#positionModals">
-                <ModalPartner v-if="showModalPartner" @close="showModalPartner = false"
-                  @add-to-partner="(idxOtherParent) => addToRelatedPartner(idxOtherParent)"
-                  :chgRelations="updatePerson.chgRelated" :partners="partners" />
-              </Teleport>
             </div>
           </div>
         </div>

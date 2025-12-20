@@ -301,8 +301,8 @@ function loadArticleText() {
 }
 // Mark Search Text
 function markSearchText(searchTextIn) {
-    var doScroll = false;
-    if (searchText.value.length > 0) doScroll = true // We are changing the Search Text
+    // var doScroll = false;
+    // if (searchText.value.length > 0) doScroll = true // We are changing the Search Text
     console.log(`EditArticle/markSearchText Search "%s", %s`, searchTextIn, viewArticleText.value.length)
     if (searchTextIn.length > 0) searchText.value = searchTextIn
     if (searchText.value.length == 0) return
@@ -315,7 +315,7 @@ function markSearchText(searchTextIn) {
         return markSearch + matched + markEnd
     })
     // console.log('EditArticle markSearchText Search After', viewArticleText.value.length)
-    if (doScroll) triggerScrollAgain()
+    // if (doScroll) triggerScrollAgain()
 }
 // Find where to insert Snip Handles
 function getInsertPos(snipEdge, match, text) {
@@ -1308,10 +1308,9 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 </div>
                             </div>
                             <div class="card">
-                                <div @scroll="scrollSearchWord" @mouseup="snipHighlightedText" ref="articleRef"
-                                    @click="activateHandles($event)" @dragstart="handleDragStart" @dragover.prevent
-                                    class="card-body overflow-auto" style="max-height: 300px" @drop="handleDrop"
-                                    id="textTrove">
+                                <div @mouseup="snipHighlightedText" ref="articleRef" @click="activateHandles($event)"
+                                    @dragstart="handleDragStart" @dragover.prevent class="card-body overflow-auto"
+                                    style="max-height: 300px" @drop="handleDrop" id="textTrove">
                                     <span v-html="viewArticleText"></span>
                                 </div>
                             </div>

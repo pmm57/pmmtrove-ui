@@ -3,7 +3,7 @@ import EditItem from '@/components/EditItem.vue';
 const props = defineProps(['personName', 'arrayRelated', 'enableDel']);
 const emit = defineEmits(['del-relative', 'load-person']);
 //
-console.log("RelatedTable", props.personName, props.arrayRelated, props.enableDel);
+// console.log("RelatedTable", props.personName, props.arrayRelated, props.enableDel);
 const personYob = getYob(props.personName)
 //
 function getYob(name) {

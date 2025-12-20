@@ -6,9 +6,10 @@ import { useDoFetch } from '@/components/DoFetch.js';
 import { unstringifyName } from '@/components/UnstringifyName.js';
 import { useUserDataStore } from '@/stores/userdata';
 import { useErrorsArrayStore } from '@/stores/errorsarray';
+import { useNavBarStore } from '@/stores/navbar';
+const navStore = useNavBarStore();
 const errorsStore = useErrorsArrayStore();
 const userData = useUserDataStore();
-const props = defineProps(['person']);
 //
 let loading = ref(false);
 let loadingText = ref("");
@@ -693,10 +694,10 @@ function postSearch(blnNew) {
 // Initialisation
 searchData.searchId = 0;
 // Get passed Data
-// console.log ('Passed Person: ', props);
-if (props.person != 'blank') {
-  console.log('Passed Person: ', props.person);
-  const searchPerson = unstringifyName(decodeURIComponent(props.person));
+// console.log ('Passed Person: ', navStore.troveSearchName);
+if (navStore.troveSearchName != '') {
+  console.log('Passed Person: ', navStore.troveSearchName);
+  const searchPerson = unstringifyName(navStore.troveSearchName);
   var nameParts = searchPerson.familyName.split(' ');
   var searchStr = nameParts[0];
   if (searchPerson.hasOwnProperty('givenNames')) {

@@ -106,6 +106,26 @@ function getArticleTitle(article) {
   return viewedArticle.ViewedArticleMetadata[idxEvent][1];
 }
 //
+function openPersonList(personName) {
+  console.log('UserListView openPersonList ', personName)
+  navStore.savedPerson = {
+    action: "",
+    personIndex: -1,
+    readName: "",
+    readRefInfo: '',
+    linkedListId: 0,
+    arrayRelated: []
+  };
+  if (personName.length > 0) {
+    navStore.savedPerson.action = 'Load'
+    navStore.savedPerson.readName = personName
+    const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
+    navStore.savedPerson.personIndex = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == personName)
+    navStore.savedPerson.linkedListId = userData.userLists[idxList].TroveListId
+  }
+  router.push({ name: 'userPersonList' });
+}
+//
 loadListArticles('true')
 </script>
 <template>
@@ -121,19 +141,18 @@ loadListArticles('true')
         - Updated : {{ userData.userLists[idxList].TroveListUpdatedText }}
         <span v-if="userData.userLists[idxList].TroveListLinkedPerson.length > 0">
           - Linked Person :
-          <router-link
-            :to="'/userPersonList/' + userData.userLists[idxList].TroveListLinkedPerson.replaceAll(' ', '%20')"
-            class="link-primary">
+          <a href="#" @click.prevent="openPersonList(userData.userLists[idxList].TroveListLinkedPerson)">
             {{ userData.userLists[idxList].TroveListLinkedPerson }}
-          </router-link>
+          </a>
         </span>
         <span v-else>
-          - Link a <RouterLink to="/userPersonList/blank" class="link-primary"
-            :class="{ disabled: navStore.disablePersonList }">
-            Person</RouterLink>
+          - Link a
+          <a href="#" @click.prevent="openPersonList('')">
+            Person
+          </a>
         </span>
       </div>
-      <div class="row">
+      <div class=" row">
         <div class="col">
           <div class="card">
             <a :href="userData.userLists[idxList].TroveListViewUrl" target="_blank" class="btn btn-primary"
