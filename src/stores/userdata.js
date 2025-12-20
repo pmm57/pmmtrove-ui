@@ -84,6 +84,9 @@ export const useUserDataStore = defineStore('userData', () => {
 
   const metadataValueTotal = ref(0)
   const metadataTypeByMetadata = ref([])
+  // const savedPerson = reactive({});
+  // const storyPersonNew = ref(false)
+  const storyEventsForPersons = reactive([])
   //
  function clearStore() {
     troveDetails.value = {}
@@ -96,6 +99,9 @@ export const useUserDataStore = defineStore('userData', () => {
     viewedArticles = []
     metadataValueTotal.value = 0
     metadataTypeByMetadata.value = []
+    // savedPerson.value = {}
+    // storyPersonNew.value = false
+    storyEventsForPersons =[]
   }
   //
   function updateAllLists (cacheUserLists) {
@@ -217,7 +223,10 @@ export const useUserDataStore = defineStore('userData', () => {
     userReloadLists,
     viewedArticles, 
     metadataValueTotal, 
-    metadataTypeByMetadata, 
+    metadataTypeByMetadata,
+    // savedPerson,
+    // storyPersonNew,
+    storyEventsForPersons,
     clearStore,
     updateAllLists,
     updMetadataTypeArticleLinks,
