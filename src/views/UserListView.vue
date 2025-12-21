@@ -126,6 +126,13 @@ function openPersonList(personName) {
   router.push({ name: 'userPersonList' });
 }
 //
+function openArticle(articleId) {
+  console.log('UserListView/openArticle ', articleId)
+  navStore.listId = userData.userLists[idxList].TroveListId;
+  navStore.articleId = articleId;
+  router.push({ name: 'editArticle' });
+}
+//
 loadListArticles('true')
 </script>
 <template>
@@ -190,9 +197,12 @@ loadListArticles('true')
         <tbody>
           <tr v-for="article in userData.userListArticles[idxList]" :key="article.TroveListArticleId">
             <td class="text-nowrap">
-              <router-link v-if="haveLink(article)"
+              <!-- <router-link v-if="haveLink(article)"
                 :to="'/editArticle/' + userData.userLists[idxList].TroveListId + '/' + article.TroveListArticleId"
-                class="active link-primary">{{ article.TroveListArticleId }}</router-link>
+                class="active link-primary">{{ article.TroveListArticleId }}</router-link> -->
+              <a v-if="haveLink(article)" href="#" @click.prevent="openArticle(article.TroveListArticleId)">
+                {{ article.TroveListArticleId }}
+              </a>
               <p v-else>
                 {{ article.TroveListArticleId }}
               </p>

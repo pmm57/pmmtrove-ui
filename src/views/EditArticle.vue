@@ -12,17 +12,18 @@ import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
 import { useToast } from 'vue-toastification'
 const toast = useToast()
-const props = defineProps(['listId', 'articleId'])
-console.log(`Edit Article View List:%s , Article:%s`, props.listId, props.articleId)
+// const props = defineProps(['listId', 'articleId'])
+// console.log(`Edit Article View List:%s , Article:%s`, props.listId, props.articleId)
 
-navStore.articleId = props.articleId
-navStore.articleHref = "/editArticle/" + props.listId + "/" + props.articleId
-navStore.articleTabTitle = "Article " + props.articleId
+// navStore.articleId = props.articleId
+// navStore.articleHref = "/editArticle/" + navStore.listId + "/" + navStore.articleId
+navStore.articleHref = "/editArticle"
+navStore.articleTabTitle = "Article " + navStore.articleId
 //
 var idxList = ref(0)
-idxList.value = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
+idxList.value = userData.userLists.findIndex((item) => item.TroveListId == navStore.listId);
 var idxListArticle = ref(0)
-idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == props.articleId);
+idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == navStore.articleId);
 var viewArticleText = ref('');
 var searchText = ref('');
 var searchTextCount = ref(0);
@@ -737,8 +738,8 @@ async function doFetch(calledFrom, url, options) {
 // load of An Article - they will be SSE'd to App.vue
 //
 function loadArticle(firstLoad) {
-    const url = import.meta.env.VITE_SERVER_URL + "/dispArticle/newspaper/" + props.articleId + "/"
-        + props.listId + "/" + !firstLoad;
+    const url = import.meta.env.VITE_SERVER_URL + "/dispArticle/newspaper/" + navStore.articleId + "/"
+        + navStore.listId + "/" + !firstLoad;
     const options = {
         method: "get",
         mode: "cors",
@@ -756,8 +757,8 @@ function saveData() {
     userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(articleSnips.map((sn) => ({ "snipf": sn.snipf.text.replaceAll('"', '|'), "snipb": sn.snipb.text.replaceAll('"', '|') })))
     var updatedData = {
         'troveUserId': userData.troveDetails.troveUserId,
-        'listId': props.listId,
-        'articleId': props.articleId,
+        'listId': navStore.listId,
+        'articleId': navStore.articleId,
         'articleMinedStatusText': userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText,
         'metadata': userData.viewedArticles[idxViewed.value].ViewedArticleMetadata,
         'selectedData': userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText,

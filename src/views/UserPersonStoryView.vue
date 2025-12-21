@@ -159,6 +159,13 @@ function updateInclude(action, index) {
   }
 }
 //
+function openArticle(articleLink) {
+  console.log('serPersonStory/openArticle ', articleLink)
+  navStore.listId = articleLink.articleId;
+  navStore.articleId = articleLink.articleId;
+  router.push({ name: 'editArticle' });
+}
+//
 loadArticleInfo('true')
 </script>
 <template>
@@ -225,8 +232,11 @@ loadArticleInfo('true')
             <td class="text-center">{{ article.age }}</td>
             <td class="text-nowrap">{{ article.eventLocation }}</td>
             <td class="text-nowrap">
-              <router-link :to="'/editArticle/' + article.listId + '/' + article.articleId"
-                class="active link-primary">{{ article.articleId }}</router-link>
+              <!-- <router-link :to="'/editArticle/' + article.listId + '/' + article.articleId"
+                class="active link-primary">{{ article.articleId }}</router-link> -->
+              <a v-if="articleLink.idxViewedArticle" href="#" @click.prevent="openArticle(article)">
+                {{ article.articleId }}
+              </a>
             </td>
             <td class="text-center"><a :href="article.ViewedArticleViewUrl" target="_blank">Link</a></td>
             <td v-html="article.story" class="preserve" style="border-bottom: .5px solid;"></td>
