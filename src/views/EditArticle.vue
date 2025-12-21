@@ -28,7 +28,6 @@ var searchText = ref('');
 var searchTextCount = ref(0);
 var showModalSearchText = ref(false)
 const articleRef = ref(null);
-const hasScrolledOnce = ref(false)
 // Has it been viewed previously
 var idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
@@ -315,7 +314,6 @@ function markSearchText(searchTextIn) {
         return markSearch + matched + markEnd
     })
     // console.log('EditArticle markSearchText Search After', viewArticleText.value.length)
-    // if (doScroll) triggerScrollAgain()
 }
 // Find where to insert Snip Handles
 function getInsertPos(snipEdge, match, text) {
@@ -449,21 +447,13 @@ function updSnipedTextArray(thisSnip) {
     snipedText.value.push(selectedText)
 }
 // Scroll to Search Word in Trove Article, identify by <mark>
-function scrollSearchWord(event) {
-    const container = event.currentTarget; // the .card-body div
-    const searchTerm = searchText.value;
-
-    if (hasScrolledOnce.value) {
-        // console.log("EditArticle/scrollSearchWord Scroll ignored (already ran once)");
-        return;
-    }
-
+function scrollTroveText(searchTerm) {
+    const container = articleRef.value; // the .card-body div
     // Find the span that holds the article text
     const span = container.querySelector("span");
     if (!span) return;
-
     // Use Range + TreeWalker to locate the text node
-    console.log("EditArticle/scrollSearchWord scroll event");
+    console.log("EditArticle/scrollTroveText scroll event");
     const walker = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
     let node, index, found = false;
     while ((node = walker.nextNode())) {
@@ -485,16 +475,12 @@ function scrollSearchWord(event) {
                 left: 0,
                 behavior: "smooth",
             });
-
-            console.log("EditArticle/scrollSearchWord First scroll triggered");
-            hasScrolledOnce.value = true;
             found = true;
             break;
         }
     }
     if (!found) {
-        console.log("EditArticle/scrollSearchWord Search term not found, scrolling to top");
-        hasScrolledOnce.value = true;
+        console.log(`EditArticle/scrollTroveText Not found %s, scrolling to top`, searchTerm);
         container.scrollTo({
             top: 0,
             left: 0,
@@ -502,13 +488,20 @@ function scrollSearchWord(event) {
         });
     }
 }
+// 
+function triggerSnipScroll() {
+    if ((articleRef.value) && (articleSnips.length > 0)) {
+        console.log("EditArticle/triggerSnipScroll ", articleSnips[0].snipf.text);
+        // articleRef.value.scrollTop = articleRef.value.scrollHeight
+        scrollTroveText(articleSnips[0].snipf.text)
+    }
+}
 //
-function triggerScrollAgain() {
+function triggerSearchScroll() {
     if ((articleRef.value) && (searchText.value.length > 0)) {
-        console.log("EditArticle/triggerScrollAgain");
-        hasScrolledOnce.value = false   // reset flag
-        articleRef.value.scrollTop = articleRef.value.scrollHeight
-        articleRef.value.dispatchEvent(new Event('scroll'))
+        console.log("EditArticle/triggerSearchScroll ", searchText.value);
+        // articleRef.value.scrollTop = articleRef.value.scrollHeight
+        scrollTroveText(searchText.value)
     }
 }
 // Inject handles when snip is clicked
@@ -1266,12 +1259,15 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 <span>Trove Original Text</span>
                             </summary>
                             <div class="card text-center d-flex justify-content-center gap-2 p-2 flex-row">
-                                <span class="d-flex align-items-center">
-                                    Search Text '{{ searchText }}' Occurs {{ searchTextCount }}
-                                </span>
-                                <button @click.prevent="triggerScrollAgain" class="btn btn-primary">
+                                <button @click.prevent="triggerSnipScroll" class="btn btn-primary">
+                                    Scroll Snip
+                                </button>
+                                <button @click.prevent="triggerSearchScroll" class="btn btn-primary">
                                     Search
                                 </button>
+                                <span class="d-flex align-items-center">
+                                    '{{ searchText }}' Occurs {{ searchTextCount }}
+                                </span>
                                 <button @click.prevent="showModalSearchText = true" class="btn btn-primary">
                                     Change
                                 </button>
@@ -1308,6 +1304,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 </div>
                             </div>
                             <div class="card">
+                                <!-- <div @scroll="scrollHandler" @mouseup="snipHighlightedText" ref="articleRef" -->
                                 <div @mouseup="snipHighlightedText" ref="articleRef" @click="activateHandles($event)"
                                     @dragstart="handleDragStart" @dragover.prevent class="card-body overflow-auto"
                                     style="max-height: 300px" @drop="handleDrop" id="textTrove">
