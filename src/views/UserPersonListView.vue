@@ -598,6 +598,12 @@ function saveData(currentDetails, newDetails) {
   // console.log (options);
   useDoFetch('UserPersonListView/saveData', url, options);
 }
+//
+function openList(listLink) {
+  console.log('UserPersonListView/openList ', listLink)
+  navStore.listId = listLink;
+  router.push({ name: 'userListPage' });
+}
 // Initialise Screen
 function initScreen(initAction) {
   if ((navStore.savedPerson.personIndex > -1) && (initAction == '')) {
@@ -807,12 +813,18 @@ initScreen('');
                   updatePerson.chgRefInfo }}</div>
                 <div v-else class="card-body">No Reference Information</div>
                 <div v-if="(linkedListIdx > -1)" class="card-body">
-                  Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
+                  Linked List
+                  <!-- <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
                     class="active link-primary">
                     {{ userData.userLists[linkedListIdx].TroveListId + ' ' +
                       userData.userLists[linkedListIdx].TroveListName
                     }}
-                  </router-link>
+                  </router-link> -->
+                  <a href="#" @click.prevent="openList(userData.userLists[linkedListIdx].TroveListId)">
+                    {{ userData.userLists[linkedListIdx].TroveListId + ' ' +
+                      userData.userLists[linkedListIdx].TroveListName
+                    }}
+                  </a>
                   <br><span>List Articles </span>
                   <ArticleUrls :inline="true" :articleListArray="userData.userListArticles[linkedListIdx]"
                     :troveListId="userData.userLists[linkedListIdx].TroveListId">

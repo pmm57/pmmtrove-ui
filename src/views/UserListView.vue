@@ -9,12 +9,13 @@ const navStore = useNavBarStore();
 import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
 
-const props = defineProps(['listId']);
-navStore.listId = props.listId;
-navStore.listHref = "/userListPage/" + props.listId;
-navStore.listTabTitle = "List " + props.listId;
+// const props = defineProps(['listId']);
+// navStore.listId = props.listId;
+// navStore.listHref = "/userListPage/" + props.listId;
+navStore.listHref = "/userListPage";
+navStore.listTabTitle = "List " + navStore.listId;
 //
-var idxList = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
+var idxList = userData.userLists.findIndex((item) => item.TroveListId == navStore.listId);
 if (userData.userLists[idxList].TroveListLinkedPerson) console.log('Linked Person ', userData.userLists[idxList].TroveListLinkedPerson)
 //
 function haveLink(article) {
@@ -48,8 +49,8 @@ function statusColour(status) {
 // Async load of List Articles - they will be SSE'd to App.vue sseUserListWithArticles
 //
 async function loadListArticles(firstLoad) {
-  console.log('UserListView ', props.listId, firstLoad);
-  userData.userReloadList = props.listId;
+  console.log('UserListView ', navStore.listId, firstLoad);
+  userData.userReloadList = navStore.listId;
   const url = import.meta.env.VITE_SERVER_URL + "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
   const options = {
     method: "get",

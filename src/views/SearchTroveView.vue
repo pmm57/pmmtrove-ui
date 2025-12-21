@@ -6,6 +6,8 @@ import { useDoFetch } from '@/components/DoFetch.js';
 import { unstringifyName } from '@/components/UnstringifyName.js';
 import { useUserDataStore } from '@/stores/userdata';
 import { useErrorsArrayStore } from '@/stores/errorsarray';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
 const errorsStore = useErrorsArrayStore();
@@ -691,6 +693,12 @@ function postSearch(blnNew) {
   useDoFetch('Search', url, options)
   waitSearch();
 }
+//
+function openList(listLink) {
+  console.log('SearchTroveView/openList ', listLink)
+  navStore.listId = listLink;
+  router.push({ name: 'userListPage' });
+}
 // Initialisation
 searchData.searchId = 0;
 // Get passed Data
@@ -887,8 +895,11 @@ if (navStore.troveSearchName != '') {
                 </td>
                 <td v-else-if="row.dbListId != 0">
                   {{ row.id }}
-                  <router-link v-if="haveListLink(row.dbListId)" :to="'/userListPage/' + row.dbListId"
-                    class="active link-primary">{{ row.listName }}</router-link>
+                  <!-- <router-link v-if="haveListLink(row.dbListId)" :to="'/userListPage/' + row.dbListId"
+                    class="active link-primary">{{ row.listName }}</router-link> -->
+                  <a href="#" v-if="haveListLink(row.dbListId)" @click.prevent="openList(row.dbListId)">
+                    {{ row.listName }}
+                  </a>
                   <p v-else>
                     {{ row.listName }}
                   </p>

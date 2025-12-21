@@ -11,9 +11,6 @@ import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
 import EditItem from '@/components/EditItem.vue'
 
-// navStore.listId = props.listId;
-// navStore.listHref = "/userListPage/" + props.listId;
-// navStore.listTabTitle = "List " + props.listId;
 let storyEvents = []
 let updateDisabled = ref(true)
 
@@ -160,7 +157,7 @@ function updateInclude(action, index) {
 }
 //
 function openArticle(articleLink) {
-  console.log('serPersonStory/openArticle ', articleLink)
+  console.log('UserPersonStory/openArticle ', articleLink)
   navStore.listId = articleLink.articleId;
   navStore.articleId = articleLink.articleId;
   router.push({ name: 'editArticle' });
@@ -232,8 +229,6 @@ loadArticleInfo('true')
             <td class="text-center">{{ article.age }}</td>
             <td class="text-nowrap">{{ article.eventLocation }}</td>
             <td class="text-nowrap">
-              <!-- <router-link :to="'/editArticle/' + article.listId + '/' + article.articleId"
-                class="active link-primary">{{ article.articleId }}</router-link> -->
               <a v-if="articleLink.idxViewedArticle" href="#" @click.prevent="openArticle(article)">
                 {{ article.articleId }}
               </a>
