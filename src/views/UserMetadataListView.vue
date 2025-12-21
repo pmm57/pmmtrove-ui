@@ -11,7 +11,7 @@ var flagMetadataValue = ref([])
 showMetadataType(-1)
 //
 function showMetadataType(idxType) {
-  console.log('showMetadataType ', idxType, flagMetadataType.value, flagMetadataType.value[idxType])
+  // console.log('showMetadataType ', idxType, flagMetadataType.value, flagMetadataType.value[idxType])
   if ((idxType > -1) && (flagMetadataType.value[idxType])) {
     flagMetadataType.value[idxType] = false;
     return;
@@ -19,7 +19,7 @@ function showMetadataType(idxType) {
   for (var i = 0; i < userData.metadataTypeByMetadata.length; ++i) {
     flagMetadataType.value[i] = false;
   }
-  console.log('showMetadataType ', idxType, flagMetadataType.value)
+  console.log('showMetadataType ', idxType, JSON.stringify(flagMetadataType.value))
   if (idxType > -1) {
     flagMetadataType.value[idxType] = true
     // console.log ("showMetadataType ", flagMetadataType)
@@ -68,13 +68,15 @@ async function getArticleLinks(idxType, idxMetadataValue) {
   // }
   if (response.status == 200) {
     const data = await response.json();
-    console.log('data ', data)
+    console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(data))
     // Update Dup-licate and Ignored modifier
-    data.linkedArticleUrls.arrayArticleUrls.forEach((el, index) => {
-      if (el.includes(":")) {
-        userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray[index].troveArticleId = el
-      }
-    })
+    if (data.linkedArticleUrls.length > 0) {
+      data.linkedArticleUrls.arrayArticleUrls.forEach((el, index) => {
+        if (el.includes(":")) {
+          userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray[index].troveArticleId = el
+        }
+      })
+    }
   } else {
     console.log('UserMetadataListView ', response)
     if (response.hasOwnProperty('errors')) {
