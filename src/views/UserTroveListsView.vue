@@ -1,7 +1,10 @@
 <script setup>
-import StatusCount from '@/components/StatusCount.vue'
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
+import { useRouter } from 'vue-router';
+const router = useRouter();
+import { useNavBarStore } from '@/stores/navbar';
+const navStore = useNavBarStore();
 //
 function haveListLink(list) {
   // var haveLink = userData.userListsReady
@@ -51,6 +54,12 @@ function statusBadge(status, count) {
   return classCount
 }
 //
+function openList(listLink) {
+  console.log('UserToveListsView/openList ', listLink)
+  navStore.listId = listLink;
+  router.push({ name: 'userListPage' });
+}
+//
 </script>
 <template>
   <div>
@@ -75,8 +84,11 @@ function statusBadge(status, count) {
           <tbody>
             <tr v-for="list in userData.userLists" :key="list.TroveListId" class="align-top">
               <td class="text-nowrap">
-                <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"
-                  class="active link-primary">{{ list.TroveListName }}</router-link>
+                <!-- <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"
+                  class="active link-primary">{{ list.TroveListName }}</router-link> -->
+                <a v-if="haveListLink(list)" href="#" @click.prevent="openList(list.TroveListId)">
+                  {{ list.TroveListName }}
+                </a>
                 <p v-else>
                   {{ list.TroveListName }}
                 </p>

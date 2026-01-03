@@ -18,7 +18,7 @@ const router = createRouter({
       component: () => import('../views/UserTroveListsView.vue')
     },
     { 
-      path: '/userListPage/:listId',
+      path: '/userListPage',
       name: 'userListPage',
       // route level code-splitting
       // this generates a separate chunk (About.[hash].js) for this route
@@ -27,7 +27,7 @@ const router = createRouter({
       props: true
     },
     { 
-      path: '/editArticle/:listId/:articleId',
+      path: '/editArticle',
       name: 'editArticle',
       // route level code-splitting
       // this generates a separate chunk (About.[hash].js) for this route

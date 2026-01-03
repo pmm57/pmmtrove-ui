@@ -1,6 +1,17 @@
 <script setup>
 const props = defineProps(['inline', 'articleListArray', 'troveListId'])
+import { useNavBarStore } from '@/stores/navbar';
+const navStore = useNavBarStore();
+import { useRouter } from 'vue-router';
+const router = useRouter();
 // console.log("ArticleUrls", JSON.stringify(props))
+//
+function openArticle(articleLink) {
+    console.log('ArticleUrls/openArticle ', articleLink)
+    navStore.listId = articleLink.troveListId;
+    navStore.articleId = articleLink.troveArticleId;
+    router.push({ name: 'editArticle' });
+}
 //
 function compareFn(a, b) {
     if (Number(a.troveArticleId) < Number(b.troveArticleId)) {
@@ -29,10 +40,13 @@ articleUrls.sort(compareFn);
 //
 <template>
     <template v-for="(articleLink, index) in articleUrls" :key="articleLink.troveArticleId">
-        <router-link v-if="articleLink.idxViewedArticle > -1" class="btn btn-link px-0 py-0"
+        <!-- <router-link v-if="articleLink.idxViewedArticle > -1" class="btn btn-link px-0 py-0"
             :to="'/editArticle/' + articleLink.troveListId + '/' + articleLink.troveArticleId">{{
                 articleLink.troveArticleId }}
-        </router-link>
+        </router-link> -->
+        <a v-if="articleLink.idxViewedArticle" href="#" @click.prevent="openArticle(articleLink)">
+            {{ articleLink.troveArticleId }}
+        </a>
         <template v-else>{{ articleLink.troveArticleId }}</template>
         <template v-if="(props.inline) && ((index + 1) < articleUrls.length)"> - </template>
     </template>

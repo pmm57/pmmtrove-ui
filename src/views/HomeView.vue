@@ -82,7 +82,7 @@ async function verifyUser(refresh) {
     // }
     if (response.status == 200) {
         const data = await response.json();
-        console.log('verifyUser data ', data)
+        console.log(`HomeView/verifyUser Returned data: %s `, JSON.stringify(data))
         userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
         navBarStore.disableSearch = false;
         if (!data.newLogon) {

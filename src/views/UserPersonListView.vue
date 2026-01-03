@@ -563,7 +563,7 @@ function handleReadArticlesMessage(e) {
   var returnedData = JSON.parse(e.data);
   console.log('Read Article Message', JSON.stringify(returnedData));
   personStoryText.value.replace('.', '')
-  readArticlesText.value = returnedData.nbrRead + ` of ` + returnedData.nbrToRead
+  readArticlesText.value = returnedData.progressText
 }
 //
 function editPersonStory() {
@@ -598,6 +598,12 @@ function saveData(currentDetails, newDetails) {
   // console.log (options);
   useDoFetch('UserPersonListView/saveData', url, options);
 }
+//
+function openList(listLink) {
+  console.log('UserPersonListView/openList ', listLink)
+  navStore.listId = listLink;
+  router.push({ name: 'userListPage' });
+}
 // Initialise Screen
 function initScreen(initAction) {
   if ((navStore.savedPerson.personIndex > -1) && (initAction == '')) {
@@ -629,7 +635,7 @@ function initScreen(initAction) {
 //
 function initPersonScreen() {
   showEditRefInfo.value = false
-  if (navStore.savedPerson.hasOwnProperty("referenceInformation")) {
+  if (navStore.savedPerson.hasOwnProperty("readRefInfo")) {
     buttonRefInfo.value = 'Edit Reference Information'
   }
   linkedListText.value = "Unlink from List " + navStore.savedPerson.linkedListId;
@@ -745,7 +751,9 @@ initScreen('');
                     <button @click.prevent="personStory()" class="btn btn-primary"
                       :disabled="['Generating', 'None', 'Loading'].indexOf(navStore.savedPerson.personStoryStatus) > -1">{{
                         navStore.savedPerson.personStoryStatus }} {{ personStoryText }}</button>
-                    <span>{{ readArticlesText }}</span>
+                    <button v-if="readArticlesText.length > 0" class="btn btn-primary">
+                      <span>{{ readArticlesText }}</span>
+                    </button>
                   </div>
                   <div class="card">
                     <button @click.prevent="editPersonClick()" class="btn btn-primary">Edit Person Name</button>
@@ -807,12 +815,18 @@ initScreen('');
                   updatePerson.chgRefInfo }}</div>
                 <div v-else class="card-body">No Reference Information</div>
                 <div v-if="(linkedListIdx > -1)" class="card-body">
-                  Linked List <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
+                  Linked List
+                  <!-- <router-link :to="'/userListPage/' + userData.userLists[linkedListIdx].TroveListId"
                     class="active link-primary">
                     {{ userData.userLists[linkedListIdx].TroveListId + ' ' +
                       userData.userLists[linkedListIdx].TroveListName
                     }}
-                  </router-link>
+                  </router-link> -->
+                  <a href="#" @click.prevent="openList(userData.userLists[linkedListIdx].TroveListId)">
+                    {{ userData.userLists[linkedListIdx].TroveListId + ' ' +
+                      userData.userLists[linkedListIdx].TroveListName
+                    }}
+                  </a>
                   <br><span>List Articles </span>
                   <ArticleUrls :inline="true" :articleListArray="userData.userListArticles[linkedListIdx]"
                     :troveListId="userData.userLists[linkedListIdx].TroveListId">

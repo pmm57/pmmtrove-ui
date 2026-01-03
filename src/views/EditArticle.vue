@@ -12,23 +12,23 @@ import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
 import { useToast } from 'vue-toastification'
 const toast = useToast()
-const props = defineProps(['listId', 'articleId'])
-console.log(`Edit Article View List:%s , Article:%s`, props.listId, props.articleId)
+// const props = defineProps(['listId', 'articleId'])
+// console.log(`Edit Article View List:%s , Article:%s`, props.listId, props.articleId)
 
-navStore.articleId = props.articleId
-navStore.articleHref = "/editArticle/" + props.listId + "/" + props.articleId
-navStore.articleTabTitle = "Article " + props.articleId
+// navStore.articleId = props.articleId
+// navStore.articleHref = "/editArticle/" + navStore.listId + "/" + navStore.articleId
+navStore.articleHref = "/editArticle"
+navStore.articleTabTitle = "Article " + navStore.articleId
 //
 var idxList = ref(0)
-idxList.value = userData.userLists.findIndex((item) => item.TroveListId == props.listId);
+idxList.value = userData.userLists.findIndex((item) => item.TroveListId == navStore.listId);
 var idxListArticle = ref(0)
-idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == props.articleId);
+idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == navStore.articleId);
 var viewArticleText = ref('');
 var searchText = ref('');
 var searchTextCount = ref(0);
 var showModalSearchText = ref(false)
 const articleRef = ref(null);
-const hasScrolledOnce = ref(false)
 // Has it been viewed previously
 var idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
@@ -315,7 +315,6 @@ function markSearchText(searchTextIn) {
         return markSearch + matched + markEnd
     })
     // console.log('EditArticle markSearchText Search After', viewArticleText.value.length)
-    // if (doScroll) triggerScrollAgain()
 }
 // Find where to insert Snip Handles
 function getInsertPos(snipEdge, match, text) {
@@ -449,21 +448,13 @@ function updSnipedTextArray(thisSnip) {
     snipedText.value.push(selectedText)
 }
 // Scroll to Search Word in Trove Article, identify by <mark>
-function scrollSearchWord(event) {
-    const container = event.currentTarget; // the .card-body div
-    const searchTerm = searchText.value;
-
-    if (hasScrolledOnce.value) {
-        // console.log("EditArticle/scrollSearchWord Scroll ignored (already ran once)");
-        return;
-    }
-
+function scrollTroveText(searchTerm) {
+    const container = articleRef.value; // the .card-body div
     // Find the span that holds the article text
     const span = container.querySelector("span");
     if (!span) return;
-
     // Use Range + TreeWalker to locate the text node
-    console.log("EditArticle/scrollSearchWord scroll event");
+    console.log("EditArticle/scrollTroveText scroll event");
     const walker = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
     let node, index, found = false;
     while ((node = walker.nextNode())) {
@@ -485,16 +476,12 @@ function scrollSearchWord(event) {
                 left: 0,
                 behavior: "smooth",
             });
-
-            console.log("EditArticle/scrollSearchWord First scroll triggered");
-            hasScrolledOnce.value = true;
             found = true;
             break;
         }
     }
     if (!found) {
-        console.log("EditArticle/scrollSearchWord Search term not found, scrolling to top");
-        hasScrolledOnce.value = true;
+        console.log(`EditArticle/scrollTroveText Not found %s, scrolling to top`, searchTerm);
         container.scrollTo({
             top: 0,
             left: 0,
@@ -502,13 +489,20 @@ function scrollSearchWord(event) {
         });
     }
 }
+// 
+function triggerSnipScroll() {
+    if ((articleRef.value) && (articleSnips.length > 0)) {
+        console.log("EditArticle/triggerSnipScroll ", articleSnips[0].snipf.text);
+        // articleRef.value.scrollTop = articleRef.value.scrollHeight
+        scrollTroveText(articleSnips[0].snipf.text)
+    }
+}
 //
-function triggerScrollAgain() {
+function triggerSearchScroll() {
     if ((articleRef.value) && (searchText.value.length > 0)) {
-        console.log("EditArticle/triggerScrollAgain");
-        hasScrolledOnce.value = false   // reset flag
-        articleRef.value.scrollTop = articleRef.value.scrollHeight
-        articleRef.value.dispatchEvent(new Event('scroll'))
+        console.log("EditArticle/triggerSearchScroll ", searchText.value);
+        // articleRef.value.scrollTop = articleRef.value.scrollHeight
+        scrollTroveText(searchText.value)
     }
 }
 // Inject handles when snip is clicked
@@ -744,8 +738,8 @@ async function doFetch(calledFrom, url, options) {
 // load of An Article - they will be SSE'd to App.vue
 //
 function loadArticle(firstLoad) {
-    const url = import.meta.env.VITE_SERVER_URL + "/dispArticle/newspaper/" + props.articleId + "/"
-        + props.listId + "/" + !firstLoad;
+    const url = import.meta.env.VITE_SERVER_URL + "/dispArticle/newspaper/" + navStore.articleId + "/"
+        + navStore.listId + "/" + !firstLoad;
     const options = {
         method: "get",
         mode: "cors",
@@ -763,8 +757,8 @@ function saveData() {
     userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(articleSnips.map((sn) => ({ "snipf": sn.snipf.text.replaceAll('"', '|'), "snipb": sn.snipb.text.replaceAll('"', '|') })))
     var updatedData = {
         'troveUserId': userData.troveDetails.troveUserId,
-        'listId': props.listId,
-        'articleId': props.articleId,
+        'listId': navStore.listId,
+        'articleId': navStore.articleId,
         'articleMinedStatusText': userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText,
         'metadata': userData.viewedArticles[idxViewed.value].ViewedArticleMetadata,
         'selectedData': userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText,
@@ -1102,7 +1096,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         <div class="col">
                                             <div class="card">
                                                 <button
-                                                    :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticlePossibleDupArticle.length == 0 }"
+                                                    :disabled="userData.viewedArticles[idxViewed].ViewedArticlePossibleDupArticle.length == 0"
                                                     @click.prevent="showModalDuplicates = true" type="button"
                                                     class="btn btn-primary">
                                                     Possible Duplicates
@@ -1116,7 +1110,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         <div class="col">
                                             <div class="card">
                                                 <button
-                                                    :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticleEntities.length == 0 }"
+                                                    :disabled="userData.viewedArticles[idxViewed].ViewedArticleEntities.length == 0"
                                                     @click.prevent="showModalEntities = true" type="button"
                                                     class="btn btn-primary">Possible Metadata
                                                 </button>
@@ -1156,7 +1150,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                     <div class="row">
                                         <div class="col">
                                             <div class="card">
-                                                <button :class="{ disabled: disableUpdate }" @click.prevent="saveData"
+                                                <button :disabled="disableUpdate" @click.prevent="saveData"
                                                     class="btn btn-primary">Update
                                                     Data</button>
                                             </div>
@@ -1266,12 +1260,16 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 <span>Trove Original Text</span>
                             </summary>
                             <div class="card text-center d-flex justify-content-center gap-2 p-2 flex-row">
-                                <span class="d-flex align-items-center">
-                                    Search Text '{{ searchText }}' Occurs {{ searchTextCount }}
-                                </span>
-                                <button @click.prevent="triggerScrollAgain" class="btn btn-primary">
+                                <button @click.prevent="triggerSnipScroll" class="btn btn-primary"
+                                    :disabled="articleSnips.length == 0">
+                                    Scroll Snip
+                                </button>
+                                <button @click.prevent="triggerSearchScroll" class="btn btn-primary">
                                     Search
                                 </button>
+                                <span class="d-flex align-items-center">
+                                    '{{ searchText }}' Occurs {{ searchTextCount }}
+                                </span>
                                 <button @click.prevent="showModalSearchText = true" class="btn btn-primary">
                                     Change
                                 </button>
@@ -1282,24 +1280,24 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                             </div>
                             <div class="card text-center">
                                 <div v-if="showToolbar" class="d-flex justify-content-center gap-2 p-2">
-                                    <button :class="{ disabled: snipCancelDisabled }" @click.prevent="revertChange"
+                                    <button :disabled="snipCancelDisabled" @click.prevent="revertChange"
                                         class="btn btn-primary">
                                         Revert
                                     </button>
-                                    <button :class="{ disabled: snipDropDisabled }" @click.prevent="removeSnip()"
+                                    <button :disabled="snipDropDisabled" @click.prevent="removeSnip()"
                                         class="btn btn-primary">
                                         Drop Snip
                                     </button>
-                                    <button :class="{ disabled: snipUpdateDisabled }" @click.prevent="updateSnip"
+                                    <button :disabled="snipUpdateDisabled" @click.prevent="updateSnip"
                                         class="btn btn-primary">
                                         Update Snip
                                     </button>
-                                    <button :class="{ disabled: updSelectTextDisabled }"
-                                        @click.prevent="updateSelectedText" class="btn btn-primary">
+                                    <button :disabled="updSelectTextDisabled" @click.prevent="updateSelectedText"
+                                        class="btn btn-primary">
                                         Update Selected Text
                                     </button>
-                                    <button :class="{ disabled: cancelUpdTextDisabled }"
-                                        @click.prevent="cancelUpdateSelected" class="btn btn-primary">
+                                    <button :disabled="cancelUpdTextDisabled" @click.prevent="cancelUpdateSelected"
+                                        class="btn btn-primary">
                                         Cancel Update Text
                                     </button>
                                 </div>
@@ -1308,6 +1306,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 </div>
                             </div>
                             <div class="card">
+                                <!-- <div @scroll="scrollHandler" @mouseup="snipHighlightedText" ref="articleRef" -->
                                 <div @mouseup="snipHighlightedText" ref="articleRef" @click="activateHandles($event)"
                                     @dragstart="handleDragStart" @dragover.prevent class="card-body overflow-auto"
                                     style="max-height: 300px" @drop="handleDrop" id="textTrove">
@@ -1340,8 +1339,8 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                         <details :open="showSelectedText">
                             <summary style="display: flex; justify-content: space-between; align-items: center;">
                                 <span>Your Selected Text</span>
-                                <button :class="{ disabled: deleteSelectedTextDisabled }"
-                                    @click.prevent="deleteSelectedText" class="btn btn-primary">
+                                <button :disabled="deleteSelectedTextDisabled" @click.prevent="deleteSelectedText"
+                                    class="btn btn-primary">
                                     Clear All Selected Text
                                 </button>
                             </summary>

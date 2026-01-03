@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, watch } from 'vue';
 import { useDoFetch } from '@/components/DoFetch.js';
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -11,9 +11,6 @@ import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
 import EditItem from '@/components/EditItem.vue'
 
-// navStore.listId = props.listId;
-// navStore.listHref = "/userListPage/" + props.listId;
-// navStore.listTabTitle = "List " + props.listId;
 let storyEvents = []
 let updateDisabled = ref(true)
 
@@ -26,25 +23,7 @@ async function loadArticleInfo(firstLoad) {
   const personDob = strPersonDob.length == 0 ? 0 : Number(strPersonDob)
   console.log('UserPersonStoryView Person DOB, Reference', personDob, navStore.savedPerson.readRefInfo);
   storyEvents = userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx];
-  console.log('UserPersonStoryView Events', JSON.stringify(storyEvents));
-  for (let event of storyEvents) {
-    const viewedIdx = userData.viewedArticles.findIndex((el) => el.ViewedArticleId == event.articleId)
-    if (viewedIdx == -1) {
-      console.log('UserPersonStoryView Event article not found in Viewed Articles ', JSON.stringify(event));
-      continue
-    }
-    const viewedArticle = userData.viewedArticles[viewedIdx]
-    // console.log('UserPersonStoryView Event Include ', event.include);
-    event.story = getArticleStory(event, viewedArticle)
-    event.eventDate = getArticleDate(viewedArticle)
-    event.age = personDob == 0 ? '-' : Number(event.eventDate.slice(0, 4)) - personDob
-    event.eventLocation = getArticleLocation(viewedArticle)
-    // console.log('viewed: ', JSON.stringify(viewedArticle))
-    event.ViewedArticleViewUrl = viewedArticle.ViewedArticleViewUrl
-  }
-  storyEvents.sort((a, b) => a.eventDate.localeCompare(b.eventDate));
-  userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx] = storyEvents;
-  console.log('UserPersonStoryView Updated Sorted Events', JSON.stringify(storyEvents));
+  console.log('UserPersonStoryView Events Articles', JSON.stringify(storyEvents.map((el) => el.articleId)));
 }
 //  Post array of Story Events
 function updateStory() {
@@ -86,7 +65,19 @@ function updateStory() {
 //  
 function reloadStory() {
   //
-  const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
+  const reload = {}
+  reload.oldPersonData = {
+    "action": "STORY",
+    "personIndex": navStore.savedPerson.personIndex,
+    "readName": navStore.savedPerson.readName,
+    "storyStatus": 'Reload',
+    "linkedListId": navStore.savedPerson.linkedListId,
+    "arrayRelated": navStore.savedPerson.arrayRelated,
+    "personStoryIdx": navStore.savedPerson.personStoryIdx
+  }
+  console.log(`UserPersonStoryView/reloadStory %s`, + JSON.stringify(reload));
+  //
+  const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateMetaData";
   const options = {
     method: "post",
     mode: "cors",
@@ -96,13 +87,30 @@ function reloadStory() {
       'Content-Type': 'application/json'
     },
     //make sure to serialize your JSON body
-    body: JSON.stringify(ignored)
+    body: JSON.stringify(reload)
   };
-  useDoFetch('Ignore List Articles', url, options);
-  navStore.listId = 0;
-  navStore.listHref = "";
-  navStore.listTabTitle = "List";
-  router.push({ name: 'userTroveLists' });
+  useDoFetch('loadStory', url, options);
+}
+//
+function updateFromViewedArticles() {
+  console.log('UserPersonStoryView/updateFromViewedArticles Watch Trigger');
+  for (let event of storyEvents) {
+    const viewedIdx = userData.viewedArticles.findIndex((el) => el.ViewedArticleId == event.articleId)
+    if (viewedIdx == -1) {
+      console.log('UserPersonStoryView/updateFromViewedArticles Event article not found in Viewed Articles ', JSON.stringify(event));
+      continue
+    }
+    const viewedArticle = userData.viewedArticles[viewedIdx]
+    // console.log('UserPersonStoryView Event Include ', event.include);
+    event.story = getArticleStory(event, viewedArticle)
+    event.eventDate = getArticleDate(viewedArticle)
+    event.age = personDob == 0 ? '-' : Number(event.eventDate.slice(0, 4)) - personDob
+    event.eventLocation = getArticleLocation(viewedArticle)
+    // console.log('viewed: ', JSON.stringify(viewedArticle))
+    event.ViewedArticleViewUrl = viewedArticle.ViewedArticleViewUrl
+  }
+  userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx] = storyEvents;
+  console.log('UserPersonStoryView/updateFromViewedArticles Watch Trigger', JSON.stringify(storyEvents));
 }
 // Get best Article Story
 function getArticleStory(event, viewedArticle) {
@@ -158,6 +166,22 @@ function updateInclude(action, index) {
       break;
   }
 }
+//
+function openArticle(articleLink) {
+  console.log('UserPersonStory/openArticle ', JSON.stringify(articleLink))
+  navStore.listId = articleLink.listId;
+  navStore.articleId = articleLink.articleId;
+  router.push({ name: 'editArticle' });
+}
+//
+watch(
+  () => useUserDataStore().viewedArticles,
+  (newVal, oldVal) => {
+    updateFromViewedArticles()
+  },
+  { deep: false } // ✅ array reference changes only (immutable-friendly)
+)
+
 //
 loadArticleInfo('true')
 </script>
@@ -225,8 +249,9 @@ loadArticleInfo('true')
             <td class="text-center">{{ article.age }}</td>
             <td class="text-nowrap">{{ article.eventLocation }}</td>
             <td class="text-nowrap">
-              <router-link :to="'/editArticle/' + article.listId + '/' + article.articleId"
-                class="active link-primary">{{ article.articleId }}</router-link>
+              <a href="#" @click.prevent="openArticle(article)">
+                {{ article.articleId }}
+              </a>
             </td>
             <td class="text-center"><a :href="article.ViewedArticleViewUrl" target="_blank">Link</a></td>
             <td v-html="article.story" class="preserve" style="border-bottom: .5px solid;"></td>
