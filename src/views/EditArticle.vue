@@ -1096,7 +1096,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         <div class="col">
                                             <div class="card">
                                                 <button
-                                                    :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticlePossibleDupArticle.length == 0 }"
+                                                    :disabled="userData.viewedArticles[idxViewed].ViewedArticlePossibleDupArticle.length == 0"
                                                     @click.prevent="showModalDuplicates = true" type="button"
                                                     class="btn btn-primary">
                                                     Possible Duplicates
@@ -1110,7 +1110,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         <div class="col">
                                             <div class="card">
                                                 <button
-                                                    :class="{ disabled: userData.viewedArticles[idxViewed].ViewedArticleEntities.length == 0 }"
+                                                    :disabled="userData.viewedArticles[idxViewed].ViewedArticleEntities.length == 0"
                                                     @click.prevent="showModalEntities = true" type="button"
                                                     class="btn btn-primary">Possible Metadata
                                                 </button>
@@ -1150,7 +1150,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                     <div class="row">
                                         <div class="col">
                                             <div class="card">
-                                                <button :class="{ disabled: disableUpdate }" @click.prevent="saveData"
+                                                <button :disabled="disableUpdate" @click.prevent="saveData"
                                                     class="btn btn-primary">Update
                                                     Data</button>
                                             </div>
@@ -1260,7 +1260,8 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 <span>Trove Original Text</span>
                             </summary>
                             <div class="card text-center d-flex justify-content-center gap-2 p-2 flex-row">
-                                <button @click.prevent="triggerSnipScroll" class="btn btn-primary">
+                                <button @click.prevent="triggerSnipScroll" class="btn btn-primary"
+                                    :disabled="articleSnips.length == 0">
                                     Scroll Snip
                                 </button>
                                 <button @click.prevent="triggerSearchScroll" class="btn btn-primary">
@@ -1279,24 +1280,24 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                             </div>
                             <div class="card text-center">
                                 <div v-if="showToolbar" class="d-flex justify-content-center gap-2 p-2">
-                                    <button :class="{ disabled: snipCancelDisabled }" @click.prevent="revertChange"
+                                    <button :disabled="snipCancelDisabled" @click.prevent="revertChange"
                                         class="btn btn-primary">
                                         Revert
                                     </button>
-                                    <button :class="{ disabled: snipDropDisabled }" @click.prevent="removeSnip()"
+                                    <button :disabled="snipDropDisabled" @click.prevent="removeSnip()"
                                         class="btn btn-primary">
                                         Drop Snip
                                     </button>
-                                    <button :class="{ disabled: snipUpdateDisabled }" @click.prevent="updateSnip"
+                                    <button :disabled="snipUpdateDisabled" @click.prevent="updateSnip"
                                         class="btn btn-primary">
                                         Update Snip
                                     </button>
-                                    <button :class="{ disabled: updSelectTextDisabled }"
-                                        @click.prevent="updateSelectedText" class="btn btn-primary">
+                                    <button :disabled="updSelectTextDisabled" @click.prevent="updateSelectedText"
+                                        class="btn btn-primary">
                                         Update Selected Text
                                     </button>
-                                    <button :class="{ disabled: cancelUpdTextDisabled }"
-                                        @click.prevent="cancelUpdateSelected" class="btn btn-primary">
+                                    <button :disabled="cancelUpdTextDisabled" @click.prevent="cancelUpdateSelected"
+                                        class="btn btn-primary">
                                         Cancel Update Text
                                     </button>
                                 </div>
@@ -1338,8 +1339,8 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                         <details :open="showSelectedText">
                             <summary style="display: flex; justify-content: space-between; align-items: center;">
                                 <span>Your Selected Text</span>
-                                <button :class="{ disabled: deleteSelectedTextDisabled }"
-                                    @click.prevent="deleteSelectedText" class="btn btn-primary">
+                                <button :disabled="deleteSelectedTextDisabled" @click.prevent="deleteSelectedText"
+                                    class="btn btn-primary">
                                     Clear All Selected Text
                                 </button>
                             </summary>
