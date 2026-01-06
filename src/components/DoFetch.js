@@ -21,7 +21,7 @@ export async function useDoFetch (calledFrom, url, options) {
         if (noJsonResponse.includes(calledFrom)) {
         } else {
             const data = await response.json();
-            console.log ('doFetch ' + calledFrom + ' response ', data)
+            console.log ('doFetch ' + calledFrom + ' response ', JSON.stringify(data))
         }
     } else {
         errorsStore.arrayErrors.push({msg: response.statusText, param: 'Called from:' + calledFrom + ' - With url:' + response.url});
