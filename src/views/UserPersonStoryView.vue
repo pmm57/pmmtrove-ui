@@ -7,8 +7,6 @@ import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
 import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
-import { useErrorsArrayStore } from '@/stores/errorsarray';
-const errorsStore = useErrorsArrayStore();
 import { useSavePersonData } from '@/components/SavePersonData.js';
 import EditItem from '@/components/EditItem.vue'
 
@@ -190,7 +188,7 @@ function saveShowAll() {
 //
 watch(
     () => useUserDataStore().viewedArticles,
-    (newVal, oldVal) => {
+    () => {
         updateFromViewedArticles()
     },
     { deep: false } // ✅ array reference changes only (immutable-friendly)
