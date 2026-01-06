@@ -47,7 +47,10 @@ let showDelPerson = ref(false);
 let showModalLists = ref(false);
 let showModalRelative = ref(false);
 let showModalPartner = ref(false);
-let buttonRefInfo = ref('Add Reference Information')
+const refInfoAdd = 'Add Reference Information';
+const refInfoUpdate = 'Update Reference Information';
+const refInfoEdit = 'Edit Reference Information';
+let buttonRefInfo = ref(refInfoAdd);
 let partners = ref([]);
 //
 let updatePerson = reactive({
@@ -273,9 +276,9 @@ function editPersonClick() {
 }
 // Set editPersonName editable
 function editRefInfoClick() {
-    if (buttonRefInfo.value == "Update Reference Information") {
+    if (buttonRefInfo.value == refInfoUpdate) {
         console.log('editRefInfoClick Update');
-        buttonRefInfo.value = "Edit Reference Information"
+        buttonRefInfo.value = refInfoEdit
         navStore.savedPerson.action = 'CHG';
         setPersonNameActions('restore');
         setPersonActions("chg");
@@ -283,7 +286,7 @@ function editRefInfoClick() {
         showEditRefInfo.value = false;
         showPersonDetails.value = true;
     } else {
-        buttonRefInfo.value = "Update Reference Information"
+        buttonRefInfo.value = refInfoUpdate;
         showEditRefInfo.value = true;
         showPersonDetails.value = false;
         setPersonNameActions('restore edit');
@@ -643,7 +646,7 @@ function initScreen(initAction) {
 function initPersonScreen() {
     showEditRefInfo.value = false
     if (navStore.savedPerson.readRefInfo.length > 0) {
-        buttonRefInfo.value = 'Edit Reference Information'
+        buttonRefInfo.value = refInfoEdit
     }
     linkedListText.value = "Unlink from List " + navStore.savedPerson.linkedListId;
     linkedListIdx.value = -1;
@@ -753,7 +756,7 @@ initScreen('');
                             <div v-show="showEditRefInfoAction" class="col">
                                 <div class="card">
                                     <button @click.prevent="editRefInfoClick()" class="btn btn-primary"
-                                        :class="{ disabled: updatePerson.chgRefInfo.length < 5 }">{{
+                                        :class="{ disabled: (buttonRefInfo == refInfoUpdate && updatePerson.chgRefInfo.length < 5) }">{{
                                             buttonRefInfo }}</button>
                                 </div>
                             </div>
