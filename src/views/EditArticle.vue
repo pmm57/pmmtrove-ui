@@ -3,7 +3,8 @@ import ModalEntities from '@/components/ModalEntities.vue'
 import ModalDuplicates from '@/components/ModalDuplicates.vue'
 import EditItem from '@/components/EditItem.vue'
 import ModalSearchText from '@/components/ModalSearchText.vue'
-import { ref, reactive, watch, nextTick } from 'vue'
+import { useDoFetch } from '@/components/DoFetch.js';
+import { ref, watch, nextTick, onMounted } from 'vue'
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
 import { useNavBarStore } from '@/stores/navbar'
@@ -12,11 +13,8 @@ import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
 import { useToast } from 'vue-toastification'
 const toast = useToast()
-// const props = defineProps(['listId', 'articleId'])
-// console.log(`Edit Article View List:%s , Article:%s`, props.listId, props.articleId)
+import Tooltip from 'bootstrap/js/dist/tooltip';
 
-// navStore.articleId = props.articleId
-// navStore.articleHref = "/editArticle/" + navStore.listId + "/" + navStore.articleId
 navStore.articleHref = "/editArticle"
 navStore.articleTabTitle = "Article " + navStore.articleId
 //
@@ -29,6 +27,7 @@ var searchText = ref('');
 var searchTextCount = ref(0);
 var showModalSearchText = ref(false)
 const articleRef = ref(null);
+const troveArticleRef = ref(null);
 // Has it been viewed previously
 var idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
@@ -712,28 +711,28 @@ function deleteSelectedText() {
 }
 //
 // Async Do Fetch
-async function doFetch(calledFrom, url, options) {
-    const request = new Request(url, options);
-    const fetchPromise = fetch(request);
-    const response = await fetchPromise
-        .catch(error => {
-            errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
-            console.log('doFetch ' + calledFrom + ' : Error in event handler::', error);
-            return
-        });
-    // console.log (response);
-    // iterate over all headers
-    // for (let [key, value] of response.headers) {
-    // console.log(`${key} = ${value}`);
-    // }
-    console.log(calledFrom + ": response.status =", response.status);
-    if (response.status == 200) {
-        const data = await response.json();
-        console.log('doFetch ' + calledFrom + ' response ', data)
-    } else {
-        errorsStore.arrayErrors = response.error
-    }
-}
+// async function doFetch(calledFrom, url, options) {
+//     const request = new Request(url, options);
+//     const fetchPromise = fetch(request);
+//     const response = await fetchPromise
+//         .catch(error => {
+//             errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
+//             console.log('doFetch ' + calledFrom + ' : Error in event handler::', error);
+//             return
+//         });
+//     // console.log (response);
+//     // iterate over all headers
+//     // for (let [key, value] of response.headers) {
+//     // console.log(`${key} = ${value}`);
+//     // }
+//     console.log(calledFrom + ": response.status =", response.status);
+//     if (response.status == 200) {
+//         const data = await response.json();
+//         console.log('doFetch ' + calledFrom + ' response ', data)
+//     } else {
+//         errorsStore.arrayErrors = response.error
+//     }
+// }
 //
 // load of An Article - they will be SSE'd to App.vue
 //
@@ -749,7 +748,44 @@ function loadArticle(firstLoad) {
             'Content-Type': 'application/json'
         }
     };
-    doFetch('loadArticle', url, options)
+    useDoFetch('loadArticle', url, options)
+    // doFetch('loadArticle', url, options)
+}
+//  Post Article Id to Ignore
+function manageIgnoredArticle(action = 'remove') {
+    const ignoreTroveArticle = {
+        id: navStore.articleId,
+        listId: navStore.listId
+    };
+    var param = {
+        unignoreArticles: [ignoreTroveArticle],
+        reloadArticle: true
+    };
+    var urlAction = "/searchTrove/updateUnignored"
+    if (action == 'add') {
+        param = {
+            ignoreArticles: [ignoreTroveArticle],
+            reloadArticle: true
+        };
+        urlAction = "/searchTrove/updateIgnored"
+    }
+    console.log(`EditArticle/manageIgnoredArticle clicked Manage Ignored action %s - %s `, action, JSON.stringify(param));
+    //
+    const url = import.meta.env.VITE_SERVER_URL + urlAction;
+    const options = {
+        method: "post",
+        mode: "cors",
+        credentials: "include", // to send HTTP only cookies
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        //make sure to serialize your JSON body
+        body: JSON.stringify(param)
+    };
+    useDoFetch('Manage Ignored Articles', url, options)
+    // doFetch('Manage Ignored Articles', url, options);
+    if (action == 'add') troveArticleRef.value.click(); // Take user to Trove
 }
 //  Post updated data and wait for response in reloadArticle
 function saveData() {
@@ -785,7 +821,8 @@ function saveData() {
         body: JSON.stringify(updatedData)
     };
     console.log(options);
-    doFetch('loadArticle', url, options)
+    useDoFetch('saveArticle', url, options)
+    // doFetch('loadArticle', url, options)
     //
     disableUpdate.value = true
 }
@@ -1061,14 +1098,14 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                     <div class="row">
                         <div class="col-6">
                             <div class="card-header text-center">
-                                Trove Actions
+                                Article Actions
                             </div>
                             <div class="card">
                                 <div class="container-fluid">
                                     <div class="row">
                                         <div class="col">
                                             <div class="card">
-                                                <a class="btn btn-primary"
+                                                <a class="btn btn-primary" ref="troveArticleRef"
                                                     :href="userData.viewedArticles[idxViewed].ViewedArticleViewUrl"
                                                     target="_blank" role="button">View Trove Article</a>
                                             </div>
@@ -1081,6 +1118,22 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <div class="card">
+                                                <button v-if="userData.viewedArticles[idxViewed].ViewedArticleIgnored"
+                                                    @click.prevent="manageIgnoredArticle()" class="btn btn-primary"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                                    title="View Article in Trove and remove from List OR Remove from Ignored">Remove
+                                                    Article from Ignore List</button>
+                                                <button v-else @click.prevent="manageIgnoredArticle('add')"
+                                                    class="btn btn-primary" data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    title="Add to Ignore List and View Article in Trove to remove from List">Ignore
+                                                    Article</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div style="display:none" id="refreshTrove">{{
@@ -1088,7 +1141,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                         </div>
                         <div class="col-6">
                             <div class="card-header text-center">
-                                Your Data Actions
+                                Data Actions
                             </div>
                             <div class="card">
                                 <div class="container-fluid">

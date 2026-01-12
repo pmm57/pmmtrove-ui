@@ -7,7 +7,7 @@ export const useUserDataStore = defineStore('userData', () => {
   const troveDetails = reactive({})
   const troveQueryTotal = ref(0)
   const troveQueryArticleTotal = ref(0)
-  const nbrUserIgnoredArticles = ref(0)
+  const nbrUserDupOrIgnoredArticles = ref(0)
   const userDuplicateListIds = ref([])
   const loadedIndex = ref(-1)
   const userLists = ref([])
@@ -294,7 +294,7 @@ function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewedArt
   }
   //
   function updateListItemStatusCount(listIdx, loadStatus, count, minedStatusCounts) {
-      console.log(`this updateListItemStatusCount %s %s`, listIdx, JSON.stringify(this.userLists[listIdx]))
+      // console.log(`this updateListItemStatusCount %s %s`, listIdx, JSON.stringify(this.userLists[listIdx]))
       this.userLists[listIdx].TroveListLoadState = loadStatus
       this.userLists[listIdx].TroveListItemCount = count
       this.userLists[listIdx].TroveListArticleMinedStatusCounts = minedStatusCounts
@@ -306,7 +306,7 @@ function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewedArt
     troveDetails, 
     troveQueryTotal, 
     troveQueryArticleTotal, 
-    nbrUserIgnoredArticles,
+    nbrUserDupOrIgnoredArticles,
     userDuplicateListIds,
     loadedIndex,
     userLists, 

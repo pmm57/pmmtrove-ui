@@ -1,5 +1,6 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
+import { ref } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useUserDataStore } from '@/stores/userdata';
@@ -9,19 +10,23 @@ const navStore = useNavBarStore();
 import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
 
-// const props = defineProps(['listId']);
-// navStore.listId = props.listId;
-// navStore.listHref = "/userListPage/" + props.listId;
 navStore.listHref = "/userListPage";
 navStore.listTabTitle = "List " + navStore.listId;
+var articleLink = ''
 //
 var idxList = userData.userLists.findIndex((item) => item.TroveListId == navStore.listId);
 if (userData.userLists[idxList].TroveListLinkedPerson) console.log('Linked Person ', userData.userLists[idxList].TroveListLinkedPerson)
 //
-function haveLink(article) {
+function linkArticle(article) {
+    articleLink = article.TroveListArticleId
     var haveLink = true;
     // console.log(`ListView haveLink article.TroveListArticleViewedIdx:%s`, article.TroveListArticleViewedIdx)
-    if (article.TroveListArticleViewedIdx === undefined || article.TroveListArticleViewedIdx < 0) haveLink = false;
+    if (article.TroveListArticleViewedIdx === undefined || article.TroveListArticleViewedIdx < 0) {
+        haveLink = false;
+    } else {
+        const viewedArticle = userData.viewedArticles[article.TroveListArticleViewedIdx]
+        if (viewedArticle.ViewedArticleIgnored) articleLink = 'Ignored:' + article.TroveListArticleId
+    }
     return haveLink;
 }
 //
@@ -62,33 +67,6 @@ async function loadListArticles(firstLoad) {
         }
     };
     useDoFetch('loadListArticles', url, options)
-}
-//  Post array of Ignored Article Id's
-function ignoreArticles() {
-    var items = [];
-    userData.userListArticles[idxList].forEach((article) => {
-        items.push({ id: article.TroveListArticleId });
-    });
-    // console.log("clicked Save Ignored action " + JSON.stringify(items));
-    const ignored = { ignoreArticles: items };
-    //
-    const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
-    const options = {
-        method: "post",
-        mode: "cors",
-        credentials: "include", // to send HTTP only cookies
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        //make sure to serialize your JSON body
-        body: JSON.stringify(ignored)
-    };
-    useDoFetch('Ignore List Articles', url, options);
-    navStore.listId = 0;
-    navStore.listHref = "";
-    navStore.listTabTitle = "List";
-    router.push({ name: 'userTroveLists' });
 }
 // Get best Article Title
 function getArticleTitle(article) {
@@ -179,12 +157,12 @@ loadListArticles('true')
                             Trove</a>
                     </div>
                 </div>
-                <div class="col">
+                <!-- <div class="col">
                     <div class="card">
                         <a @click.prevent="ignoreArticles()" class="btn btn-primary" role="button">Ignore All
                             Articles</a>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
@@ -205,15 +183,12 @@ loadListArticles('true')
                 <tbody>
                     <tr v-for="article in userData.userListArticles[idxList]" :key="article.TroveListArticleId">
                         <td class="text-nowrap">
-                            <!-- <router-link v-if="haveLink(article)"
-                :to="'/editArticle/' + userData.userLists[idxList].TroveListId + '/' + article.TroveListArticleId"
-                class="active link-primary">{{ article.TroveListArticleId }}</router-link> -->
-                            <a v-if="haveLink(article)" href="#"
+                            <a v-if="linkArticle(article)" href="#"
                                 @click.prevent="openArticle(article.TroveListArticleId)">
-                                {{ article.TroveListArticleId }}
+                                {{ articleLink }}
                             </a>
                             <p v-else>
-                                {{ article.TroveListArticleId }}
+                                {{ articleLink }}
                             </p>
                         </td>
                         <td class="text-nowrap">{{ article.TroveListArticlePubDate }}</td>

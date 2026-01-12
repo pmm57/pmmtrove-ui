@@ -7,7 +7,7 @@ const router = useRouter();
 // console.log("ArticleUrls", JSON.stringify(props))
 //
 function openArticle(articleLink) {
-    console.log('ArticleUrls/openArticle ', articleLink)
+    console.log('ArticleUrls/openArticle ', JSON.stringify(articleLink))
     navStore.listId = articleLink.troveListId;
     navStore.articleId = articleLink.troveArticleId;
     router.push({ name: 'editArticle' });
@@ -35,7 +35,7 @@ if (props.troveListId > 0) {
     });
 }
 articleUrls.sort(compareFn);
-// console.log("Article Urls -2 - ", JSON.stringify(articleUrls));
+console.log("ArticleUrls/Article Urls -2 - ", JSON.stringify(articleUrls));
 </script>
 //
 <template>
@@ -44,7 +44,10 @@ articleUrls.sort(compareFn);
             :to="'/editArticle/' + articleLink.troveListId + '/' + articleLink.troveArticleId">{{
                 articleLink.troveArticleId }}
         </router-link> -->
-        <a v-if="articleLink.idxViewedArticle" href="#" @click.prevent="openArticle(articleLink)">
+        <template
+            v-if="(((typeof articleLink.troveArticleId) == 'string') && (articleLink.troveArticleId.includes(':')))">{{
+                articleLink.troveArticleId }}</template>
+        <a v-else-if="articleLink.idxViewedArticle" href="#" @click.prevent="openArticle(articleLink)">
             {{ articleLink.troveArticleId }}
         </a>
         <template v-else>{{ articleLink.troveArticleId }}</template>
