@@ -46,7 +46,7 @@ const errorsStore = useErrorsArrayStore()
             </li>
         </ul>
     </div>
-    <div v-show="errorsStore.arrayErrors.length > 0" class="card col-sm-4 text-center">
+    <div v-show="errorsStore.arrayErrors.length > 0" class="card text-center">
         <button @click.prevent="errorsStore.arrayErrors = []" type="button" class="btn btn-primary">Clear
             Errors</button>
         <ul>
