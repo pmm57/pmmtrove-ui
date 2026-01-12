@@ -47,6 +47,7 @@ export const useUserDataStore = defineStore('userData', () => {
   const userReloadList = ref(0)
   const userReloadLists = ref(false)
   const userListsReady = ref(false)
+  const reloadedViewedArticle = ref(0)
   const viewedArticles = ref([])
   // viewedArticles FROM displayedArticles = []; => 
   // ViewedArticleId FROM TroveArticleId

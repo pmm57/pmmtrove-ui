@@ -172,6 +172,8 @@ function handleMessage(e) {
             userData.viewedArticles.splice(articleIdx, 1, reactive(sseRetrieve.cacheViewedArticle)) // Triggers Reactivity
             // console.log ("sseReloadViewedArticle userData", articleIdx, userData.viewedArticles[articleIdx])
             userData.updMetadataTypeArticleLinks(sseRetrieve.viewedListId, sseRetrieve.viewedArticleId, articleIdx, sseRetrieve.cacheViewedArticle.ViewedArticleMetadata)
+            // Trigger watch
+            ++userData.reloadedViewedArticle
             break
         case 'sseUpdateListsArticleStatus':
             updAListArticle(sseRetrieve.listId, sseRetrieve.articleId, sseRetrieve.cacheListsArticleStatus, sseRetrieve.cacheListsArticleStatusText)
