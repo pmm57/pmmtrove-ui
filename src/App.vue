@@ -44,7 +44,7 @@ function handleMessage(e) {
             userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
             userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
             userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
-            userData.nbrUserIgnoredArticles = sseRetrieve.cacheNbrIgnored
+            userData.nbrUserDupOrIgnoredArticles = sseRetrieve.cacheNbrDupOrIgnored
             userData.userListsReady = true
             // In UI have split Articles from the List - so do split
             userData.updateAllLists(sseRetrieve.cacheUserLists)
@@ -73,7 +73,7 @@ function handleMessage(e) {
             userData.userListsReady = true
             // Only One List
             userData.loadedIndex = sseRetrieve.updatedListIndex
-            userData.nbrUserIgnoredArticles = sseRetrieve.updateNbrIgnored
+            userData.nbrUserDupOrIgnoredArticles = sseRetrieve.updateNbrDupOrIgnored
             const cacheListArticles = sseRetrieve.cacheUserLists.TroveListArticles
             // Update List Details
             delete sseRetrieve.cacheUserLists.TroveListArticles
@@ -129,12 +129,12 @@ function handleMessage(e) {
             navStore.disablePersonList = false
             break
         case 'sseUserViewedArticle':
-            // console.log(`userListsWithArticles %s`, JSON.stringify(sseRetrieve))
+            // console.log(`App/sseUserViewedArticle %s`, JSON.stringify(sseRetrieve))
             // cacheListIdIdx - index into userData.userLists
             // cacheListArticleIdx - index into userData.userListArticles[cacheListIdIdx]
             // cacheViewedArticleIdx - Index of new or updated Viewed Article in userData.viewedArticles
             // cacheViewedArticle - new or updated 
-            // Clear Edit Article
+            // List is being loaded Clear Edit Article
             navStore.articleId = 0
             navStore.articleHref = "";
             navStore.articleTabTitle = "Article";
@@ -146,11 +146,7 @@ function handleMessage(e) {
                 sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatus, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatusText)
             //
             // Updated Viewed Articles
-            // if (sseRetrieve.cacheViewedArticleIdx > userData.viewedArticles.length) {
-            //   userData.viewedArticles.push(sseRetrieve.cacheViewedArticle)
-            // } else {
             userData.viewedArticles[sseRetrieve.cacheViewedArticleIdx] = sseRetrieve.cacheViewedArticle
-            // }
             // Collect Viewed Article Metadata
             // console.log('sseUserViewedArticle - Metadata 1 ', userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
             //   JSON.stringify(sseRetrieve.cacheViewedArticle.ViewedArticleMetadata))

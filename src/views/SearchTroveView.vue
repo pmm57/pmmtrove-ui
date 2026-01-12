@@ -108,7 +108,10 @@ function postIgnoredArticles() {
     }
   });
   // console.log("clicked Save Ignored action " + JSON.stringify(items));
-  const ignored = { ignoreArticles: items };
+  const ignored = {
+    ignoreArticles: items,
+    reloadArticle: true
+  };
   //
   const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
   const options = {
@@ -140,7 +143,10 @@ function postUnignoreArticles() {
     }
   });
   // console.log("clicked Save Ignored action " + JSON.stringify(items));
-  const unignored = { unignoreArticles: items };
+  const unignored = {
+    unignoreArticles: items,
+    reloadArticle: true
+  };
   //
   const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateUnignored";
   const options = {

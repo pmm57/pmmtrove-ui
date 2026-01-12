@@ -120,7 +120,7 @@ function updTroveLists() {
         <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
         <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.</p>
         <p v-if="userData.userLists.length > 0">With {{ userData.troveQueryArticleTotal }} Articles to manage having
-            Ignored {{ userData.nbrUserIgnoredArticles }}</p>
+            and {{ userData.nbrUserDupOrIgnoredArticles }} Duplicates or Ignored</p>
         <p v-if="userData.loadedIndex > 0">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
         <div v-if="loading">
             {{ loadingMsg }}
