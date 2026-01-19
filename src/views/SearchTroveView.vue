@@ -894,9 +894,8 @@ if (navStore.troveSearchName != '') {
                 </td>
                 <!-- Article Id -->
                 <td v-if="row.viewedIndex > -1">
-                  <ArticleUrls :inline="false"
-                    :articleListArray="[{ idxViewedArticle: row.viewedIndex, troveListId: row.dbListId, troveArticleId: row.id }]"
-                    :troveListId="0">
+                  <ArticleUrls :key="value.articleListArray.map(a => a.idxViewedArticle).join(',')" :inline="false"
+                    :articleListArray="[{ idxViewedArticle: row.viewedIndex, troveListId: row.dbListId, troveArticleId: row.id }]">
                     ></ArticleUrls>
                 </td>
                 <td v-else-if="row.dbListId != 0">
