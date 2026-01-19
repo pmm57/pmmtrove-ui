@@ -45,13 +45,13 @@ function handleMessage(e) {
             userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
             userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
             userData.nbrUserDupOrIgnoredArticles = sseRetrieve.cacheNbrDupOrIgnored
-            userData.userListsReady = true
             // In UI have split Articles from the List - so do split
             userData.updateAllLists(sseRetrieve.cacheUserLists)
             if (sseRetrieve.cacheViewedArticles.length > 0) {
-                userData.viewedArticles = sseRetrieve.cacheViewedArticles // Only has data on resendUserData
+                userData.viewedArticles = sseRetrieve.cacheViewedArticles // Only has data on Reload
                 // console.log('sseUserLists - Viewed Articles ', JSON.stringify(sseRetrieve.cacheViewedArticles))
             }
+            if (sseRetrieve.request == 'Reload') userData.userListsReady = true
             break
         case 'sseRemoveUserList':
             // console.log (JSON.stringify(sseRetrieve)) 
@@ -70,7 +70,7 @@ function handleMessage(e) {
         case 'sseUserListArticles':
             // console.log(sseRetrieve.event);
             // console.log('*** sseUserListsArticles ', JSON.stringify(sseRetrieve))
-            userData.userListsReady = true
+            // userData.userListsReady = true
             // Only One List
             userData.loadedIndex = sseRetrieve.updatedListIndex
             userData.nbrUserDupOrIgnoredArticles = sseRetrieve.updateNbrDupOrIgnored
@@ -110,6 +110,14 @@ function handleMessage(e) {
             } else {
                 userData.userListArticles[sseRetrieve.updatedListIndex] = cacheListArticles;
                 // console.log('sseUserListsArticles Update List Articles %s', userData.userListArticles.length, userData.userListArticles[sseRetrieve.updatedListIndex].length)
+            }
+            // CHeck if loading all lists
+            if (!userData.userListsReady) {
+                // Check if have loaded all
+                if ((userData.loadedIndex + 1) == userData.troveQueryTotal) {
+                    console.log('App/sseUserListsArticles Set userListsReady true')
+                    userData.userListsReady = true
+                }
             }
             break
         case 'sseUserListsCounts':
@@ -222,91 +230,6 @@ function updListArticle(listIdx, articleIdx, viewedIdx, articleStatus, articleSt
     aTroveListArticle.TroveListArticleMinedStatustext = articleStatusText
     userData.userListArticles[listIdx].splice(articleIdx, 1, aTroveListArticle) // Triggers Reactivity
 }
-// Whenever viewedArticles is updated update metadataTypeByMetadata to indicate Article link is enabled
-// function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata) {
-//   // Wait until Metadata has been loaded
-//   // console.log('App.vue updMetadataTypeArticleLinks: ', userData.metadataTypeByMetadata.length, viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata);
-//   if (userData.metadataTypeByMetadata.length == 0) {
-//     setTimeout(updMetadataTypeArticleLinks, 3000, viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata);
-//   }
-//   // Collect ViewedArticle Metadata
-//   var arrayViewedArticleMetadata = []
-//   viewedArticleMetadata.forEach((metadata) => {
-//     if (metadata[2] == 'Sel') {
-//       arrayViewedArticleMetadata.push({
-//         MetadataType: metadata[0],
-//         MetadataValue: metadata[1],
-//         troveArticleId: Number(viewedArticleId),
-//         troveListId: Number(viewedListId),
-//         idxViewedArticle: idxViewdArticle
-//       })
-//     }
-//   })
-//   // console.log('sseUserViewedArticle - Metadata 2 ', JSON.stringify(arrayViewedArticleMetadata))
-//   // Sort into order
-//   arrayViewedArticleMetadata.sort(sortMetadataTypeAndValue)
-//   // console.log('App.vue arrayViewedArticleMetadata: ', JSON.stringify(arrayViewedArticleMetadata));
-//   // Merge against metadataTypeByMetadata and set Article Link
-//   var idxType = 0
-//   var idxValue = 0
-//   var tempArray = []
-//   for (var idx = 0; idx < arrayViewedArticleMetadata.length; ++idx) {
-//     // Find Metadata Type Array
-//     var el = arrayViewedArticleMetadata[idx]
-//     // console.log ('updMetadataType - metadataTypeByMetadata - idxType ', JSON.stringify(userData.metadataTypeByMetadata[idxType]))
-//     idxType = userData.metadataTypeByMetadata.findIndex((type) => type.metadataType === el.MetadataType)
-//     // If less than then 0 have a New MetadataType not in the array - not possible so show error
-//     if (idxType < 0) {
-//       console.log('ERROR updMetadataType Missing MetaDataType ', el.MetadataType)
-//       break
-//     }
-//     // console.log('App.vue Match Type: ', el.MetadataType, userData.metadataTypeByMetadata[idxType].metadataType);
-//     // Matched to MetadataType now match to MetadataValue
-//     tempArray = userData.metadataTypeByMetadata[idxType].arrayMetadata
-//     // console.log ('updMetadataType - MetadataValue arrayMetadata ', el.MetadataValue, JSON.stringify(tempArray))
-//     idxValue = tempArray.findIndex((value) => value.metadataValue === el.MetadataValue)
-//     // If less than then 0 have a New MetadataValue not in the array - is possible due to asynchronous processing - log and ignore
-//     if (idxValue < 0) {
-//       console.log('NOTIFY updMetadataType Missing MetadataValue ', el.MetadataValue)
-//       break
-//     }
-//     // console.log('App.vue updMetadataType Match Value: ', el.MetadataValue, tempArray[idxValue].metadataValue);
-//     // Matched to MetadataType and MetadataValue now match List and Article
-//     tempArray = userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray
-//     // console.log ('updMetadataType - articleListArray ', JSON.stringify(tempArray))
-//     var matched = false
-//     for (var jdx = 0; jdx < tempArray.length; ++jdx) {
-//       if ((tempArray[jdx].troveArticleId == el.troveArticleId) && (tempArray[jdx].troveListId == el.troveListId)) {
-//         // console.log ('updMetadataType - matched ', el)
-//         matched = true
-//         userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray[jdx].idxViewedArticle = el.idxViewedArticle
-//         break
-//       }
-//     }
-//     // If not matched - is possible due to asynchronous processing - log and ignore
-//     if (!matched) {
-//       console.log('NOTIFY updMetadataType Missing Article/List for MetadataValue ', idx, el, idxType, idxValue, JSON.stringify(tempArray))
-//     }
-//   }
-// }
-// //
-// function sortMetadataTypeAndValue(a, b) {
-//   var comparison = 0;
-//   if (a.MetadataType === b.MetadataType) {
-//     if (a.Metadata > b.Metadata) {
-//       comparison = 1;
-//     } else if (a.Metadata < b.Metadata) {
-//       comparison = -1;
-//     }
-//     return comparison
-//   }
-//   if (a.MetadataType > b.MetadataType) {
-//     comparison = 1;
-//   } else if (a.MetadataType < b.MetadataType) {
-//     comparison = -1;
-//   }
-//   return comparison;
-// }
 //
 function handleError(e) {
     if (e.target.readyState == EventSource.CLOSED) {

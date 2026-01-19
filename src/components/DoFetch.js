@@ -1,8 +1,8 @@
 import { useErrorsArrayStore } from '@/stores/errorsarray'
-const errorsStore = useErrorsArrayStore()
 // Async Do Fetch
 export async function useDoFetch (calledFrom, url, options) {
-    const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle"];
+    const errorsStore = useErrorsArrayStore()
+    const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser"];
     const request = new Request(url, options);
     const fetchPromise = fetch(request);
     const response = await fetchPromise
@@ -22,8 +22,10 @@ export async function useDoFetch (calledFrom, url, options) {
         } else {
             const data = await response.json();
             console.log ('useDoFetch ' + calledFrom + ' response ', JSON.stringify(data))
+            return data
         }
     } else {
         errorsStore.arrayErrors.push({msg: response.statusText, param: 'Called from:' + calledFrom + ' - With url:' + response.url});
-    }             
+    }
+    return false        
 }  
