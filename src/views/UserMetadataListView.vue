@@ -6,26 +6,37 @@ const errorsStore = useErrorsArrayStore()
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
 // Array to do accordian transition by Metadata Type
-var flagMetadataType = ref([])
-var flagMetadataValue = ref([])
+const flagMetadataType = ref([])
+const flagMetadataValue = ref([])
+var triggerGetArticleLinks = false
+var showMetdataTypeIdx = -1
+var showMetdataValueIdx = -1
 showMetadataType(-1)
 // console.log("STORE PROPERTIES:", Object.keys(userData))
 // console.log("FIELD PROXY?", userData.metadataTypeByMetadata)
 // console.log("FIELD RAW?", JSON.stringify(userData.metadataTypeByMetadata))
 // Run accordion initialization ONLY when metadata is available
-// watch(
-//     () => userData.metadataTypeByMetadata,
-//     (newVal) => {
-//         // console.log(`UserMetadataListView/watch %s`, JSON.stringify(userData.metadataTypeByMetadata))
-//         // console.log(`UserMetadataListView/onMounted %s`, JSON.stringify(userData.metadataTypeByMetadata))
-//         // console.log("UserMetadataListView/onMounted store id", userData.$id)
-//         // console.log("UserMetadataListView/onMounted isProxy?", userData.metadataTypeByMetadata)
-//         if (newVal.length > 0) {
-//             showMetadataType(-1)
-//         }
-//     },
-//     { deep: true, immediate: true }
-// )
+watch(
+    () => userData.metadataTypeByMetadata,
+    (newVal) => {
+        console.log(`UserMetadataListView/watch triggerGetArticleLinks %s`, triggerGetArticleLinks)
+        if (triggerGetArticleLinks) {
+            triggerGetArticleLinks = false
+            return
+        }
+        // console.log(`UserMetadataListView/watch All %s`, JSON.stringify(userData.metadataTypeByMetadata))
+        console.log(`UserMetadataListView/watch Type %s`, JSON.stringify(userData.metadataTypeByMetadata[showMetdataTypeIdx]))
+        if (newVal.length > 0) {
+            // flagMetadataType.value[showMetdataTypeIdx] = false
+            // showMetadataType(showMetdataTypeIdx)
+            // if (showMetdataValueIdx > -1) {
+            //     flagMetadataValue.value[showMetdataValueIdx] = false
+            //     showMetadataValue(showMetdataTypeIdx, showMetdataValueIdx)
+            // }
+        }
+    },
+    { deep: true, immediate: true }
+)
 //
 async function showMetadataType(idxType) {
     // Wait for Vue to apply the latest metadata update
@@ -36,6 +47,7 @@ async function showMetadataType(idxType) {
     if (flagMetadataType.value[idxType]) {
         flagMetadataType.value = Array(totalTypes).fill(false)
         flagMetadataValue.value = []   // collapse values too
+        showMetdataTypeIdx = -1
         return
     }
     // Otherwise open this type and close others
@@ -43,6 +55,8 @@ async function showMetadataType(idxType) {
         { length: totalTypes },
         (_, i) => i === idxType
     )
+    console.log('UserMetdataListView showMetadataType', idxType)
+    showMetdataTypeIdx = idxType
     if (idxType > -1) {
         // Resize value accordion for this type (all closed initially)
         const valueCount = userData.metadataTypeByMetadata[idxType].arrayMetadata.length
@@ -55,12 +69,16 @@ function showMetadataValue(idxType, idxValue) {
     // Toggle: if already open, close it
     if (flagMetadataValue.value[idxValue]) {
         flagMetadataValue.value = Array(total).fill(false)
+        showMetdataValueIdx = -1
         return
     }
     // Otherwise open the selected value (and close others)
+    console.log("showMetadataValue ", flagMetadataValue.value[idxValue])
     flagMetadataValue.value = Array.from({ length: total }, (_, i) => i === idxValue)
-    // console.log ("showMetadataValue ", flagMetadataValue)
+    console.log("showMetadataValue ", flagMetadataValue.value[idxValue])
     // Check if there are Articles that haven't been loaded into Viewed Articles
+    showMetdataValueIdx = idxValue
+    console.log('UserMetdataListView showMetadataValue', idxType, idxValue, JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray))
     const getLinks = userData
         .metadataTypeByMetadata[idxType]
         .arrayMetadata[idxValue]
@@ -70,6 +88,7 @@ function showMetadataValue(idxType, idxValue) {
 }
 //
 async function getArticleLinks(idxType, idxMetadataValue) {
+    triggerGetArticleLinks = true
     errorsStore.arrayErrors = [];
     const url = import.meta.env.VITE_SERVER_URL + '/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue;
     console.log('getArticleLinks -', url)
@@ -99,14 +118,16 @@ async function getArticleLinks(idxType, idxMetadataValue) {
         const data = await response.json();
         console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(data))
         // Update Dup-licate and Ignored modifier
-        if (data.linkedArticleUrls.length > 0) {
-            data.linkedArticleUrls.forEach((el) => {
-                el.articleArray.forEach((a, index) => {
-                    if (a.includes(":")) {
-                        userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray[index].troveArticleId = el
-                    }
-                })
-            })
+        if (data.linkedArticleUrls.arrayArticleUrls.length > 0) {
+            userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray = data.linkedArticleUrls.arrayArticleUrls
+            console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue]))
+            // data.linkedArticleUrls.forEach((el) => {
+            //     el.articleArray.forEach((a, index) => {
+            //         if (a.includes(":")) {
+            //             userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray[index].troveArticleId = el
+            //         }
+            //     })
+            // })
         }
     } else {
         console.log('UserMetadataListView ', response)
@@ -140,14 +161,15 @@ async function getArticleLinks(idxType, idxMetadataValue) {
                         <span>&nbsp;&nbsp;&nbsp;-&nbsp;</span>
                         <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{
                             value.articleListArray.length
-                        }}]</span>
+                            }}]</span>
                         <button v-else class="btn btn-link px-0 py-0"
                             @click.prevent="showMetadataValue(idxType, idxValue)">{{
                                 value.metadataValue }} [{{ value.articleListArray.length }}]</button>
                     </div>
                     <div v-show="flagMetadataValue[idxValue]" class="card-body ml-3 px-0 py-0">
                         <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;</span>
-                        <ArticleUrls :inline="true" :articleListArray="value.articleListArray" :troveListId="0">
+                        <ArticleUrls :key="value.articleListArray.map(a => a.idxViewedArticle).join(',')" :inline="true"
+                            :articleListArray="[...value.articleListArray]">
                         </ArticleUrls>
                     </div>
                 </div>
