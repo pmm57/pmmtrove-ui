@@ -715,7 +715,7 @@ function deleteSelectedText() {
 //
 function openTroveArticle() {
     if (manageIgnoreDisable.value) return
-    const url = props.userData.viewedArticles[idxViewed.value].ViewedArticleViewUrl
+    const url = userData.viewedArticles[idxViewed.value].ViewedArticleViewUrl
     window.open(url, "_blank")
 }
 
@@ -807,7 +807,7 @@ function saveData() {
         //make sure to serialize your JSON body
         body: JSON.stringify(updatedData)
     };
-    console.log(options);
+    console.log(JSON.stringify(options));
     useDoFetch('saveArticle', url, options)
     // doFetch('loadArticle', url, options)
     //
