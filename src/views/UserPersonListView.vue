@@ -154,7 +154,7 @@ function setPersonNameActions(showActions) {
 //
 function handleLoadPersonMessage(e, intervalApersonData) {
     var returnedData = JSON.parse(e.data);
-    // console.log('Return Loadperson', JSON.stringify(returnedData));
+    console.log('Return Loadperson', JSON.stringify(returnedData));
     navStore.savedPerson.readName = returnedData.readPerson;
     navStore.savedPerson.readRefInfo = ''
     if (returnedData.hasOwnProperty("referenceInformation")) {
@@ -660,6 +660,7 @@ function initPersonScreen() {
         if (navStore.savedPerson.personStoryStatus == 'None') navStore.savedPerson.personStoryStatus = 'Create'
     }
     if (navStore.savedPerson.personStoryIdx > -1) navStore.savedPerson.personStoryStatus = 'Review'
+    console.log(`UserPersonListView/initPersonScreen Load Person %s %s`, linkedListIdx.value, JSON.stringify(navStore.savedPerson));
     setPersonActions('');
     updatePerson.chgName = navStore.savedPerson.readName;
     updatePerson.chgRefInfo = navStore.savedPerson.readRefInfo;
@@ -687,7 +688,7 @@ function initPersonScreen() {
     showEditPersonName.value = false;
     setPersonNameActions('');
     // Load partner details
-    console.log('Load Person Partners', JSON.stringify(partners.value));
+    console.log('UserPersonListView/initPersonScreen Load Person Partners', JSON.stringify(partners.value));
     for (var idx = 0; idx < partners.value.length; ++idx) {
         loadPerson(partners.value[idx].personIndex, idx);
     };
@@ -842,19 +843,17 @@ initScreen('');
                                             userData.userLists[linkedListIdx].TroveListName
                                         }}
                                     </a>
-                                    <br><span>List Articles </span>
-                                    <ArticleUrls :inline="true"
-                                        :articleListArray="userData.userListArticles[linkedListIdx]"
-                                        :troveListId="userData.userLists[linkedListIdx].TroveListId">
-                                    </ArticleUrls>
+                                    <br><span>List Has {{ userData.userListArticles[linkedListIdx].length }}
+                                        Articles</span>
                                 </div>
-                                <div v-else class="card-body">No Linked List</div>
+                                <div v-else class="card-body">No Other Linked List</div>
                                 <div v-if="(navStore.savedPerson.personIndex > -1) && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.length > 0)"
                                     class="card-body">
-                                    <span>Linked Articles </span>
-                                    <ArticleUrls :inline="true"
-                                        :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray"
-                                        :troveListId="0">
+                                    <span>Other Linked Articles </span>
+                                    <ArticleUrls
+                                        :key="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.map(a => a.idxViewedArticle).join(',')"
+                                        :inline="true"
+                                        :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray">
                                     </ArticleUrls>
                                 </div>
                                 <div v-else class="card-body">No Linked Articles</div>

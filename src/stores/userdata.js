@@ -2,15 +2,15 @@ import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
 
 export const useUserDataStore = defineStore('userData', () => {
-  const arrayMinedStatus = ref([])
-  const arrayMetadataTypes = ref([])
-  const troveDetails = reactive({})
-  const troveQueryTotal = ref(0)
-  const troveQueryArticleTotal = ref(0)
-  const nbrUserDupOrIgnoredArticles = ref(0)
-  const userDuplicateListIds = ref([])
-  const loadedIndex = ref(-1)
-  const userLists = ref([])
+    const arrayMinedStatus = ref([])
+    const arrayMetadataTypes = ref([])
+    const troveDetails = reactive({})
+    const troveQueryTotal = ref(0)
+    const troveQueryArticleTotal = ref(0)
+    const nbrUserDupOrIgnoredArticles = ref(0)
+    const userDuplicateListIds = ref([])
+    const loadedIndex = ref(-1)
+    const userLists = ref([])
 //   All the Trove Lists of a user - read from Trove
 // userLists = []; /
 // List element object definition
@@ -28,7 +28,7 @@ export const useUserDataStore = defineStore('userData', () => {
 // listItem.TroveListLinkedPerson
 // listItem.TroveListArticleMinedStatusCounts
 
-  const userListArticles = ref([])
+    const userListArticles = ref([])
 // A 2 dimensional array - First index is same as listItem
 //   TroveListArticleViewedIdx 
 //   TroveListArticleId FROM id => 
@@ -44,10 +44,11 @@ export const useUserDataStore = defineStore('userData', () => {
 //   TroveListArticleMinedStatustext FROM listArticleMinedStatustext => 
 //   TroveListArticleNote FROM note => 
 //
-  const userReloadList = ref(0)
-  const userReloadLists = ref(false)
-  const userListsReady = ref(false)
-  const viewedArticles = ref([])
+    const verifiedUser = ref(false) // Have a verified user
+    const userReloadList = ref(0)
+    const userListsReady = ref(false)
+    const reloadedViewedArticle = ref(0)
+    const viewedArticles = ref([])
   // viewedArticles FROM displayedArticles = []; => 
   // ViewedArticleId FROM TroveArticleId
   // ViewedArticleLastTroveUpdated FROM TroveArticleLastUpdated
@@ -86,13 +87,34 @@ export const useUserDataStore = defineStore('userData', () => {
   const metadataTypeByMetadata = ref([])
   const storyEventsForPersons = ref([])
   //
-function clearStore() {
+function clearCacheStore() {
   this.troveQueryTotal = 0
   this.troveQueryArticleTotal = 0
   this.loadedIndex = -1
   this.userDuplicateListIds = []
   this.userLists = []
   this.userListArticles = []
+  this.reloadedViewedArticle = 0
+  this.viewedArticles = []
+  this.metadataValueTotal = 0
+  this.metadataTypeByMetadata = []
+  this.storyEventsForPersons = []
+}
+//
+function clearStore() {
+  this.arrayMinedStatus = []
+  this.arrayMetadataTypes = []
+  this.troveDetails = {}
+  this.troveQueryTotal = 0
+  this.troveQueryArticleTotal = 0
+  this.nbrUserDupOrIgnoredArticles = 0
+  this.userDuplicateListIds = []
+  this.loadedIndex = -1
+  this.userLists = []
+  this.userListArticles = []
+  this.verifiedUser = false
+  this.userListsReady = false
+  this.reloadedViewedArticle = 0
   this.viewedArticles = []
   this.metadataValueTotal = 0
   this.metadataTypeByMetadata = []
@@ -125,9 +147,15 @@ function updateListCounts(cacheUserLists) {
   }))
 }
 // Whenever viewedArticles is updated update metadataTypeByMetadata to indicate Article link is enabled
-function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewedArticle, viewedArticleMetadata) {
+function updMetadataTypeArticleLinks(
+  viewedListId,
+  viewedArticleId,
+  idxViewedArticle,
+  viewedArticleMetadata
+) {
+console.log ('userData/updMetadataTypeArticleLinks - Number', viewedArticleMetadata.length)
   // Wait until metadata is loaded
-  if (this.metadataTypeByMetadata.length === 0) {
+  if (!this.metadataTypeByMetadata.length) {
     setTimeout(() =>
       this.updMetadataTypeArticleLinks(
         viewedListId,
@@ -137,7 +165,7 @@ function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewedArt
       ), 3000)
     return
   }
-  // Build list of selected metadata entries
+
   const selected = viewedArticleMetadata
     .filter(m => m[2] === 'Sel')
     .map(m => ({
@@ -148,132 +176,46 @@ function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewedArt
       idxViewedArticle
     }))
     .sort(sortMetadataTypeAndValue)
-  // Build a deep immutable copy of metadataTypeByMetadata
-  let newMetadata = this.metadataTypeByMetadata.map(type => ({
-    ...type,
-    arrayMetadata: type.arrayMetadata.map(value => ({
-      ...value,
-      articleListArray: value.articleListArray.map(article => ({ ...article }))
-    }))
-  }))
-  // Apply updates immutably
+    console.log ('userData/updMetadataTypeArticleLinks - Number Selected', selected.length)
+
   for (const entry of selected) {
-    const typeIdx = newMetadata.findIndex(
+    console.log ('userData/updMetadataTypeArticleLinks - ', JSON.stringify(entry))
+    const type = this.metadataTypeByMetadata.find(
       t => t.metadataType === entry.MetadataType
     )
-    if (typeIdx < 0) {
+    if (!type) {
       console.log('ERROR Missing MetadataType', entry.MetadataType)
       continue
     }
-    const valueIdx = newMetadata[typeIdx].arrayMetadata.findIndex(
+
+    const value = type.arrayMetadata.find(
       v => v.metadataValue === entry.MetadataValue
     )
-    if (valueIdx < 0) {
+    if (!value) {
       console.log('NOTIFY Missing MetadataValue', entry.MetadataValue)
       continue
     }
-    const articleIdx = newMetadata[typeIdx]
-      .arrayMetadata[valueIdx]
-      .articleListArray
-      .findIndex(a =>
+
+    const article = value.articleListArray.find(
+      a =>
         a.troveArticleId === entry.troveArticleId &&
         a.troveListId === entry.troveListId
-      )
-    if (articleIdx < 0) {
+    )
+    if (!article) {
       console.log('NOTIFY Missing Article/List for MetadataValue', entry)
       continue
     }
-    // 1. Update articleListArray immutably
-    const newArticleListArray =
-      newMetadata[typeIdx].arrayMetadata[valueIdx].articleListArray.map(
-        (a, i) =>
-          i === articleIdx
-            ? { ...a, idxViewedArticle: entry.idxViewedArticle }
-            : a
-      )
-    // 2. Update arrayMetadata immutably
-    const newArrayMetadata =
-      newMetadata[typeIdx].arrayMetadata.map((v, i) =>
-        i === valueIdx
-          ? { ...v, articleListArray: newArticleListArray }
-          : v
-      )
-    // 3. Update metadataTypeByMetadata immutably
-    newMetadata = newMetadata.map((t, i) =>
-      i === typeIdx
-        ? { ...t, arrayMetadata: newArrayMetadata }
-        : t
-    )
+
+    // Direct reactive update — no deep cloning needed
+    // console.log (`userData/updMetadataTypeArticleLinks 1 Update - Article %s`, JSON.stringify(article))
+    // console.log (`userData/updMetadataTypeArticleLinks 2 Update - Entry %s`, JSON.stringify(entry))
+    article.idxViewedArticle = entry.idxViewedArticle
+    // Force reactivity
+    value.articleListArray = [...value.articleListArray]
+
+    // console.log (`userData/updMetadataTypeArticleLinks 3 Update - %s - %s `, JSON.stringify(article), JSON.stringify(entry))
   }
-  // Replace entire structure immutably
-  this.metadataTypeByMetadata = newMetadata
 }
-  // function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata) {
-  //   // Wait until Metadata has been loaded
-  //   // console.log('App.vue updMetadataTypeArticleLinks: ', this.metadataTypeByMetadata.length, viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata);
-  //   if (this.metadataTypeByMetadata.length == 0) {
-  //     setTimeout(updMetadataTypeArticleLinks, 3000, viewedListId, viewedArticleId, idxViewdArticle, viewedArticleMetadata);
-  //   }
-  //   // Collect ViewedArticle Metadata
-  //   var arrayViewedArticleMetadata = []
-  //   viewedArticleMetadata.forEach((metadata) => {
-  //     if (metadata[2] == 'Sel') {
-  //       arrayViewedArticleMetadata.push({
-  //         MetadataType: metadata[0],
-  //         MetadataValue: metadata[1],
-  //         troveArticleId: Number(viewedArticleId),
-  //         troveListId: Number(viewedListId),
-  //         idxViewedArticle: idxViewdArticle
-  //       })
-  //     }
-  //   })
-  //   // console.log('sseUserListWithArticles - Metadata 2 ', JSON.stringify(arrayViewedArticleMetadata))
-  //   // Sort into order
-  //   arrayViewedArticleMetadata.sort(sortMetadataTypeAndValue)
-  //   // console.log('App.vue arrayViewedArticleMetadata: ', JSON.stringify(arrayViewedArticleMetadata));
-  //   // Merge against metadataTypeByMetadata and set Article Link
-  //   var idxType = 0
-  //   var idxValue = 0
-  //   var tempArray = []
-  //   for (var idx = 0; idx < arrayViewedArticleMetadata.length; ++idx) {
-  //     // Find Metadata Type Array
-  //     var el = arrayViewedArticleMetadata[idx]
-  //     // console.log ('updMetadataType - metadataTypeByMetadata - idxType ', JSON.stringify(this.metadataTypeByMetadata[idxType]))
-  //     idxType = this.metadataTypeByMetadata.findIndex((type) => type.metadataType === el.MetadataType)
-  //     // If less than then 0 have a New MetadataType not in the array - not possible so show error
-  //     if (idxType < 0) {
-  //       console.log('ERROR updMetadataType Missing MetaDataType ', el.MetadataType)
-  //       break
-  //     }
-  //     // console.log('App.vue Match Type: ', el.MetadataType, this.metadataTypeByMetadata[idxType].metadataType);
-  //     // Matched to MetadataType now match to MetadataValue
-  //     tempArray = this.metadataTypeByMetadata[idxType].arrayMetadata
-  //     // console.log ('updMetadataType - MetadataValue arrayMetadata ', el.MetadataValue, JSON.stringify(tempArray))
-  //     idxValue = tempArray.findIndex((value) => value.metadataValue === el.MetadataValue)
-  //     // If less than then 0 have a New MetadataValue not in the array - is possible due to asynchronous processing - log and ignore
-  //     if (idxValue < 0) {
-  //       console.log('NOTIFY updMetadataType Missing MetadataValue ', el.MetadataValue)
-  //       break
-  //     }
-  //     // console.log('App.vue updMetadataType Match Value: ', el.MetadataValue, tempArray[idxValue].metadataValue);
-  //     // Matched to MetadataType and MetadataValue now match List and Article
-  //     tempArray = this.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray
-  //     // console.log ('updMetadataType - articleListArray ', JSON.stringify(tempArray))
-  //     var matched = false
-  //     for (var jdx = 0; jdx < tempArray.length; ++jdx) {
-  //       if ((tempArray[jdx].troveArticleId == el.troveArticleId) && (tempArray[jdx].troveListId == el.troveListId)) {
-  //         // console.log ('updMetadataType - matched ', el)
-  //         matched = true
-  //         this.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray[jdx].idxViewedArticle = el.idxViewedArticle
-  //         break
-  //       }
-  //     }
-  //     // If not matched - is possible due to asynchronous processing - log and ignore
-  //     if (!matched) {
-  //       console.log('NOTIFY updMetadataType Missing Article/List for MetadataValue ', idx, el, idxType, idxValue, JSON.stringify(tempArray))
-  //     }
-  //   }
-  // }
   //
   function sortMetadataTypeAndValue(a, b) {
     var comparison = 0;
@@ -309,10 +251,11 @@ function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewedArt
     nbrUserDupOrIgnoredArticles,
     userDuplicateListIds,
     loadedIndex,
-    userLists, 
+    userLists,
+    verifiedUser,
     userListsReady, 
     userReloadList,
-    userReloadLists,
+    reloadedViewedArticle,
     viewedArticles, 
     metadataValueTotal, 
     metadataTypeByMetadata,
@@ -320,6 +263,7 @@ function updMetadataTypeArticleLinks(viewedListId, viewedArticleId, idxViewedArt
     // storyPersonNew,
     storyEventsForPersons,
     clearStore,
+    clearCacheStore,
     updateAllLists,
     updMetadataTypeArticleLinks,
     updateListItemStatusCount,

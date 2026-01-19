@@ -1,5 +1,5 @@
 <script setup>
-const props = defineProps(['inline', 'articleListArray', 'troveListId'])
+const props = defineProps(['inline', 'articleListArray'])
 import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
 import { useRouter } from 'vue-router';
@@ -9,6 +9,8 @@ const router = useRouter();
 function openArticle(articleLink) {
     console.log('ArticleUrls/openArticle ', JSON.stringify(articleLink))
     navStore.listId = articleLink.troveListId;
+    navStore.listHref = "/userListPage";
+    navStore.listTabTitle = "List " + navStore.listId;
     navStore.articleId = articleLink.troveArticleId;
     router.push({ name: 'editArticle' });
 }
@@ -23,31 +25,25 @@ function compareFn(a, b) {
     return 0;
 }
 // Transform to a standardised array
-let articleUrls = [...props.articleListArray];
-if (props.troveListId > 0) {
-    // Don't have article link array but a Trove List array
-    articleUrls = props.articleListArray.map((el) => {
-        return {
-            troveArticleId: el.TroveListArticleId,
-            idxViewedArticle: el.TroveListArticleViewedIdx,
-            troveListId: props.troveListId
-        }
-    });
-}
+let articleUrls = [];
+articleUrls = props.articleListArray.map((el) => {
+    var listIdStr = el.troveListId
+    if (!(typeof listIdStr === "string")) listIdStr = el.troveListId.toString()
+    var articleIdStr = el.troveArticleId
+    if (!(typeof articleIdStr === "string")) articleIdStr = el.troveArticleId.toString()
+    return {
+        troveArticleId: articleIdStr,
+        idxViewedArticle: el.idxViewedArticle,
+        troveListId: listIdStr
+    }
+});
 articleUrls.sort(compareFn);
 console.log("ArticleUrls/Article Urls -2 - ", JSON.stringify(articleUrls));
 </script>
 //
 <template>
     <template v-for="(articleLink, index) in articleUrls" :key="articleLink.troveArticleId">
-        <!-- <router-link v-if="articleLink.idxViewedArticle > -1" class="btn btn-link px-0 py-0"
-            :to="'/editArticle/' + articleLink.troveListId + '/' + articleLink.troveArticleId">{{
-                articleLink.troveArticleId }}
-        </router-link> -->
-        <template
-            v-if="(((typeof articleLink.troveArticleId) == 'string') && (articleLink.troveArticleId.includes(':')))">{{
-                articleLink.troveArticleId }}</template>
-        <a v-else-if="articleLink.idxViewedArticle" href="#" @click.prevent="openArticle(articleLink)">
+        <a v-if="articleLink.idxViewedArticle > -1" href="#" @click.prevent="openArticle(articleLink)">
             {{ articleLink.troveArticleId }}
         </a>
         <template v-else>{{ articleLink.troveArticleId }}</template>

@@ -61,6 +61,9 @@ var updSnip = {}
 var updSnipOld = {}
 var snipedText = ref([])
 var showToolbar = ref(false)
+var manageAddIgnoreButtonText = 'Ignore Article'
+var manageRemoveIgnoreButtonText = 'Remove Article from Ignore List'
+var manageIgnoreDisable = ref(false)
 var snipCancelDisabled = ref(true)
 var snipDropDisabled = ref(true)
 var snipUpdateDisabled = ref(true)
@@ -710,29 +713,12 @@ function deleteSelectedText() {
     snipSelAction('ended', '')
 }
 //
-// Async Do Fetch
-// async function doFetch(calledFrom, url, options) {
-//     const request = new Request(url, options);
-//     const fetchPromise = fetch(request);
-//     const response = await fetchPromise
-//         .catch(error => {
-//             errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
-//             console.log('doFetch ' + calledFrom + ' : Error in event handler::', error);
-//             return
-//         });
-//     // console.log (response);
-//     // iterate over all headers
-//     // for (let [key, value] of response.headers) {
-//     // console.log(`${key} = ${value}`);
-//     // }
-//     console.log(calledFrom + ": response.status =", response.status);
-//     if (response.status == 200) {
-//         const data = await response.json();
-//         console.log('doFetch ' + calledFrom + ' response ', data)
-//     } else {
-//         errorsStore.arrayErrors = response.error
-//     }
-// }
+function openTroveArticle() {
+    if (manageIgnoreDisable.value) return
+    const url = userData.viewedArticles[idxViewed.value].ViewedArticleViewUrl
+    window.open(url, "_blank")
+}
+
 //
 // load of An Article - they will be SSE'd to App.vue
 //
@@ -753,6 +739,7 @@ function loadArticle(firstLoad) {
 }
 //  Post Article Id to Ignore
 function manageIgnoredArticle(action = 'remove') {
+    manageIgnoreDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
     const ignoreTroveArticle = {
         id: navStore.articleId,
         listId: navStore.listId
@@ -820,7 +807,7 @@ function saveData() {
         //make sure to serialize your JSON body
         body: JSON.stringify(updatedData)
     };
-    console.log(options);
+    console.log(JSON.stringify(options));
     useDoFetch('saveArticle', url, options)
     // doFetch('loadArticle', url, options)
     //
@@ -847,9 +834,15 @@ watch(editMetadata, (newEditMetadata) => {
 watch(() => userData.viewedArticles[idxViewed.value], () => {
     console.log('Change ViewedArticleSelectedText ', idxViewed.value)
     disableUpdate.value = false
+    manageIgnoreDisable.value = false
     if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
-}
-)
+})
+//  reloaded
+watch(() => userData.reloadedViewedArticle, () => {
+    console.log('EditAticle/Watch reloadedViewedArticle')
+    disableUpdate.value = false
+})
+
 //
 function setupEditedFields(index) {
     popoverForMetadata.value = ''
@@ -1105,15 +1098,16 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                     <div class="row">
                                         <div class="col">
                                             <div class="card">
-                                                <a class="btn btn-primary" ref="troveArticleRef"
-                                                    :href="userData.viewedArticles[idxViewed].ViewedArticleViewUrl"
-                                                    target="_blank" role="button">View Trove Article</a>
+                                                <button class="btn btn-primary" ref="troveArticleRef"
+                                                    :disabled="manageIgnoreDisable" @click="openTroveArticle">
+                                                    View Trove Article
+                                                </button>
                                             </div>
                                         </div>
                                         <div class="col">
                                             <div class="card">
                                                 <button @click.prevent="loadArticle(false)"
-                                                    class="btn btn-primary">Refresh
+                                                    :disabled="manageIgnoreDisable" class="btn btn-primary">Refresh
                                                     Trove Article</button>
                                             </div>
                                         </div>
@@ -1121,16 +1115,22 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                     <div class="row">
                                         <div class="col">
                                             <div class="card">
-                                                <button v-if="userData.viewedArticles[idxViewed].ViewedArticleIgnored"
-                                                    @click.prevent="manageIgnoredArticle()" class="btn btn-primary"
-                                                    data-bs-toggle="tooltip" data-bs-placement="top"
-                                                    title="View Article in Trove and remove from List OR Remove from Ignored">Remove
-                                                    Article from Ignore List</button>
-                                                <button v-else @click.prevent="manageIgnoredArticle('add')"
+                                                <button v-if="manageIgnoreDisable" :disabled="manageIgnoreDisable"
                                                     class="btn btn-primary" data-bs-toggle="tooltip"
                                                     data-bs-placement="top"
-                                                    title="Add to Ignore List and View Article in Trove to remove from List">Ignore
-                                                    Article</button>
+                                                    title="Wait for Screen Refresh">Processing</button>
+                                                <button
+                                                    v-else-if="userData.viewedArticles[idxViewed].ViewedArticleIgnored"
+                                                    :disabled="manageIgnoreDisable"
+                                                    @click.prevent="manageIgnoredArticle()" class="btn btn-primary"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                                    title="View Article in Trove and remove from List OR Remove from Ignored">{{
+                                                        manageRemoveIgnoreButtonText }}</button>
+                                                <button v-else @click.prevent="manageIgnoredArticle('add')"
+                                                    :disabled="manageIgnoreDisable" class="btn btn-primary"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                                    title="Add to Ignore List and View Article in Trove to remove from List">
+                                                    {{ manageAddIgnoreButtonText }}</button>
                                             </div>
                                         </div>
                                     </div>
