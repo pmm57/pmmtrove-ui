@@ -7,7 +7,6 @@ import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
 //
 function haveListLink(list) {
-  // var haveLink = userData.userListsReady
   var haveLink = true
   // console.log(`TroveListView haveLink LoadState:%s, Items:%s`, list.TroveListLoadState, list.TroveListItemCount)
   if (!(list.TroveListLoadState == 'Cached' || list.TroveListLoadState == 'Loaded' || list.TroveListLoadState == 'Partial' || list.TroveListLoadState == 'Inited')) {
