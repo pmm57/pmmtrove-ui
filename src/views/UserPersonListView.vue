@@ -591,9 +591,8 @@ function saveData(currentDetails, newDetails) {
         'updPersonData': newDetails
     };
     console.log('Sent to Server', JSON.stringify(updMetaData));
-    // $.post( "/updUserMetaData/updateMetaData", updMetaData);
     // console.log (updatedData);
-    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateMetaData";
+    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/userPesonMetadata";
     const options = {
         method: "post",
         mode: "cors",
@@ -731,7 +730,12 @@ initScreen('');
                                 </div>
                             </form>
                         </div>
-                        <p v-else-if="showDefaultPersonAction">Select a Person to Edit or Add a new Person</p>
+                        <div v-else-if="showDefaultPersonAction">
+                            <p>Select a Person to Edit or Add a new Person</p>
+                            <div class="card">
+                                <button @click.prevent="addPerson()" class="btn btn-primary">Add Person</button>
+                            </div>
+                        </div>
                         <div v-else class="fw-bold">
                             {{ updatePerson.chgName }}
                         </div>
@@ -801,9 +805,6 @@ initScreen('');
                                 </div>
                             </div>
                             <div v-show="showAddPerson" class="col">
-                                <div class="card">
-                                    <button @click.prevent="addPerson()" class="btn btn-primary">Add Person</button>
-                                </div>
                             </div>
                             <!-- Buttons to confirm actions -->
                             <div v-show="showDelPerson" class="col">

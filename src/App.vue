@@ -296,6 +296,7 @@ async function verifyServerUp() {
         userData.arrayMetadataTypes = data.arrayMetadataTypes
         // console.log ('data ', data)
     } else {
+        console.log(`App.vue verifyServerUp check error:%s`, response.error);
         errorsStore.arrayErrors = response.error
     }
 }
