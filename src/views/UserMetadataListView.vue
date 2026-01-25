@@ -1,6 +1,7 @@
 <script setup>
 import { ref, nextTick, watch, onMounted } from 'vue'
 import ArticleUrls from '@/components/ArticleUrls.vue'
+import { useDoFetch } from '@/components/DoFetch.js';
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
 import { useUserDataStore } from '@/stores/userdata'
@@ -11,6 +12,17 @@ const flagMetadataValue = ref([])
 var triggerGetArticleLinks = false
 var showMetdataTypeIdx = -1
 var showMetdataValueIdx = -1
+const idxMetatypeEvent = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Event");
+const idxMetatypePerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
+//
+const titleForStoryEvent = (event) =>
+    event.isPrimary
+        ? "Unset as Story Primary Event"
+        : "Set as Story Primary Event"
+
+const labelForStoryEvent = (event) =>
+    event.isPrimary ? "Unset" : "Set"
+//
 showMetadataType(-1)
 // console.log("STORE PROPERTIES:", Object.keys(userData))
 // console.log("FIELD PROXY?", userData.metadataTypeByMetadata)
@@ -138,6 +150,36 @@ async function getArticleLinks(idxType, idxMetadataValue) {
         }
     }
 }
+//
+function flipStoryPrimaryEvent(idxValue) {
+    // Event Metadata can have storyStatus - isPrimary
+    const thisEvent = {
+        ...userData.metadataTypeByMetadata[idxMetatypeEvent].arrayMetadata[idxValue]
+    }
+    console.log('UserMetadataListView/flipStoryPrimaryEvent Event ', JSON.stringify(thisEvent))
+    var updateUserEvent = {
+        'action': 'CHG',
+        'userId': userData.troveDetails.troveUserId,
+        'event': thisEvent.metadataValue,
+        'isPrimary': !thisEvent.isPrimary
+    };
+    console.log('UserMetadataListView/flipStoryPrimaryEvent Flipped Event ', JSON.stringify(updateUserEvent))
+    // console.log (updatedData);
+    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/userEventMetadata";
+    const options = {
+        method: "post",
+        mode: "cors",
+        credentials: "include", // to send HTTP only cookies
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        //make sure to serialize your JSON body
+        body: JSON.stringify(updateUserEvent)
+    };
+    // console.log (options);
+    useDoFetch('flipStoryPrimaryEvent', url, options);
+}
 </script>
 //
 <template>
@@ -149,31 +191,40 @@ async function getArticleLinks(idxType, idxMetadataValue) {
             userData.metadataValueTotal }} Metadata Items classify Articles
         </p>
         <div v-for="(type, idxType) in userData.metadataTypeByMetadata" :key="type.metadataType" class="card">
-            <div class="card-header px-0 py-0">
-                <button class="btn btn-link" @click.prevent="showMetadataType(idxType)">{{ type.metadataType }} [{{
-                    type.arrayMetadata.length }}]
-                </button>
-            </div>
-            <div v-show="flagMetadataType[idxType]">
-                <div class="card-body px-0 py-0" v-for="(value, idxValue) in type.arrayMetadata"
-                    :key="value.metadataValue">
-                    <div>
-                        <span>&nbsp;&nbsp;&nbsp;-&nbsp;</span>
-                        <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{
-                            value.articleListArray.length
-                            }}]</span>
-                        <button v-else class="btn btn-link px-0 py-0"
-                            @click.prevent="showMetadataValue(idxType, idxValue)">{{
-                                value.metadataValue }} [{{ value.articleListArray.length }}]</button>
-                    </div>
-                    <div v-show="flagMetadataValue[idxValue]" class="card-body ml-3 px-0 py-0">
-                        <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;</span>
-                        <ArticleUrls :key="value.articleListArray.map(a => a.idxViewedArticle).join(',')" :inline="true"
-                            :articleListArray="[...value.articleListArray]">
-                        </ArticleUrls>
+            <template v-if="idxType != idxMetatypePerson">
+                <div class="card-header px-0 py-0">
+                    <button class="btn btn-link" @click.prevent="showMetadataType(idxType)">{{ type.metadataType }} [{{
+                        type.arrayMetadata.length }}]
+                    </button>
+                </div>
+                <div v-show="flagMetadataType[idxType]">
+                    <div class="card-body px-0 py-0" v-for="(value, idxValue) in type.arrayMetadata"
+                        :key="value.metadataValue">
+                        <div>
+                            <span>&nbsp;&nbsp;&nbsp;-&nbsp;</span>
+                            <span v-if="value.articleListArray.length < 1">{{ value.metadataValue }} [{{
+                                value.articleListArray.length
+                                }}]</span>
+                            <button v-else class="btn btn-link px-0 py-0"
+                                @click.prevent="showMetadataValue(idxType, idxValue)">{{
+                                    value.metadataValue }} [{{ value.articleListArray.length }}]</button>
+                            <template v-if="idxType == idxMetatypeEvent">
+                                <span>&nbsp;-&nbsp;</span>
+                                <button class="btn btn-outline-info btn-sm px-1 py-0" style="line-height: .75;"
+                                    data-bs-toggle="tooltip" data-bs-placement="top" :title="titleForStoryEvent(value)"
+                                    @click.prevent="flipStoryPrimaryEvent(idxValue)">{{ labelForStoryEvent(value)
+                                    }}</button>
+                            </template>
+                        </div>
+                        <div v-show="flagMetadataValue[idxValue]" class="card-body ml-3 px-0 py-0">
+                            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;</span>
+                            <ArticleUrls :key="value.articleListArray.map(a => a.idxViewedArticle).join(',')"
+                                :inline="true" :articleListArray="[...value.articleListArray]">
+                            </ArticleUrls>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </div>
     </div>
 </template>

@@ -2,7 +2,7 @@ import { useErrorsArrayStore } from '@/stores/errorsarray'
 // Async Do Fetch
 export async function useDoFetch (calledFrom, url, options) {
     const errorsStore = useErrorsArrayStore()
-    const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser"];
+    const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
     const request = new Request(url, options);
     const fetchPromise = fetch(request);
     const response = await fetchPromise
