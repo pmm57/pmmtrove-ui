@@ -51,7 +51,7 @@ function updateStory() {
     }
     console.log(`clicked Update Story %s`, + JSON.stringify(updateEvents));
     //
-    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateMetaData";
+    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/userPesonMetadata";
     const options = {
         method: "post",
         mode: "cors",
@@ -82,7 +82,7 @@ function reloadStory() {
     }
     console.log(`UserPersonStoryView/reloadStory %s`, + JSON.stringify(reload));
     //
-    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateMetaData";
+    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/userPesonMetadata";
     const options = {
         method: "post",
         mode: "cors",

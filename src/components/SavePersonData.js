@@ -7,9 +7,8 @@ export function useSavePersonData(currentDetails, newDetails) {
         'updPersonData': newDetails
     };
     console.log('useSavePersonData Sent to Server', JSON.stringify(updMetaData));
-    // $.post( "/updUserMetaData/updateMetaData", updMetaData);
     // console.log (updatedData);
-    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateMetaData";
+    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/userPesonMetadata";
     const options = {
         method: "post",
         mode: "cors",
