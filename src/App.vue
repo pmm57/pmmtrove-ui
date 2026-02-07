@@ -114,7 +114,7 @@ function handleMessage(e) {
             // CHeck if loading all lists
             if (!userData.userListsReady) {
                 // Check if have loaded all
-                if ((userData.loadedIndex + 1) == userData.troveQueryTotal) {
+                if ((userData.loadedIndex + 1) == (userData.troveQueryTotal - userData.userDuplicateListIds.length)) {
                     console.log('App/sseUserListsArticles Set userListsReady true')
                     userData.userListsReady = true
                 }
@@ -130,7 +130,7 @@ function handleMessage(e) {
             }
             break
         case 'sseMetaData':
-            // console.log (JSON.stringify(sseRetrieve))
+            // console.log(`App/handleMessage/sseMetaData - %s`, JSON.stringify(sseRetrieve))
             userData.metadataValueTotal = sseRetrieve.cacheMetadataValueTotal
             userData.metadataTypeByMetadata = sseRetrieve.cacheMetadataTypeByMetadata
             navStore.disableMetadataList = false

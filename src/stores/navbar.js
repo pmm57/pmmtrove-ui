@@ -18,6 +18,26 @@ export const useNavBarStore = defineStore('navBar', () => {
   const savedPerson = reactive({});
   const storyPersonNew = ref(false)
   const troveSearchName = ref("")
+  //
+  function clearNavBar() {
+    this.disableHome = false
+    this.disableTroveLists = true
+    this.disableMetadataList = true
+    this.disablePersonStory = true
+    this.disableSearch = true
+    this.disableAbout = false
+    this.disablePersonList = true
+    this.listTabTitle = "List"
+    this.listId = 0
+    this.listHref = ""
+    this.articleTabTitle = "Article"
+    this.articleId = 0
+    this.articleHref = ""
+    this.savedPerson = {};
+    this.storyPersonNew = false
+    this.troveSearchName = ""
+  }
+//
   return { disableHome, 
     disableTroveLists, 
     disableMetadataList, 
@@ -33,5 +53,6 @@ export const useNavBarStore = defineStore('navBar', () => {
     articleHref,
     savedPerson,
     storyPersonNew,
-    troveSearchName }
+    troveSearchName,
+  clearNavBar }
 })
