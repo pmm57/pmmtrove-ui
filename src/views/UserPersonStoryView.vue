@@ -283,6 +283,75 @@ watch(
     { deep: false } // ✅ array reference changes only (immutable-friendly)
 )
 //
+function openPdfTab(html) {
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+}
+//
+function printStory() {
+    let html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>PDF Preview</title>
+        <meta charset="utf-8" />
+        <style>
+        @page {
+          size: A4 landscape;
+          margin: 20mm;
+        }
+
+        body {
+          font-family: Arial, sans-serif;
+          font-size: 12pt;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        th, td {
+          padding: 4px 6px;
+          vertical-align: top;
+        }
+
+        .text-center { text-align: center; }
+        .text-nowrap { white-space: nowrap; }
+        .preserve { white-space: pre-wrap; 
+        </style>
+      </head>
+      <body>`
+    html += `<h1>` + navStore.savedPerson.readName + `</h1>`
+    if (navStore.savedPerson.readRefInfo.length > 0) html += `<h3> Reference: ` + navStore.savedPerson.readRefInfo + `</h3>`
+    html += `<table>
+                <thead>
+                    <tr>
+                        <th class="text-center">Date</th>
+                        <th class="text-center">Age</th>
+                        <th class="text-center">Location</th>
+                        <th class="text-center">Trove Link</th>
+                        <th class="text-center">Event</th>
+                    </tr>
+                </thead>
+                <tbody>`
+    for (const article of filteredEvents.value) {
+        html += `<tr><td class="text-nowrap">` + article.eventDate + `</td>`
+        html += `<td class="text-center">` + article.age + `</td>`
+        html += `<td class="text-nowrap">` + article.eventLocation + `</td>`
+        html += `<td class="text-center"><a href="` + article.ViewedArticleViewUrl + `" target="_blank">Link</a></td>`
+        html += `<td class="preserve" style="border-bottom: .5px solid;">` + article.story + `</td>`
+    }
+    html += `<script>
+          window.onload = () => window.print();
+        <\/script>`
+    html += `</body>
+    </html>
+  `;
+    openPdfTab(html);
+}
+//
 loadArticleInfo('true')
 </script>
 <template>
@@ -330,7 +399,7 @@ loadArticleInfo('true')
                 </div>
                 <div class="col">
                     <div class="card">
-                        <button @click.prevent="reloadStory()" class="btn btn-primary" :disabled="updatesEnabled">PDF
+                        <button @click.prevent="printStory()" class="btn btn-primary">PDF
                             Story</button>
                     </div>
                 </div>
