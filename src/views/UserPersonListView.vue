@@ -6,7 +6,6 @@ import ModalLists from '@/components/ModalLists.vue';
 import ModalRelative from '@/components/ModalRelative.vue';
 import ModalPartner from '@/components/ModalPartner.vue';
 import { useCheckName } from '@/components/CheckName.js';
-import { useDoFetch } from '@/components/DoFetch.js';
 import { useSavePersonData } from '@/components/SavePersonData.js';
 import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
@@ -587,30 +586,6 @@ function editPersonStory() {
     console.log(`storyShowWhat %s`, navStore.savedPerson.storyShowWhat)
     router.push({ name: 'userPersonStory' });
 }
-//  Post updated data and expect ssePersonChg to trigger reload
-// function saveData(currentDetails, newDetails) {
-//     console.log("saveData action " + currentDetails.action);
-//     var updMetaData = {
-//         'oldPersonData': currentDetails,
-//         'updPersonData': newDetails
-//     };
-//     console.log('Sent to Server', JSON.stringify(updMetaData));
-//     // console.log (updatedData);
-//     const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateUserPersonMetadata";
-//     const options = {
-//         method: "post",
-//         mode: "cors",
-//         credentials: "include", // to send HTTP only cookies
-//         headers: {
-//             'Accept': 'application/json',
-//             'Content-Type': 'application/json'
-//         },
-//         //make sure to serialize your JSON body
-//         body: JSON.stringify(updMetaData)
-//     };
-//     // console.log (options);
-//     useDoFetch('UserPersonListView/saveData', url, options);
-// }
 //
 function openList(listLink) {
     console.log('UserPersonListView/openList ', listLink)
