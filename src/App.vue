@@ -148,19 +148,20 @@ function handleMessage(e) {
             navStore.articleTabTitle = "Article";
             //
             console.log(`sseUserViewedArticle ListIdx %s ListArticleIdx %s ViewedIdx %s`, sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, sseRetrieve.cacheViewedArticleIdx)
+            userData.updatingViewedArticleIdx = sseRetrieve.cacheViewedArticleIdx
             //
             // Updated User List Article with Viewed Info
-            updListArticle(sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, sseRetrieve.cacheViewedArticleIdx,
+            updListArticle(sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, userData.updatingViewedArticleIdx,
                 sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatus, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatusText)
             //
             // Updated Viewed Articles
-            userData.viewedArticles[sseRetrieve.cacheViewedArticleIdx] = sseRetrieve.cacheViewedArticle
+            userData.viewedArticles[userData.updatingViewedArticleIdx] = sseRetrieve.cacheViewedArticle
             // Collect Viewed Article Metadata
             // console.log('sseUserViewedArticle - Metadata 1 ', userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
             //   JSON.stringify(sseRetrieve.cacheViewedArticle.ViewedArticleMetadata))
             userData.updMetadataTypeArticleLinks(userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
                 userData.userListArticles[sseRetrieve.cacheListIdIdx][sseRetrieve.cacheListArticleIdx].TroveListArticleId,
-                sseRetrieve.cacheViewedArticleIdx, sseRetrieve.cacheViewedArticle.ViewedArticleMetadata)
+                userData.updatingViewedArticleIdx, sseRetrieve.cacheViewedArticle.ViewedArticleMetadata)
             break
         case 'sseArticlePossibleDupArticle':
             articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
