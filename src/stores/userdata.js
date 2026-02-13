@@ -48,6 +48,7 @@ export const useUserDataStore = defineStore('userData', () => {
     const userReloadList = ref(0)
     const userListsReady = ref(false)
     const reloadedViewedArticle = ref(0)
+    const updatingViewedArticleIdx = ref(0)
     const viewedArticles = ref([])
   // viewedArticles FROM displayedArticles = []; => 
   // ViewedArticleId FROM TroveArticleId
@@ -95,6 +96,7 @@ function clearCacheStore() {
   this.userLists = []
   this.userListArticles = []
   this.reloadedViewedArticle = 0
+  this.updatingViewedArticleIdx = 0
   this.viewedArticles = []
   this.metadataValueTotal = 0
   this.metadataTypeByMetadata = []
@@ -115,6 +117,7 @@ function clearStore() {
   this.verifiedUser = false
   this.userListsReady = false
   this.reloadedViewedArticle = 0
+  this.updatingViewedArticleIdx = 0
   this.viewedArticles = []
   this.metadataValueTotal = 0
   this.metadataTypeByMetadata = []
@@ -256,11 +259,10 @@ console.log ('userData/updMetadataTypeArticleLinks - Number', viewedArticleMetad
     userListsReady, 
     userReloadList,
     reloadedViewedArticle,
+    updatingViewedArticleIdx,
     viewedArticles, 
     metadataValueTotal, 
     metadataTypeByMetadata,
-    // savedPerson,
-    // storyPersonNew,
     storyEventsForPersons,
     clearStore,
     clearCacheStore,
