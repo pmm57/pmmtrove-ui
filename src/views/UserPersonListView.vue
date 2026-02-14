@@ -678,27 +678,39 @@ function initPersonScreen() {
         loadPerson(partners.value[idx].personIndex, idx);
     };
 }
-function displayLinkedListArticles(mv) {
-    var showLinkedListArticles = ''
+function displayPersonInfo(mv) {
+    var showPersonInfo = ''
     if (mv.personLinkedList) {
-        showLinkedListArticles = '....[List-' + mv.personLinkedList
+        showPersonInfo = '....[List-' + mv.personLinkedList
     }
     if (mv.articleListArray.length > 0) {
-        if (showLinkedListArticles.length == 0) {
-            showLinkedListArticles = '....['
+        if (showPersonInfo.length == 0) {
+            showPersonInfo = '....['
         } else {
-            showLinkedListArticles += ','
+            showPersonInfo += ','
         }
-        showLinkedListArticles += 'Articles-' + mv.articleListArray.length
+        showPersonInfo += 'Articles-' + mv.articleListArray.length
     }
-    // Always include Related
-    if (showLinkedListArticles.length == 0) {
-        showLinkedListArticles = '....['
+    if (mv.hasStory > 0) {
+        if (showPersonInfo.length == 0) {
+            showPersonInfo = '....['
+        } else {
+            showPersonInfo += ','
+        }
+        showPersonInfo += 'HasStory'
+    }
+    // Always include Related or Unused
+    if (showPersonInfo.length == 0) {
+        showPersonInfo = '....['
     } else {
-        showLinkedListArticles += ','
+        showPersonInfo += ','
     }
-    showLinkedListArticles += 'Related-' + mv.relatedCount + ']'
-    return showLinkedListArticles
+    if (mv.relatedCount > 0) {
+        showPersonInfo += 'Related-' + mv.relatedCount + ']'
+    } else {
+        showPersonInfo += 'Unused'
+    }
+    return showPersonInfo
 }
 // Initaliase
 initScreen('');
@@ -716,7 +728,7 @@ initScreen('');
                     <div class="card border-0 overflow-auto">
                         <a v-for="(metadataValue, idxValue) in userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata"
                             @click.prevent="loadPerson(idxValue, -1)" href="#">
-                            {{ metadataValue.metadataValue }} {{ displayLinkedListArticles(metadataValue) }}
+                            {{ metadataValue.metadataValue }} {{ displayPersonInfo(metadataValue) }}
                         </a>
                     </div>
                 </div>
