@@ -6,7 +6,6 @@ import ModalLists from '@/components/ModalLists.vue';
 import ModalRelative from '@/components/ModalRelative.vue';
 import ModalPartner from '@/components/ModalPartner.vue';
 import { useCheckName } from '@/components/CheckName.js';
-import { useDoFetch } from '@/components/DoFetch.js';
 import { useSavePersonData } from '@/components/SavePersonData.js';
 import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
@@ -211,6 +210,7 @@ function handleError(e) {
 //
 function loadPerson(idxValue, idxPartner) {
     console.log(`UserPersonListView/loadPerson PersonIdx:%s PartnerIdx:%s`, idxValue, idxPartner);
+    navStore.disablePersonStory = true
     var intervalLoadPerson = setInterval(function () {
         loadingPersonText.value += ' .'
     }, 500);
@@ -491,6 +491,12 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
     }
     //
     useSavePersonData('Change Person', preChgDetails, chgDetails);
+    //
+    if (chgDetails.chgLinkedListId != preChgDetails.linkListId) {
+        // Update Metadata Information
+        userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].personLinkedList = chgDetails.chgLinkedListId
+    }
+    //
     if (firstCall) {
         initScreen('clear')
     }
@@ -587,30 +593,6 @@ function editPersonStory() {
     console.log(`storyShowWhat %s`, navStore.savedPerson.storyShowWhat)
     router.push({ name: 'userPersonStory' });
 }
-//  Post updated data and expect ssePersonChg to trigger reload
-// function saveData(currentDetails, newDetails) {
-//     console.log("saveData action " + currentDetails.action);
-//     var updMetaData = {
-//         'oldPersonData': currentDetails,
-//         'updPersonData': newDetails
-//     };
-//     console.log('Sent to Server', JSON.stringify(updMetaData));
-//     // console.log (updatedData);
-//     const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateUserPersonMetadata";
-//     const options = {
-//         method: "post",
-//         mode: "cors",
-//         credentials: "include", // to send HTTP only cookies
-//         headers: {
-//             'Accept': 'application/json',
-//             'Content-Type': 'application/json'
-//         },
-//         //make sure to serialize your JSON body
-//         body: JSON.stringify(updMetaData)
-//     };
-//     // console.log (options);
-//     useDoFetch('UserPersonListView/saveData', url, options);
-// }
 //
 function openList(listLink) {
     console.log('UserPersonListView/openList ', listLink)
@@ -696,6 +678,40 @@ function initPersonScreen() {
         loadPerson(partners.value[idx].personIndex, idx);
     };
 }
+function displayPersonInfo(mv) {
+    var showPersonInfo = ''
+    if (mv.personLinkedList) {
+        showPersonInfo = '....[List-' + mv.personLinkedList
+    }
+    if (mv.articleListArray.length > 0) {
+        if (showPersonInfo.length == 0) {
+            showPersonInfo = '....['
+        } else {
+            showPersonInfo += ','
+        }
+        showPersonInfo += 'Articles-' + mv.articleListArray.length
+    }
+    if (mv.hasStory > 0) {
+        if (showPersonInfo.length == 0) {
+            showPersonInfo = '....['
+        } else {
+            showPersonInfo += ','
+        }
+        showPersonInfo += 'HasStory'
+    }
+    // Always include Related or Unused
+    if (showPersonInfo.length == 0) {
+        showPersonInfo = '....['
+    } else {
+        showPersonInfo += ','
+    }
+    if (mv.relatedCount > 0) {
+        showPersonInfo += 'Related-' + mv.relatedCount + ']'
+    } else {
+        showPersonInfo += 'Unused'
+    }
+    return showPersonInfo
+}
 // Initaliase
 initScreen('');
 // console.log("UserPersonListView - persons ", userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata);
@@ -712,7 +728,7 @@ initScreen('');
                     <div class="card border-0 overflow-auto">
                         <a v-for="(metadataValue, idxValue) in userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata"
                             @click.prevent="loadPerson(idxValue, -1)" href="#">
-                            {{ metadataValue.metadataValue }} [{{ metadataValue.articleListArray.length }}]
+                            {{ metadataValue.metadataValue }} {{ displayPersonInfo(metadataValue) }}
                         </a>
                     </div>
                 </div>
@@ -777,7 +793,7 @@ initScreen('');
                                 </div>
                             </div>
                             <div v-show="showEditPersonAction" class="col">
-                                <div class="card">
+                                <div v-show="!showDeletePersonAction" class="card">
                                     <button @click.prevent="personStory()" class="btn btn-primary"
                                         :disabled="['Generating', 'None', 'Loading'].indexOf(navStore.savedPerson.personStoryStatus) > -1">{{
                                             navStore.savedPerson.personStoryStatus }} {{ personStoryText }}</button>
@@ -868,7 +884,7 @@ initScreen('');
                                         @del-relative="(index) => delRelativeClick(index)"
                                         @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
                                     <div v-show="partners.length > 0" v-for="(partner, index) in partners">
-                                        <div>Partner - {{ partner.readName }}</div>
+                                        <div><b>Partner - {{ partner.readName }}</b></div>
                                         <RelatedTable :personName="partner.readName"
                                             :arrayRelated="partner.arrayRelated" :enableDel="false"
                                             @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />

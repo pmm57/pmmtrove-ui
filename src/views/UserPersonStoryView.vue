@@ -10,13 +10,17 @@ const navStore = useNavBarStore();
 import { useSavePersonData } from '@/components/SavePersonData.js';
 import EditItem from '@/components/EditItem.vue'
 
-let storyEvents = ref([])
+const storyEvents = computed({
+    get: () => userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx],
+    set: (val) => userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx] = val
+})
+const startIncludes = storyEvents.value.map((e) => e.include)
 let updatesEnabled = ref(false)
 let chgInclude = false
 let chgWhat = false
 let storyShowWhat = ref(true)
 storyShowWhat.value = navStore.savedPerson.storyShowWhat
-console.log(`storyShowWhat %s`, navStore.savedPerson.storyShowWhat)
+console.log(`storyShowWhat %s startIncludes %s`, navStore.savedPerson.storyShowWhat, JSON.stringify(startIncludes))
 const filteredEvents = computed(() =>
     storyEvents.value.filter(a => {
         const showWhat = storyShowWhat.value
@@ -37,22 +41,23 @@ if (inShowWhat.includes('INC')) showWhat[2].active = true
 if (inShowWhat.includes('PRM')) showWhat[1].active = true
 
 //
-// Load Person Story Event Article information from viewedArticles
-//
-async function loadArticleInfo(firstLoad) {
-    console.log('UserPersonStoryView Person', JSON.stringify(navStore.savedPerson), firstLoad);
-    const strPersonDob = navStore.savedPerson.readName.replace(/.*b\.(\d{4}).*/, "$1");
-    const personDob = strPersonDob.length == 0 ? 0 : Number(strPersonDob)
-    console.log('UserPersonStoryView Person DOB, Reference', personDob, navStore.savedPerson.readRefInfo);
-    storyEvents.value = JSON.parse(JSON.stringify(
-        userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx]
-    ));
-    console.log('UserPersonStoryView Events Articles', JSON.stringify(storyEvents.value.map((el) => el.articleId)));
-    // console.log('UserPersonStoryView Events Articles', JSON.stringify(storyEvents));
+console.log('UserPersonStoryView Person', JSON.stringify(navStore.savedPerson));
+const strPersonDob = navStore.savedPerson.readName.replace(/.*b\.(\d{4}).*/, "$1");
+const personDob = strPersonDob.length == 0 ? 0 : Number(strPersonDob)
+console.log('UserPersonStoryView Person DOB, Reference', personDob, navStore.savedPerson.readRefInfo);
+console.log('UserPersonStoryView Events Articles', JSON.stringify(storyEvents.value.map((el) => el.articleId)));
+for (let event of storyEvents.value) {
+    const viewedIdx = userData.viewedArticles.findIndex((el) => el.ViewedArticleId == event.articleId)
+    if (viewedIdx == -1) {
+        console.log('UserPersonStoryView/updateFromViewedArticles Event article not found in Viewed Articles ', JSON.stringify(event));
+        continue
+    }
+    const viewedArticle = userData.viewedArticles[viewedIdx]
+    updateEventFromViewedArticle(event, viewedArticle)
 }
 //  Post array of Story Events
 function updateStory() {
-    userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx] = storyEvents.value
+    // userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx] = storyEvents.value
     navStore.savedPerson.storyShowWhat = storyShowWhat.value
     const oldPersonData = {
         "action": "STORY",
@@ -72,21 +77,6 @@ function updateStory() {
         "chgPersonStoryShowWhat": storyShowWhat.value
     }
     useSavePersonData('Save Story', oldPersonData, updateEvents);
-    // console.log(`clicked Update Story %s`, + JSON.stringify(updateEvents));
-    // //
-    // const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateUserPersonMetadata";
-    // const options = {
-    //     method: "post",
-    //     mode: "cors",
-    //     credentials: "include", // to send HTTP only cookies
-    //     headers: {
-    //         'Accept': 'application/json',
-    //         'Content-Type': 'application/json'
-    //     },
-    //     //make sure to serialize your JSON body
-    //     body: JSON.stringify(updateEvents)
-    // };
-    // useDoFetch('updateStory', url, options);
     navStore.storyPersonNew = false
     updatesEnabled.value = false
     chgInclude = false
@@ -107,43 +97,24 @@ function reloadStory() {
         "personStoryIdx": navStore.savedPerson.personStoryIdx
     }
     useSavePersonData('Reload Story', reload, {});
-    // console.log(`UserPersonStoryView/reloadStory %s`, JSON.stringify(reload));
-    // //
-    // const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateUserPersonMetadata";
-    // const options = {
-    //     method: "post",
-    //     mode: "cors",
-    //     credentials: "include", // to send HTTP only cookies
-    //     headers: {
-    //         'Accept': 'application/json',
-    //         'Content-Type': 'application/json'
-    //     },
-    //     //make sure to serialize your JSON body
-    //     body: JSON.stringify(reload)
-    // };
-    // useDoFetch('loadStory', url, options);
 }
 //
-function updateFromViewedArticles() {
-    console.log('UserPersonStoryView/updateFromViewedArticles Watch Trigger');
-    for (let event of storyEvents.value) {
-        const viewedIdx = userData.viewedArticles.findIndex((el) => el.ViewedArticleId == event.articleId)
-        if (viewedIdx == -1) {
-            console.log('UserPersonStoryView/updateFromViewedArticles Event article not found in Viewed Articles ', JSON.stringify(event));
-            continue
-        }
-        const viewedArticle = userData.viewedArticles[viewedIdx]
-        // console.log('UserPersonStoryView Event Include ', event.include);
-        event.story = getArticleStory(event, viewedArticle)
-        event.eventDate = getArticleDate(viewedArticle)
-        event.age = personDob == 0 ? '-' : Number(event.eventDate.slice(0, 4)) - personDob
-        event.isPrimary = getArticleEventIsPrimary(event, viewedArticle)
-        event.eventLocation = getArticleLocation(viewedArticle)
-        // console.log('viewed: ', JSON.stringify(viewedArticle))
-        event.ViewedArticleViewUrl = viewedArticle.ViewedArticleViewUrl
-    }
-    userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx] = storyEvents.value;
-    console.log('UserPersonStoryView/updateFromViewedArticles Watch Trigger', JSON.stringify(storyEvents.value));
+function updateViewedArticleTrigger(updatingIdx) {
+    console.log(`UserPersonStoryView/updateViewedArticleTrigger Watch Trigger `, updatingIdx);
+    const viewedArticle = userData.viewedArticles[updatingIdx]
+    const eventIdx = storyEvents.value.findIndex((el) => el.articleId == viewedArticle.ViewedArticleId)
+    if (eventIdx == -1) return
+    updateEventFromViewedArticle(storyEvents.value[eventIdx], viewedArticle)
+}
+//
+function updateEventFromViewedArticle(event, viewedArticle) {
+    event.story = getArticleStory(event, viewedArticle)
+    event.articleEventDate = viewedArticle.ViewedArticleEventDate
+    event.age = personDob == 0 ? '-' : Number(event.articleEventDate.slice(0, 4)) - personDob
+    event.isPrimary = getArticleEventIsPrimary(event, viewedArticle)
+    event.eventLocation = getArticleLocation(viewedArticle)
+    event.articleViewUrl = viewedArticle.ViewedArticleViewUrl
+    console.log('UserPersonStoryView/updateEventFromViewedArticle ', JSON.stringify(event));
 }
 // Get best Article Story
 function getArticleStory(event, viewedArticle) {
@@ -161,27 +132,49 @@ function getArticleStory(event, viewedArticle) {
             story = viewedArticle.TroveListArticleHeading;
         }
     }
-    if (event.eventKinship == 'self') return story
-    story += '\n<u>From</u> "' + event.eventPerson + '" ( ' + event.eventKinship + ' )'
+    if (event.relType == 'self') return story
+    let relationType = event.relType
+    switch (event.relType) {
+        case 'self-gp':
+            relationType = 'Grandparent'
+            break
+        case 'self-p':
+            relationType = 'Parent'
+            break
+        case 'self-cw':
+            relationType = 'Partner'
+            break
+        case 'self-c':
+            relationType = 'Child'
+            break
+        case 'self-gc':
+            relationType = 'Grandchild'
+            break
+        case 'cw-gp':
+            relationType = 'Partner Grandparent'
+            break
+        case 'cw-p':
+            relationType = 'Partner Parent'
+            break
+        case 'cw-c':
+            relationType = 'Partner Child'
+            break
+        case 'cw-gc':
+            relationType = 'Partner Grandchild'
+            break
+    }
+    story += '\n<u>From</u> "' + event.relPerson + '" ( ' + relationType + ' )'
     return story
 }
 // Idnitfy if a Primary Event
 function getArticleEventIsPrimary(event, viewedArticle) {
     //
     console.log(`getArticleEventIsPrimary - Event %s - Metadata`, JSON.stringify(event), JSON.stringify(viewedArticle.ViewedArticleMetadata))
-    if (event.eventKinship == 'self') return true
+    if (event.relType == 'self') return true
     var eventIsPrimary = false
     const idxEvent = viewedArticle.ViewedArticleMetadata.findIndex((item) => item[0] == "Event");
     if (idxEvent > -1) eventIsPrimary = viewedArticle.ViewedArticleMetadata[idxEvent][3];
     return eventIsPrimary
-}
-// Get best Article Date
-function getArticleDate(viewedArticle) {
-    //
-    // console.log('Article Date - Event ', JSON.stringify(viewedArticle.ViewedArticleMetadata))
-    const idxEvent = viewedArticle.ViewedArticleMetadata.findIndex((item) => item[0] == "EventDate");
-    if (idxEvent < 0) return viewedArticle.ViewedArticlePubDate;
-    return viewedArticle.ViewedArticleMetadata[idxEvent][1];
 }
 // Get best Article Location
 function getArticleLocation(viewedArticle) {
@@ -212,7 +205,7 @@ function updateInclude(action, index) {
             break;
     }
     // Are we back to where we started
-    const same = userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx].every((item, i) => item.include === storyEvents.value[i].include);
+    const same = startIncludes.every((item, i) => item.include === storyEvents.value[i].include);
     if (same) {
         chgInclude = false
         if (!chgWhat) updatesEnabled.value = false
@@ -276,14 +269,82 @@ function setShowWhat(btnIdx) {
 }
 //
 watch(
-    () => useUserDataStore().viewedArticles,
-    () => {
-        updateFromViewedArticles()
+    () => useUserDataStore().updatingViewedArticleIdx,
+    (updatingIdx) => {
+        updateViewedArticleTrigger(updatingIdx)
     },
     { deep: false } // ✅ array reference changes only (immutable-friendly)
 )
 //
-loadArticleInfo('true')
+function openPdfTab(html) {
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+}
+//
+function printStory() {
+    let html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>PDF Preview</title>
+        <meta charset="utf-8" />
+        <style>
+        @page {
+          size: A4 landscape;
+          margin: 20mm;
+        }
+
+        body {
+          font-family: Arial, sans-serif;
+          font-size: 12pt;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        th, td {
+          padding: 4px 6px;
+          vertical-align: top;
+        }
+
+        .text-center { text-align: center; }
+        .text-nowrap { white-space: nowrap; }
+        .preserve { white-space: pre-wrap; 
+        </style>
+      </head>
+      <body>`
+    html += `<h1>` + navStore.savedPerson.readName + `</h1>`
+    if (navStore.savedPerson.readRefInfo.length > 0) html += `<h3> Reference: ` + navStore.savedPerson.readRefInfo + `</h3>`
+    html += `<table>
+                <thead>
+                    <tr>
+                        <th class="text-center">Date</th>
+                        <th class="text-center">Age</th>
+                        <th class="text-center">Location</th>
+                        <th class="text-center">Trove Link</th>
+                        <th class="text-center">Event</th>
+                    </tr>
+                </thead>
+                <tbody>`
+    for (const article of filteredEvents.value) {
+        html += `<tr><td class="text-nowrap">` + article.articleEventDate + `</td>`
+        html += `<td class="text-center">` + article.age + `</td>`
+        html += `<td class="text-nowrap">` + article.eventLocation + `</td>`
+        html += `<td class="text-center"><a href="` + article.articleViewUrl + `" target="_blank">Link</a></td>`
+        html += `<td class="preserve" style="border-bottom: .5px solid;">` + article.story + `</td>`
+    }
+    html += `<script>
+          window.onload = () => window.print();
+        <\/script>`
+    html += `</body>
+    </html>
+  `;
+    openPdfTab(html);
+}
+//
 </script>
 <template>
     <h1>Story Of</h1>
@@ -330,7 +391,7 @@ loadArticleInfo('true')
                 </div>
                 <div class="col">
                     <div class="card">
-                        <button @click.prevent="reloadStory()" class="btn btn-primary" :disabled="updatesEnabled">PDF
+                        <button @click.prevent="printStory()" class="btn btn-primary">PDF
                             Story</button>
                     </div>
                 </div>
@@ -361,7 +422,7 @@ loadArticleInfo('true')
                             <EditItem v-if="!article.include" @click-item="updateInclude('Include', index)"
                                 action="Excluded" icon="bi-x-square" />
                         </td>
-                        <td class="text-nowrap">{{ article.eventDate }}</td>
+                        <td class="text-nowrap">{{ article.articleEventDate }}</td>
                         <td class="text-center">{{ article.age }}</td>
                         <td class="text-center">
                             <span v-if="article.isPrimary">

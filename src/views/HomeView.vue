@@ -140,6 +140,7 @@ function resetUser() {
     useDoFetch('resetUser', url, options);
     // Clear all data
     userData.clearStore()
+    navBarStore.clearNavBar()
 }
 </script>
 
