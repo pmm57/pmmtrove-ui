@@ -84,19 +84,9 @@ function updateStory() {
 }
 //  
 function reloadStory() {
-    //
-    const reload = {}
-    reload.oldPersonData = {
-        "action": "STORY",
-        "personIndex": navStore.savedPerson.personIndex,
-        "readName": navStore.savedPerson.readName,
-        "storyStatus": 'Reload',
-        "storyShowWhat": navStore.savedPerson.storyShowWhat,
-        "linkedListId": navStore.savedPerson.linkedListId,
-        "arrayRelated": navStore.savedPerson.arrayRelated,
-        "personStoryIdx": navStore.savedPerson.personStoryIdx
-    }
-    useSavePersonData('Reload Story', reload, {});
+    console.log('UserPersonStoryView/reloadStory ', navStore.savedPerson.readName)
+    navStore.savedPerson.action = 'StoryReload'
+    router.push({ name: 'userPersonList' });
 }
 //
 function updateViewedArticleTrigger(updatingIdx) {
@@ -114,7 +104,7 @@ function updateEventFromViewedArticle(event, viewedArticle) {
     event.isPrimary = getArticleEventIsPrimary(event, viewedArticle)
     event.eventLocation = getArticleLocation(viewedArticle)
     event.articleViewUrl = viewedArticle.ViewedArticleViewUrl
-    console.log('UserPersonStoryView/updateEventFromViewedArticle ', JSON.stringify(event));
+    // console.log('UserPersonStoryView/updateEventFromViewedArticle ', JSON.stringify(event));
 }
 // Get best Article Story
 function getArticleStory(event, viewedArticle) {
@@ -169,7 +159,7 @@ function getArticleStory(event, viewedArticle) {
 // Idnitfy if a Primary Event
 function getArticleEventIsPrimary(event, viewedArticle) {
     //
-    console.log(`getArticleEventIsPrimary - Event %s - Metadata`, JSON.stringify(event), JSON.stringify(viewedArticle.ViewedArticleMetadata))
+    // console.log(`getArticleEventIsPrimary - Event %s - Metadata`, JSON.stringify(event), JSON.stringify(viewedArticle.ViewedArticleMetadata))
     if (event.relType == 'self') return true
     var eventIsPrimary = false
     const idxEvent = viewedArticle.ViewedArticleMetadata.findIndex((item) => item[0] == "Event");
