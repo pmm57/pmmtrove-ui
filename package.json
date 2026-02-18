@@ -1,6 +1,6 @@
 {
   "name": "pmmtroveui",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -30,6 +30,7 @@
     "prettier": "^3.0.3",
     "sass": "^1.72.0",
     "typescript-eslint": "^8.33.1",
-    "vite": "^6.3.5"
+    "vite": "^6.4.1",
+    "vite-plugin-vue-devtools": "^8.0.6"
   }
 }

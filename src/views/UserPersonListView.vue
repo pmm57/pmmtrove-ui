@@ -56,6 +56,7 @@ let updatePerson = reactive({
     chgName: '',
     chgRefInfo: '',
     chgLinkedListId: 0,
+    chgNumberRelated: 0, // To update the Person Metadatavalue entry
     chgRelated: []
 });
 //
@@ -356,8 +357,9 @@ function linkListToPerson(linkList) {
     updatePerson.chgLinkedListId = parseInt(linkList.split("|")[0].trim());
     console.log('Link List ', updatePerson.chgLinkedListId, linkList);
     showModalLists.value = false;
+    linkedListIdx.value = userData.userLists.findIndex((item) => item.TroveListId === updatePerson.chgLinkedListId);
     setPersonActions("chg");
-    setPersonNameActions('relatives restore');
+    setPersonNameActions('link relatives restore');
     navStore.savedPerson.action = 'CHG';
 }
 //
@@ -365,7 +367,7 @@ function unlinkListToPerson() {
     updatePerson.chgLinkedListId = 0;
     console.log('UnLink List ', updatePerson.chgLinkedListId);
     setPersonActions("chg");
-    setPersonNameActions('relatives restore');
+    setPersonNameActions('link relatives restore');
     navStore.savedPerson.action = 'CHG';
 }
 //
@@ -459,6 +461,7 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
             if (partner.action == 'CHG') {
                 let partnerChange = {
                     chgName: partner.readName,
+                    chgNumberRelated: 0,
                     chgRelated: partner.arrayRelated
                 };
                 chgPerson(partner, partnerChange, false);
@@ -473,10 +476,12 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
         case "CHG":
             // Change an Existing Person
             // Cleanup the chgRelated array
+            chgDetails.chgNumberRelated = chgDetails.chgRelated.length
             var clnRelated = [];
             for (var i = 0; i < chgDetails.chgRelated.length; ++i) {
                 if (!(chgDetails.chgRelated[i].relatedAction == "READ")) {
                     clnRelated.push(chgDetails.chgRelated[i]);
+                    if ((chgDetails.chgRelated[i].relatedAction == "DEL")) chgDetails.chgNumberRelated -= 1;
                 }
             }
             if ((clnRelated.length == 0) && (chgDetails.chgName == preChgDetails.readName) && (chgDetails.chgLinkedListId == preChgDetails.linkListId)) {
@@ -484,6 +489,13 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
                 return;
             }
             chgDetails.chgRelated = clnRelated;
+            if (chgDetails.chgLinkedListId != preChgDetails.linkListId) {
+                if (chgDetails.chgLinkedListId == 0) {
+                    userData.userLists[linkedListIdx.value].TroveListLinkedPerson = ''
+                } else {
+                    userData.userLists[linkedListIdx.value].TroveListLinkedPerson = chgDetails.chgName
+                }
+            }
             break;
         default:
             console.log(`chgPerson - Invalid Action for Update - %s`, preChgDetails.action);
@@ -491,11 +503,6 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
     }
     //
     useSavePersonData('Change Person', preChgDetails, chgDetails);
-    //
-    if (chgDetails.chgLinkedListId != preChgDetails.linkListId) {
-        // Update Metadata Information
-        userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].personLinkedList = chgDetails.chgLinkedListId
-    }
     //
     if (firstCall) {
         initScreen('clear')
@@ -602,10 +609,16 @@ function openList(listLink) {
 // Initialise Screen
 function initScreen(initAction) {
     if ((navStore.savedPerson.personIndex > -1) && (initAction == '')) {
-        if (navStore.savedPerson.action == 'Load') {
-            loadPerson(navStore.savedPerson.personIndex, -1)
-        } else { // Already loaded
-            initPersonScreen()
+        switch (navStore.savedPerson.action) {
+            case 'Load':
+                loadPerson(navStore.savedPerson.personIndex, -1)
+                break
+            case 'StoryReload':
+                navStore.savedPerson.action = ''
+                navStore.savedPerson.personStoryStatus = "Load"
+                personStory()
+            default:// Already loaded
+                initPersonScreen()
         }
         return
     }
@@ -679,36 +692,38 @@ function initPersonScreen() {
     };
 }
 function displayPersonInfo(mv) {
+    const start = '....['
+    const con = ', '
     var showPersonInfo = ''
     if (mv.personLinkedList) {
-        showPersonInfo = '....[List-' + mv.personLinkedList
+        showPersonInfo = start + 'List-' + mv.personLinkedList
     }
     if (mv.articleListArray.length > 0) {
         if (showPersonInfo.length == 0) {
-            showPersonInfo = '....['
+            showPersonInfo = start
         } else {
-            showPersonInfo += ','
+            showPersonInfo += con
         }
         showPersonInfo += 'Articles-' + mv.articleListArray.length
     }
     if (mv.hasStory > 0) {
         if (showPersonInfo.length == 0) {
-            showPersonInfo = '....['
+            showPersonInfo = start
         } else {
-            showPersonInfo += ','
+            showPersonInfo += con
         }
         showPersonInfo += 'HasStory'
     }
     // Always include Related or Unused
-    if (showPersonInfo.length == 0) {
-        showPersonInfo = '....['
-    } else {
-        showPersonInfo += ','
-    }
-    if (mv.relatedCount > 0) {
+    if ((showPersonInfo.length > 0) || (mv.relatedCount > 0)) {
+        if (showPersonInfo.length == 0) {
+            showPersonInfo = start
+        } else {
+            showPersonInfo += con
+        }
         showPersonInfo += 'Related-' + mv.relatedCount + ']'
     } else {
-        showPersonInfo += 'Unused'
+        showPersonInfo = start + 'Unused]'
     }
     return showPersonInfo
 }

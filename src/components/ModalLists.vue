@@ -12,7 +12,7 @@ var linkList = nameParts[0] + " " + nameParts[1];
 //
 var filterListDropdown = [];
 for (const list of userData.userLists) {
-    filterListDropdown.push(list.TroveListId + " | " + list.TroveListName);
+    if (list.TroveListLinkedPerson.length == 0) filterListDropdown.push(list.TroveListId + " | " + list.TroveListName);
 }
 //
 </script>

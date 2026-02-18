@@ -132,7 +132,7 @@ function handleMessage(e) {
         case 'sseMetaData':
             // console.log(`App/handleMessage/sseMetaData - %s`, JSON.stringify(sseRetrieve))
             userData.metadataValueTotal = sseRetrieve.cacheMetadataValueTotal
-            userData.metadataTypeByMetadata = sseRetrieve.cacheMetadataTypeByMetadata
+            userData.reloadMetadataTypeByMetadata(sseRetrieve.cacheMetadataTypeByMetadata)
             navStore.disableMetadataList = false
             navStore.disablePersonList = false
             break
@@ -143,9 +143,9 @@ function handleMessage(e) {
             // cacheViewedArticleIdx - Index of new or updated Viewed Article in userData.viewedArticles
             // cacheViewedArticle - new or updated 
             // List is being loaded Clear Edit Article
-            navStore.articleId = 0
-            navStore.articleHref = "";
-            navStore.articleTabTitle = "Article";
+            // navStore.articleId = 0
+            // navStore.articleHref = "";
+            // navStore.articleTabTitle = "Article";
             //
             console.log(`sseUserViewedArticle ListIdx %s ListArticleIdx %s ViewedIdx %s`, sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, sseRetrieve.cacheViewedArticleIdx)
             userData.updatingViewedArticleIdx = sseRetrieve.cacheViewedArticleIdx
