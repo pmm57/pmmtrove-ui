@@ -31,7 +31,7 @@ const troveArticleRef = ref(null);
 // Has it been viewed previously
 var idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
-console.log('Edit Article View  ', idxList.value, idxListArticle.value, idxViewed.value)
+console.log('Edit Article View  ', idxList.value, navStore.articleId, idxListArticle.value, idxViewed.value)
 // console.log(`userData.viewedArticles:%s`, userData.viewedArticles)
 var disableUpdate = ref(true)
 var showModalEntities = ref(false)
@@ -718,7 +718,6 @@ function openTroveArticle() {
     const url = userData.viewedArticles[idxViewed.value].ViewedArticleViewUrl
     window.open(url, "_blank")
 }
-
 //
 // load of An Article - they will be SSE'd to App.vue
 //
@@ -735,7 +734,6 @@ function loadArticle(firstLoad) {
         }
     };
     useDoFetch('loadArticle', url, options)
-    // doFetch('loadArticle', url, options)
 }
 //  Post Article Id to Ignore
 function manageIgnoredArticle(action = 'remove') {
@@ -807,7 +805,7 @@ function saveData() {
         //make sure to serialize your JSON body
         body: JSON.stringify(updatedData)
     };
-    console.log(JSON.stringify(options));
+    console.log('EditArticle/SaveData ', JSON.stringify(options));
     useDoFetch('saveArticle', url, options)
     // doFetch('loadArticle', url, options)
     //
