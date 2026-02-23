@@ -738,25 +738,17 @@ function loadArticle(firstLoad) {
 //  Post Article Id to Ignore
 function manageIgnoredArticle(action = 'remove') {
     manageIgnoreDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
-    const ignoreTroveArticle = {
-        id: navStore.articleId,
-        listId: navStore.listId
-    };
     var param = {
-        unignoreArticles: [ignoreTroveArticle],
+        ignoreArticlesInfo: [{
+            id: navStore.articleId,
+            listId: navStore.listId,
+            action: action
+        }],
         reloadArticle: true
     };
-    var urlAction = "/searchTrove/updateUnignored"
-    if (action == 'add') {
-        param = {
-            ignoreArticles: [ignoreTroveArticle],
-            reloadArticle: true
-        };
-        urlAction = "/searchTrove/updateIgnored"
-    }
     console.log(`EditArticle/manageIgnoredArticle clicked Manage Ignored action %s - %s `, action, JSON.stringify(param));
     //
-    const url = import.meta.env.VITE_SERVER_URL + urlAction;
+    const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
     const options = {
         method: "post",
         mode: "cors",

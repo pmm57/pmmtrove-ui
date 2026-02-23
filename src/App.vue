@@ -44,7 +44,8 @@ function handleMessage(e) {
             userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
             userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
             userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
-            userData.nbrUserDupOrIgnoredArticles = sseRetrieve.cacheNbrDupOrIgnored
+            userData.nbrUserDupArticles = sseRetrieve.cacheNbrDup
+            userData.nbrUserIgnoredArticles = sseRetrieve.cacheNbrIgnored
             // In UI have split Articles from the List - so do split
             userData.updateAllLists(sseRetrieve.cacheUserLists)
             if (sseRetrieve.cacheViewedArticles.length > 0) {
@@ -70,10 +71,11 @@ function handleMessage(e) {
         case 'sseUserListArticles':
             // console.log(sseRetrieve.event);
             // console.log('*** sseUserListsArticles ', JSON.stringify(sseRetrieve))
-            // userData.userListsReady = true
+            userData.nbrUserDupArticles = sseRetrieve.updateNbrDup
+            userData.nbrUserIgnoredArticles = sseRetrieve.updateNbrIgnored
+            if (sseRetrieve.updatedListIndex < 0) break // Duplicate List Info
             // Only One List
             userData.loadedIndex = sseRetrieve.updatedListIndex
-            userData.nbrUserDupOrIgnoredArticles = sseRetrieve.updateNbrDupOrIgnored
             const cacheListArticles = sseRetrieve.cacheUserLists.TroveListArticles
             // Update List Details
             delete sseRetrieve.cacheUserLists.TroveListArticles
@@ -111,7 +113,7 @@ function handleMessage(e) {
                 userData.userListArticles[sseRetrieve.updatedListIndex] = cacheListArticles;
                 // console.log('sseUserListsArticles Update List Articles %s', userData.userListArticles.length, userData.userListArticles[sseRetrieve.updatedListIndex].length)
             }
-            // CHeck if loading all lists
+            // Check if loading all lists
             if (!userData.userListsReady) {
                 // Check if have loaded all
                 if ((userData.loadedIndex + 1) == (userData.troveQueryTotal - userData.userDuplicateListIds.length)) {
