@@ -11,6 +11,19 @@ const errorsStore = useErrorsArrayStore()
                 <RouterLink to="/" class="nav-link" :class="{ disabled: navStore.disableHome }">Home</RouterLink>
             </li>
             <li class="nav-item">
+                <RouterLink to="/userPersonList" class="nav-link" :class="{ disabled: navStore.disablePersonList }">
+                    People</RouterLink>
+            </li>
+            <li class="nav-item">
+                <RouterLink to="/userPersonStory" class="nav-link" :class="{ disabled: navStore.disablePersonStory }">
+                    Person Story</RouterLink>
+            </li>
+            <li class="nav-item">
+                <RouterLink to="/searchTrove" class="nav-link" :class="{ disabled: navStore.disableSearch }">
+                    Search
+                </RouterLink>
+            </li>
+            <li class="nav-item">
                 <RouterLink to="/userTroveLists" class="nav-link" :class="{ disabled: navStore.disableTroveLists }">
                     Trove
                     Lists</RouterLink>
@@ -26,19 +39,6 @@ const errorsStore = useErrorsArrayStore()
             <li class="nav-item">
                 <RouterLink to="/userMetadataList" class="nav-link" :class="{ disabled: navStore.disableMetadataList }">
                     Metadata Items</RouterLink>
-            </li>
-            <li class="nav-item">
-                <RouterLink to="/userPersonList" class="nav-link" :class="{ disabled: navStore.disablePersonList }">
-                    People</RouterLink>
-            </li>
-            <li class="nav-item">
-                <RouterLink to="/userPersonStory" class="nav-link" :class="{ disabled: navStore.disablePersonStory }">
-                    Person Story</RouterLink>
-            </li>
-            <li class="nav-item">
-                <RouterLink to="/searchTrove" class="nav-link" :class="{ disabled: navStore.disableSearch }">
-                    Search
-                </RouterLink>
             </li>
             <li class="nav-item">
                 <RouterLink to="/about" class="nav-link" :class="{ disabled: navStore.disableAbout }">About us
