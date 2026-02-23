@@ -7,7 +7,8 @@ export const useUserDataStore = defineStore('userData', () => {
     const troveDetails = reactive({})
     const troveQueryTotal = ref(0)
     const troveQueryArticleTotal = ref(0)
-    const nbrUserDupOrIgnoredArticles = ref(0)
+    const nbrUserIgnoredArticles = ref(0)
+    const nbrUserDupArticles = ref(0)
     const userDuplicateListIds = ref([])
     const loadedIndex = ref(-1)
     const userLists = ref([])
@@ -125,7 +126,8 @@ export const useUserDataStore = defineStore('userData', () => {
         this.troveDetails = {}
         this.troveQueryTotal = 0
         this.troveQueryArticleTotal = 0
-        this.nbrUserDupOrIgnoredArticles = 0
+        this.nbrUserIgnoredArticles = 0
+        this.nbrUserDupArticles = 0
         this.userDuplicateListIds = []
         this.loadedIndex = -1
         this.userLists = []
@@ -297,7 +299,8 @@ export const useUserDataStore = defineStore('userData', () => {
         troveDetails, 
         troveQueryTotal, 
         troveQueryArticleTotal, 
-        nbrUserDupOrIgnoredArticles,
+        nbrUserDupArticles,
+        nbrUserIgnoredArticles,
         userDuplicateListIds,
         loadedIndex,
         userLists,

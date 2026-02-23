@@ -41,8 +41,7 @@ let hideIcon = ref('');
 let showReturnedYears = ref(false);
 let disableSearch = ref(true);
 let disableNext = ref(false);
-let disableSaveIgnored = ref(true);
-let disableSaveUnignore = ref(true);
+let disableUpdateIgnored = ref(true);
 let toggleNew = ref(true);
 let refNewSwitch = ref(null);
 let toggleKnown = ref(false);
@@ -55,8 +54,8 @@ let searchCounts = reactive({
     nbrNew: 0,
     nbrKnown: 0,
     nbrLessRelevant: 0,
-    nbrIgnored: 0,
     nbrToIgnore: 0,
+    nbrIgnored: 0,
     nbrToUnignore: 0,
     nbrHidden: 0
 });
@@ -98,19 +97,29 @@ let searchData = reactive({});
 //   searchCountYear : []}
 //
 //  Post array of Ignored Article Id's
-function postIgnoredArticles() {
+function updateIgnoredArticles() {
     var items = [];
+    var action = ''
     searchData.searchResults.forEach((el, index) => {
         if (el.status == 'IgnoreArticle') {
             // console.log ('Ignore Article ', el)
             searchData.searchResults[index].status = 'Ignored';
-            items.push(el);
+            action = 'add'
+        }
+        if (el.status == 'UnignoreArticle') {
+            // console.log ('Ignore Article ', el)
+            searchData.searchResults[index].status = 'New';
+            action = 'remove'
+        }
+        if (action.length > 0) {
+            items.push({ id: el.id, action: action });
+            action = ''
         }
     });
-    // console.log("clicked Save Ignored action " + JSON.stringify(items));
+    console.log("clicked Save Ignored action " + JSON.stringify(items));
     const ignored = {
-        ignoreArticles: items,
-        reloadArticle: true
+        ignoreArticlesInfo: items,
+        reloadArticle: false
     };
     //
     const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
@@ -127,44 +136,10 @@ function postIgnoredArticles() {
     };
     useDoFetch('Ignore Articles', url, options)
     refNewSwitch.value.focus();
+    searchCounts.nbrIgnored = searchCounts.nbrIgnored + searchCounts.nbrToIgnore - searchCounts.nbrToUnignore;
     searchCounts.nbrToIgnore = 0;
-    disableSaveIgnored.value = true;
-    // searchBlock.value = false;
-}
-//
-//  Post array of Ignored Article Id's to Unignore
-function postUnignoreArticles() {
-    var items = [];
-    searchData.searchResults.forEach((el, index) => {
-        if (el.status == 'UnignoreArticle') {
-            // console.log ('Ignore Article ', el)
-            searchData.searchResults[index].status = 'New';
-            items.push(el);
-        }
-    });
-    // console.log("clicked Save Ignored action " + JSON.stringify(items));
-    const unignored = {
-        unignoreArticles: items,
-        reloadArticle: true
-    };
-    //
-    const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateUnignored";
-    const options = {
-        method: "post",
-        mode: "cors",
-        credentials: "include", // to send HTTP only cookies
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        //make sure to serialize your JSON body
-        body: JSON.stringify(unignored)
-    };
-    useDoFetch('Unignore Articles', url, options)
-    refNewSwitch.value.focus();
-    searchCounts.nbrIgnored = searchCounts.nbrIgnored + searchCounts.nbrToUnignore;
     searchCounts.nbrToUnignore = 0;
-    disableSaveUnignore.value = true;
+    disableUpdateIgnored.value = true;
     // searchBlock.value = false;
 }
 //
@@ -244,36 +219,33 @@ function hideRowClick(index) {
 //
 function ignoreArticleClick(index) {
     // console.log ('ignoreArticleClick ', searchData.searchResults[index].status);
-    switch (searchData.searchResults[index].status) {
-        case 'Ignored':
+    switch (searchData.searchResults[index].status) { // Current Status
+        case 'Ignored': // Is in DB IgnoredArticles List - Unignore It
             searchData.searchResults[index].status = 'UnignoreArticle';
             ++searchCounts.nbrToUnignore;
             ignoreAction = "UnIgnore";
             ignoreIcon = "bi bi-file-earmark-arrow-up";
             break;
-        case 'UnignoreArticle':
+        case 'UnignoreArticle': // Is in DB IgnoredArticles List Was to be Uninored - changed mind
             searchData.searchResults[index].status = 'Ignored';
             --searchCounts.nbrToUnignore;
             ignoreAction = "UnIgnore";
             ignoreIcon = "bi bi-file-earmark-arrow-up";
             break;
-        case 'IgnoreArticle':
+        case 'IgnoreArticle': // Was set to be Ignored - changed mind
             searchData.searchResults[index].status = 'New';
-            --searchCounts.nbrToIgnore;
             ignoreAction = "Add to Ignore List";
             ignoreIcon = "bi bi-file-earmark-arrow-down";
+            --searchCounts.nbrToIgnore;
             break;
-        default:
+        default: // Was new - Now To be Ignored
             ignoreAction = "Remove from TO Ignore List";
             ignoreIcon = "bi bi-file-earmark-arrow-up";
             searchData.searchResults[index].status = 'IgnoreArticle';
             ++searchCounts.nbrToIgnore;
     }
-    if (searchCounts.nbrToIgnore > 0) {
-        disableSaveIgnored.value = false;
-    }
-    if (searchCounts.nbrToUnignore > 0) {
-        disableSaveUnignore.value = false;
+    if ((searchCounts.nbrToIgnore > 0) || (searchCounts.nbrToUnignore > 0)) {
+        disableUpdateIgnored.value = false;
     }
 }
 //
@@ -337,7 +309,7 @@ function outputSearch() {
     searchCounts.nbrNew = 0;
     searchCounts.nbrKnown = 0;
     searchCounts.nbrIgnored = 0;
-    searchCounts.nbrToIgnored = 0;
+    searchCounts.nbrToIgnore = 0;
     searchCounts.nbrToUnignore = 0;
     searchCounts.nbrLessRelevant = 0;
     searchCounts.nbrHidden = 0;
@@ -651,7 +623,7 @@ function waitSearch() {
                 searchData.pageNbr = 1;
                 console.log('Pages ', searchData.total, searchData.pageNbr, searchData.maxPageNbr);
             }
-            console.log('Return Result', searchData);
+            // console.log('SearchTroveView/waitSearch Return Result = ', JSON.stringify(searchData));
             source.close();
             outputSearch();
         }, false);
@@ -672,7 +644,7 @@ function postSearch(blnNew) {
     // searchField.blur();
     disableSearch.value = true;
     disableNext.value = true;
-    disableSaveIgnored.value = true;
+    disableUpdateIgnored.value = true;
     //
     // console.log('Post Search ', blnNew, JSON.stringify(searchData.nextURL))
     newSearch = getSearch();
@@ -695,7 +667,7 @@ function postSearch(blnNew) {
         //make sure to serialize your JSON body
         body: JSON.stringify(newSearch)
     };
-    console.log(options);
+    // console.log(options);
     useDoFetch('Search', url, options)
     waitSearch();
 }
@@ -821,11 +793,9 @@ if (navStore.troveSearchName != '') {
                 <button @click.prevent="postSearch(false)" type="button" :class="{ disabled: disableNext }"
                     class="btn btn-primary">Next
                     Page</button>
-                - <button @click.prevent="postIgnoredArticles" type="button" class="btn btn-primary"
-                    :class="{ disabled: disableSaveIgnored }">Save {{ searchCounts.nbrToIgnore }} Ignored
-                    Articles</button>
-                - <button @click.prevent="postUnignoreArticles" type="button" class="btn btn-primary"
-                    :class="{ disabled: disableSaveUnignore }">Save {{ searchCounts.nbrToUnignore }} Unignore
+                - <button @click.prevent="updateIgnoredArticles" type="button" class="btn btn-primary"
+                    :class="{ disabled: disableUpdateIgnored }">Save {{ searchCounts.nbrToIgnore +
+                        searchCounts.nbrToUnignore }} Ignored/Unignore
                     Articles</button>
                 <br>
                 <div class="form-check-inline">
@@ -900,8 +870,7 @@ if (navStore.troveSearchName != '') {
                                 </td>
                                 <!-- Article Id -->
                                 <td v-if="row.viewedIndex > -1">
-                                    <ArticleUrls :key="value.articleListArray.map(a => a.idxViewedArticle).join(',')"
-                                        :inline="false"
+                                    <ArticleUrls :key="row.viewedIndex" :inline="false"
                                         :articleListArray="[{ idxViewedArticle: row.viewedIndex, troveListId: row.dbListId, troveArticleId: row.id }]">
                                         ></ArticleUrls>
                                 </td>
