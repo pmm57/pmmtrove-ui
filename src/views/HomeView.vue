@@ -128,7 +128,6 @@ async function getUserTroveIds() {
     loadingMsg.value = loadingAuthMsg
     loadingTick();
     errorsStore.arrayErrors = [];
-    const url = import.meta.env.VITE_SERVER_URL + "/";
     console.log('HomeView/getUserTroveIds User-', authUserName)
     const options = {
         method: "post",
@@ -143,7 +142,7 @@ async function getUserTroveIds() {
             authUserName: authUserName
         })
     };
-    const data = await useDoFetch('getUserTroveIds', url, options);
+    const data = await useDoFetch('getUserTroveIds', "/", options);
     clearInterval(intervalLoading);
     intervalLoading = null;
     if (typeof data == 'boolean') {
@@ -177,7 +176,6 @@ async function getUserTroveIds() {
 async function verifyTroveUser(refresh) {
     loadingTroveUseData.value = true
     errorsStore.arrayErrors = [];
-    const url = import.meta.env.VITE_SERVER_URL + "/troveUser";
     console.log('Verify User-', inUserId)
     const options = {
         method: "post",
@@ -193,7 +191,7 @@ async function verifyTroveUser(refresh) {
             refresh: refresh
         })
     };
-    const data = await useDoFetch('verifyTroveUser', url, options);
+    const data = await useDoFetch('verifyTroveUser', "/troveUser", options);
     if (typeof data == 'boolean') {
         // Verification failed
         loadingTroveUseData.value = false
@@ -276,10 +274,11 @@ if (isAuthenticated.value && !userData.verifiedTroveUserName) {
     </div>
     <div v-else-if="userData.verifiedTroveUserName" class="card col-sm-4 text-center">
         <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
-        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.</p>
-        <p v-if="userData.userDuplicateListIds.length > 0">There is {{ userData.userDuplicateListIds.length }}
-            Duplicate List/s that will not be Loaded.</p>
-        <p v-if="userData.userLists.length > 0">With {{ userData.troveQueryArticleTotal }} Articles to manage<br>
+        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.
+            <br v-if="userData.userDuplicateListIds.length > 0">There is {{ userData.userDuplicateListIds.length }}
+            Duplicate List/s that will not be Loaded.
+        </p>
+        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
             {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
         <p v-if="userData.loadedIndex > -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
         <div v-if="loadingTroveUseData">

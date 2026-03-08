@@ -122,7 +122,6 @@ function updateIgnoredArticles() {
         reloadArticle: false
     };
     //
-    const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
     const options = {
         method: "post",
         mode: "cors",
@@ -134,7 +133,7 @@ function updateIgnoredArticles() {
         //make sure to serialize your JSON body
         body: JSON.stringify(ignored)
     };
-    useDoFetch('Ignore Articles', url, options)
+    useDoFetch('Ignore Articles', "/searchTrove/updateIgnored", options)
     refNewSwitch.value.focus();
     searchCounts.nbrIgnored = searchCounts.nbrIgnored + searchCounts.nbrToIgnore - searchCounts.nbrToUnignore;
     searchCounts.nbrToIgnore = 0;
@@ -655,7 +654,6 @@ function postSearch(blnNew) {
         newSearch.nextURL = searchData.nextURL;
     }
     console.log('Post this Search', JSON.stringify(newSearch));
-    const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/";
     const options = {
         method: "post",
         mode: "cors",
@@ -668,7 +666,7 @@ function postSearch(blnNew) {
         body: JSON.stringify(newSearch)
     };
     // console.log(options);
-    useDoFetch('Search', url, options)
+    useDoFetch('Search', "/searchTrove/", options)
     waitSearch();
 }
 //
@@ -754,7 +752,7 @@ if (navStore.troveSearchName != '') {
                         <input type="radio" class="form-check-input" name=yearLimit :id="'radioYear' + year.label"
                             :value="year.label" v-model="limitYear">
                         <label class="form-check-label form-nowrap" :for="'radioYear' + year.label">{{ year.label
-                        }}</label>
+                            }}</label>
                     </div>
                 </div>
                 <div id="showSwitches1">

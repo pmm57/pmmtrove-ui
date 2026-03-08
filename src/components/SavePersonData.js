@@ -8,7 +8,6 @@ export function useSavePersonData(caller, currentDetails, newDetails) {
     };
     console.log('useSavePersonData Sent to Server', JSON.stringify(updMetaData));
     // console.log (updatedData);
-    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/updateUserPersonMetadata";
     const options = {
         method: "post",
         mode: "cors",
@@ -21,5 +20,5 @@ export function useSavePersonData(caller, currentDetails, newDetails) {
         body: JSON.stringify(updMetaData)
     };
     // console.log (options);
-    useDoFetch('useSavePersonData - ' + caller, url, options);
+    useDoFetch('useSavePersonData - ' + caller, "/updUserMetaData/updateUserPersonMetadata", options);
 }

@@ -722,7 +722,7 @@ function openTroveArticle() {
 // load of An Article - they will be SSE'd to App.vue
 //
 function loadArticle(firstLoad) {
-    const url = import.meta.env.VITE_SERVER_URL + "/dispArticle/newspaper/" + navStore.articleId + "/"
+    const url = "/dispArticle/newspaper/" + navStore.articleId + "/"
         + navStore.listId + "/" + !firstLoad;
     const options = {
         method: "get",
@@ -748,7 +748,6 @@ function manageIgnoredArticle(action = 'remove') {
     };
     console.log(`EditArticle/manageIgnoredArticle clicked Manage Ignored action %s - %s `, action, JSON.stringify(param));
     //
-    const url = import.meta.env.VITE_SERVER_URL + "/searchTrove/updateIgnored";
     const options = {
         method: "post",
         mode: "cors",
@@ -760,8 +759,7 @@ function manageIgnoredArticle(action = 'remove') {
         //make sure to serialize your JSON body
         body: JSON.stringify(param)
     };
-    useDoFetch('Manage Ignored Articles', url, options)
-    // doFetch('Manage Ignored Articles', url, options);
+    useDoFetch('Manage Ignored Articles', "/searchTrove/updateIgnored", options)
     if (action == 'add') troveArticleRef.value.click(); // Take user to Trove
 }
 //  Post updated data and wait for response in reloadArticle
@@ -785,7 +783,6 @@ function saveData() {
         updatedData.summaryData = 'None';
     }
     // console.log (updatedData);
-    const url = import.meta.env.VITE_SERVER_URL + "/saveDB/updateArticle";
     const options = {
         method: "post",
         mode: "cors",
@@ -798,8 +795,7 @@ function saveData() {
         body: JSON.stringify(updatedData)
     };
     console.log('EditArticle/SaveData ', JSON.stringify(options));
-    useDoFetch('saveArticle', url, options)
-    // doFetch('loadArticle', url, options)
+    useDoFetch('saveArticle', "/saveDB/updateArticle", options)
     //
     disableUpdate.value = true
 }

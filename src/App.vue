@@ -1,4 +1,5 @@
 <script setup>
+import { useDoFetch } from '@/components/DoFetch.js';
 import { watch, reactive } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -270,7 +271,6 @@ watch(
 // Verify that the server is available
 //
 async function verifyServerUp() {
-    const url = import.meta.env.VITE_SERVER_URL + "/check";
     // console.log(`App.vue verifyServerUp URL:%s`, url);
     const options = {
         method: "get",
@@ -281,32 +281,16 @@ async function verifyServerUp() {
             'Content-Type': 'application/json'
         }
     };
-    const request = new Request(url, options);
-    const fetchPromise = fetch(request);
-    const response = await fetchPromise
-        .catch(error => {
-            errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
-            console.log('verifyServerUp: Error in event handler::', error);
-            return
-        });
-    // console.log (response);
-    // iterate over all headers
-    // for (let [key, value] of response.headers) {
-    // console.log(`${key} = ${value}`);
-    // }
-    console.log("App.vue verifyServerUp: response.status =", response.status);
-    if (response.status == 200) {
-        const data = await response.json();
-        userData.arrayMinedStatus = data.arrayMinedStatus
-        userData.arrayMetadataTypes = data.arrayMetadataTypes
-        // console.log ('data ', data)
-    } else {
-        console.log(`App.vue verifyServerUp check error:%s`, response.error);
-        errorsStore.arrayErrors = response.error
+    const data = await useDoFetch('verifyServerUp', "/check", options);
+    if (typeof data == 'boolean') {
+        errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
+        console.log('verifyServerUp: Error in event handler::', error);
+        return
     }
+    userData.arrayMinedStatus = data.arrayMinedStatus
+    userData.arrayMetadataTypes = data.arrayMetadataTypes
 }
 //
-// console.log(`Host URL:%s`, import.meta.env.VITE_SERVER_URL)
 verifyServerUp()
 </script>
 
