@@ -34,7 +34,8 @@ articleUrls = props.articleListArray.map((el) => {
     return {
         troveArticleId: articleIdStr,
         idxViewedArticle: el.idxViewedArticle,
-        troveListId: listIdStr
+        troveListId: listIdStr,
+        troveListArticleId: listIdStr + '/' + articleIdStr
     }
 });
 articleUrls.sort(compareFn);
@@ -44,9 +45,9 @@ console.log("ArticleUrls/Article Urls -2 - ", JSON.stringify(articleUrls));
 <template>
     <template v-for="(articleLink, index) in articleUrls" :key="articleLink.troveArticleId">
         <a v-if="articleLink.idxViewedArticle > -1" href="#" @click.prevent="openArticle(articleLink)">
-            {{ articleLink.troveArticleId }}
+            {{ articleLink.troveListArticleId }}
         </a>
-        <template v-else>{{ articleLink.troveArticleId }}</template>
+        <template v-else>{{ articleLink.troveListArticleId }}</template>
         <template v-if="(props.inline) && ((index + 1) < articleUrls.length)"> - </template>
     </template>
 </template>
