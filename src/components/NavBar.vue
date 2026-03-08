@@ -1,8 +1,20 @@
 <script setup>
+import { resetServer } from '@/components/ResetUser.js';
 import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
+import { useAuth0 } from '@auth0/auth0-vue'
+const { isAuthenticated, logout } = useAuth0()
+const logoutUser = () => {
+    resetServer()
+    logout({
+        logoutParams: {
+            returnTo: window.location.origin
+        }
+    })
+}
+
 </script>
 <template>
     <div class="navbar navbar-expand-sm bg-light">
@@ -41,8 +53,11 @@ const errorsStore = useErrorsArrayStore()
                     Metadata Items</RouterLink>
             </li>
             <li class="nav-item">
-                <RouterLink to="/about" class="nav-link" :class="{ disabled: navStore.disableAbout }">About us
+                <RouterLink to="/manage" class="nav-link" :class="{ disabled: navStore.disableManage }">Manage
                 </RouterLink>
+            </li>
+            <li class="nav-item" v-if="isAuthenticated">
+                <a href="#" class="nav-link" @click.prevent="logoutUser">Logout</a>
             </li>
         </ul>
     </div>

@@ -4,7 +4,16 @@ import { ref, reactive } from 'vue'
 export const useUserDataStore = defineStore('userData', () => {
     const arrayMinedStatus = ref([])
     const arrayMetadataTypes = ref([])
+    const authUserTroveIds = ref([])
+    // authUserName
+    // troveApiKey
+    // troveUserId
+    // troveUserApiKey
+    const verifiedAuthUserName = ref(false)
     const troveDetails = reactive({})
+    // troveUserId
+    // troveApiKey
+    // troveApiRoot
     const troveQueryTotal = ref(0)
     const troveQueryArticleTotal = ref(0)
     const nbrUserIgnoredArticles = ref(0)
@@ -45,7 +54,7 @@ export const useUserDataStore = defineStore('userData', () => {
     //   TroveListArticleMinedStatustext FROM listArticleMinedStatustext => 
     //   TroveListArticleNote FROM note => 
     //
-    const verifiedUser = ref(false) // Have a verified user
+    const verifiedTroveUserName = ref(false) // Have a verified user
     const userReloadList = ref(0)
     const userListsReady = ref(false)
     const reloadedViewedArticle = ref(0)
@@ -132,7 +141,7 @@ export const useUserDataStore = defineStore('userData', () => {
         this.loadedIndex = -1
         this.userLists = []
         this.userListArticles = []
-        this.verifiedUser = false
+        this.verifiedTroveUserName = false
         this.userListsReady = false
         this.reloadedViewedArticle = 0
         this.updatingViewedArticleIdx = 0
@@ -255,7 +264,7 @@ export const useUserDataStore = defineStore('userData', () => {
             }
             const article = value.articleListArray.find(a => a.troveArticleId === entry.troveArticleId && a.troveListId === entry.troveListId)
             if (!article) {
-                console.log('NOTIFY Missing Article/List for MetadataValue', entry)
+                console.log(`NOTIFY Missing Article/List for MetadataValue %s`, JSON.stringify(entry))
                 continue
             }
             // Direct reactive update — no deep cloning needed
@@ -296,6 +305,8 @@ export const useUserDataStore = defineStore('userData', () => {
     //
     return { arrayMinedStatus,
         arrayMetadataTypes,
+        authUserTroveIds,
+        verifiedAuthUserName,
         troveDetails, 
         troveQueryTotal, 
         troveQueryArticleTotal, 
@@ -304,7 +315,7 @@ export const useUserDataStore = defineStore('userData', () => {
         userDuplicateListIds,
         loadedIndex,
         userLists,
-        verifiedUser,
+        verifiedTroveUserName,
         userListsReady, 
         userReloadList,
         reloadedViewedArticle,

@@ -8,7 +8,7 @@ export const useNavBarStore = defineStore('navBar', () => {
   const disablePersonList = ref(true)
   const disablePersonStory = ref(true)
   const disableSearch = ref(true)
-  const disableAbout = ref(false)
+  const disableManage = ref(true)
   const listTabTitle = ref("List")
   const listId = ref(0)
   const listHref = ref("")
@@ -25,7 +25,7 @@ export const useNavBarStore = defineStore('navBar', () => {
     this.disableMetadataList = true
     this.disablePersonStory = true
     this.disableSearch = true
-    this.disableAbout = false
+    this.disableManage = false
     this.disablePersonList = true
     this.listTabTitle = "List"
     this.listId = 0
@@ -44,7 +44,7 @@ export const useNavBarStore = defineStore('navBar', () => {
     disablePersonList, 
     disablePersonStory, 
     disableSearch, 
-    disableAbout,
+    disableManage,
     listTabTitle, 
     listId, 
     listHref, 
