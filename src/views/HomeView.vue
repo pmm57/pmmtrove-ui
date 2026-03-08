@@ -277,10 +277,10 @@ if (isAuthenticated.value && !userData.verifiedTroveUserName) {
     <div v-else-if="userData.verifiedTroveUserName" class="card col-sm-4 text-center">
         <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
         <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.</p>
+        <p v-if="userData.userDuplicateListIds.length > 0">There is {{ userData.userDuplicateListIds.length }}
+            Duplicate List/s that will not be Loaded.</p>
         <p v-if="userData.userLists.length > 0">With {{ userData.troveQueryArticleTotal }} Articles to manage<br>
             {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
-        <p v-if="userData.userDuplicateListIds.length > 0">There is {{ userData.userDuplicateListIds.length }}
-            Duplicate List/s not Loaded.</p>
         <p v-if="userData.loadedIndex > -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
         <div v-if="loadingTroveUseData">
             <p>{{ loadingMsg }}</p>
