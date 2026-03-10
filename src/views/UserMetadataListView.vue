@@ -102,7 +102,7 @@ function showMetadataValue(idxType, idxValue) {
 async function getArticleLinks(idxType, idxMetadataValue) {
     triggerGetArticleLinks = true
     errorsStore.arrayErrors = [];
-    const url = import.meta.env.VITE_SERVER_URL + '/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue;
+    const url = '/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue;
     console.log('getArticleLinks -', url)
     const options = {
         method: "get",
@@ -165,7 +165,6 @@ function flipStoryPrimaryEvent(idxValue) {
     };
     console.log('UserMetadataListView/flipStoryPrimaryEvent Flipped Event ', JSON.stringify(updateUserEvent))
     // console.log (updatedData);
-    const url = import.meta.env.VITE_SERVER_URL + "/updUserMetaData/userEventMetadata";
     const options = {
         method: "post",
         mode: "cors",
@@ -178,7 +177,7 @@ function flipStoryPrimaryEvent(idxValue) {
         body: JSON.stringify(updateUserEvent)
     };
     // console.log (options);
-    useDoFetch('flipStoryPrimaryEvent', url, options);
+    useDoFetch('flipStoryPrimaryEvent', "/updUserMetaData/userEventMetadata", options);
 }
 </script>
 //

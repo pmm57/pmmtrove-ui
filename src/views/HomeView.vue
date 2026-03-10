@@ -1,13 +1,17 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
 import { resetServer } from '@/components/ResetUser.js';
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useNavBarStore } from '@/stores/navbar'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 import { useUserDataStore } from '@/stores/userdata'
-import { useAuth0 } from '@auth0/auth0-vue'
+// import { useAuth0 } from '@auth0/auth0-vue'
+import { useAuth } from '@/auth'
+import { shouldUseAuth0 } from '@/auth/authMode'
+import MockLogin from '@/components/MockLogin.vue'
+
 const navBarStore = useNavBarStore()
 const errorsStore = useErrorsArrayStore()
 const userData = useUserDataStore()
@@ -52,26 +56,40 @@ var intervalLoading = null
 const verifyPrompt = 'Verify'
 const verifyChgPrompt = 'Verify Changed User'
 var verifyUserPrompt = 'Verify'
+//
+// const isLoading = ref(false)
+const isAuthenticated = ref(false)
+const error = ref([])
+const loginWithRedirect = ref(null)
+const user = ref(null)
 
-const {
-    isLoading,
-    isAuthenticated,
-    error,
-    loginWithRedirect,
-    user } = useAuth0()
-const login = () => loginWithRedirect()
+onMounted(async () => {
+    const auth = await useAuth()
+
+    // isLoading.value = auth.isLoading
+    isAuthenticated.value = auth.isAuthenticated
+    error.value = auth.error
+    loginWithRedirect.value = auth.loginWithRedirect
+    user.value = auth.user
+
+    console.log(`HomeView Start onMounted isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value.value, userData.verifiedTroveUserName, JSON.stringify(user.value.value))
+    watch(() => user.value.value, async (u) => {
+        console.log("HomeView trigger user watch:", u)
+        if (u && !userData.verifiedTroveUserName) {
+            await getUserTroveIds(user.value.value?.nickname)
+        }
+    })
+    watch(error, (err) => {
+        if (err) console.error("HomeView Auth0 error:", err)
+    })
+})
+
+const login = () => loginWithRedirect.value()
 const signup = () =>
-    loginWithRedirect({
+    loginWithRedirect.value({
         authorizationParams: { screen_hint: 'signup' }
     })
-watch(user, async (u) => {
-    if (u && Object.keys(u).length > 0 && !userData.verifiedTroveUserName) {
-        await getUserTroveIds()
-    }
-})
-watch(error, (err) => {
-    if (err) console.error("HomeView Auth0 error:", err)
-})
+
 watch(selectedTroveUserId, (troveUserId) => {
     if (!troveUserId) return;
     console.log(`Watch selectedTroveUserId:"%s" verifiedTroveUserName: `, selectedTroveUserId.value, userData.verifiedTroveUserName)
@@ -121,14 +139,12 @@ watch(
     }
 )
 //
-async function getUserTroveIds() {
+async function getUserTroveIds(authUserName) {
     // oauth will populate user
-    console.log('HomeView/getUserTroveIds user-', JSON.stringify(user.value))
-    const authUserName = user.value?.nickname
+    // isLoading.value.value = true
     loadingMsg.value = loadingAuthMsg
     loadingTick();
     errorsStore.arrayErrors = [];
-    const url = import.meta.env.VITE_SERVER_URL + "/";
     console.log('HomeView/getUserTroveIds User-', authUserName)
     const options = {
         method: "post",
@@ -143,13 +159,14 @@ async function getUserTroveIds() {
             authUserName: authUserName
         })
     };
-    const data = await useDoFetch('getUserTroveIds', url, options);
+    const data = await useDoFetch('getUserTroveIds', "/", options);
     clearInterval(intervalLoading);
     intervalLoading = null;
     if (typeof data == 'boolean') {
         // Verification failed
         loadingTroveUseData.value = false
     } else {
+        // isLoading.value.value = false
         userData.authUserTroveIds = [...data]
         userData.verifiedAuthUserName = true
         navBarStore.disableManage = false
@@ -169,7 +186,6 @@ async function getUserTroveIds() {
                 verifyTroveUser(false)
                 break
             default: // Ask user to select one
-
         }
     }
 }
@@ -177,7 +193,6 @@ async function getUserTroveIds() {
 async function verifyTroveUser(refresh) {
     loadingTroveUseData.value = true
     errorsStore.arrayErrors = [];
-    const url = import.meta.env.VITE_SERVER_URL + "/troveUser";
     console.log('Verify User-', inUserId)
     const options = {
         method: "post",
@@ -193,7 +208,7 @@ async function verifyTroveUser(refresh) {
             refresh: refresh
         })
     };
-    const data = await useDoFetch('verifyTroveUser', url, options);
+    const data = await useDoFetch('verifyTroveUser', "/troveUser", options);
     if (typeof data == 'boolean') {
         // Verification failed
         loadingTroveUseData.value = false
@@ -233,10 +248,10 @@ function resetTroveUser() {
     verifyUserPrompt = verifyChgPrompt
     resetServer()
 }
-console.log(`HomeView Start isLoading-%s, isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isLoading.value, isAuthenticated.value, userData.verifiedTroveUserName, JSON.stringify(user.value))
-if (isAuthenticated.value && !userData.verifiedTroveUserName) {
+
+if (isAuthenticated.value.value && !userData.verifiedTroveUserName) {
     console.log(`HomeView Start call getUserTroveIds`)
-    getUserTroveIds()
+    getUserTroveIds(user.value.value?.nickname)
 } else {
     // Coming back from another tab
     authUserWithTroveId.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
@@ -244,24 +259,24 @@ if (isAuthenticated.value && !userData.verifiedTroveUserName) {
 </script>
 
 <template>
-    <div v-if="isLoading" class="card text-center">
+    <!-- <div v-if="isLoading.value" class="card text-center">
         <p>{{ loadingMsg }}</p>
+    </div> -->
+    <div v-if="!isAuthenticated.value" class="card col-sm-4 text-center">
+        <MockLogin v-if="!shouldUseAuth0" />
+        <template v-else>
+            <br>
+            <p>Please log in or sign up to continue</p>
+            <button @click="login" class="btn btn-primary">Log in using Authentication User</button>
+            <p>First time user please Signup
+            </p>
+            <p>NOTE: After signing up an Authenticated User name you can link multiple Trove User names to it in Manage
+                User
+            </p>
+            <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
+        </template>
     </div>
-    <div v-else-if="!isAuthenticated" class="card col-sm-4 text-center">
-        <p></p>
-        <p>Please log in or sign up to continue</p>
-        <button @click="login" class="btn btn-primary">Log in using Authentication User</button>
-        <p>First time user please Signup
-        </p>
-        <p>NOTE: After signing up an Authenticated User name you can link multiple Trove User names to it in Manage User
-        </p>
-        <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
-        <!-- <label for="UserId" class="form-label h2">Trove User Id</label>
-        <input v-model="inUserId" @keyup.enter="verifyTroveUser(false)" class="form-control" id="UserId"
-            placeholder="Enter Trove User Id" autofocus>
-        <button @click.prevent="verifyTroveUser(false)" id="UserID" class="btn btn-primary">{{ verifyUserPrompt }}</button> -->
-    </div>
-    <div v-else-if="isAuthenticated && !userData.verifiedTroveUserName" class="card col-sm-4 text-center">
+    <div v-else-if="isAuthenticated.value && !userData.verifiedTroveUserName" class="card col-sm-4 text-center">
         <p v-if="'troveUserId' in userData.troveDetails">
             Change {{ userData.troveDetails.troveUserId }} to Manage Another
         </p>
@@ -276,10 +291,11 @@ if (isAuthenticated.value && !userData.verifiedTroveUserName) {
     </div>
     <div v-else-if="userData.verifiedTroveUserName" class="card col-sm-4 text-center">
         <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
-        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.</p>
-        <p v-if="userData.userDuplicateListIds.length > 0">There is {{ userData.userDuplicateListIds.length }}
-            Duplicate List/s that will not be Loaded.</p>
-        <p v-if="userData.userLists.length > 0">With {{ userData.troveQueryArticleTotal }} Articles to manage<br>
+        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.
+            <br v-if="userData.userDuplicateListIds.length > 0">There is {{ userData.userDuplicateListIds.length }}
+            Duplicate List/s that will not be Loaded.
+        </p>
+        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
             {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
         <p v-if="userData.loadedIndex > -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
         <div v-if="loadingTroveUseData">
@@ -295,7 +311,7 @@ if (isAuthenticated.value && !userData.verifiedTroveUserName) {
         <button @click.prevent="userData.verifiedTroveUserName = false" class="btn btn-primary">Change
             User</button>
     </div>
-    <div v-if="error" class="alert alert-danger">
+    <div v-if="shouldUseAuth0 && error.length > 0" class="alert alert-danger">
         Authentication error: {{ error.message }}
     </div>
 </template>

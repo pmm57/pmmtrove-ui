@@ -1,18 +1,41 @@
 <script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router';
+const router = useRouter();
 import { resetServer } from '@/components/ResetUser.js';
 import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
-import { useAuth0 } from '@auth0/auth0-vue'
-const { isAuthenticated, logout } = useAuth0()
+import { useAuth } from '@/auth'
+import { shouldUseAuth0 } from '@/auth/authMode'
+
+const logout = ref(null)
+const error = ref(null)
+const isAuthenticated = ref(false)
+
+onMounted(async () => {
+    const auth = await useAuth()
+    isAuthenticated.value = auth.isAuthenticated
+    error.value = auth.error
+    logout.value = auth.logout
+
+})
+
 const logoutUser = () => {
     resetServer()
-    logout({
-        logoutParams: {
-            returnTo: window.location.origin
-        }
-    })
+    if (shouldUseAuth0) {
+        // Real Auth0 logout
+        logout.value({
+            logoutParams: {
+                returnTo: window.location.origin
+            }
+        })
+    } else {
+        // mockAuth logout (no redirect)
+        logout.value()
+    }
+    router.push({ name: 'home' })
 }
 
 </script>
@@ -56,7 +79,7 @@ const logoutUser = () => {
                 <RouterLink to="/manage" class="nav-link" :class="{ disabled: navStore.disableManage }">Manage
                 </RouterLink>
             </li>
-            <li class="nav-item" v-if="isAuthenticated">
+            <li class="nav-item" v-if="isAuthenticated.value">
                 <a href="#" class="nav-link" @click.prevent="logoutUser">Logout</a>
             </li>
         </ul>

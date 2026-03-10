@@ -114,7 +114,6 @@ async function ckhTroveUserId(chkTroveUserId) {
         'chkTroveUserId': chkTroveUserId
     }
     // console.log (updatedData);
-    const url = import.meta.env.VITE_SERVER_URL + "/chkTroveUserId";
     const options = {
         method: "post",
         mode: "cors",
@@ -127,7 +126,7 @@ async function ckhTroveUserId(chkTroveUserId) {
         body: JSON.stringify(updatedData)
     };
     console.log('ManageView/ckhTroveUserId ', JSON.stringify(options));
-    return useDoFetch('ckhTroveUserId', url, options)
+    return useDoFetch('ckhTroveUserId', "/chkTroveUserId", options)
     //
 }
 //
@@ -201,7 +200,6 @@ async function saveData() {
         'chgAuthUserTroveIds': chgAuthUserTroveIds
     }
     // console.log (updatedData);
-    const url = import.meta.env.VITE_SERVER_URL + "/manageUserInf";
     const options = {
         method: "post",
         mode: "cors",
@@ -214,7 +212,7 @@ async function saveData() {
         body: JSON.stringify(updatedData)
     };
     console.log('ManageView/SaveData ', JSON.stringify(options));
-    const authUserInf = await useDoFetch('saveAuthUserTroveIds', url, options)
+    const authUserInf = await useDoFetch('saveAuthUserTroveIds', "/manageUserInf", options)
     if (typeof data == 'boolean') {
         // Verification failed
         return
@@ -303,7 +301,7 @@ async function saveData() {
                                 <td :style="{ 'background-color': notifyEditError }"> <!-- Trove Id -->
                                     <input v-model="troveId.troveUserId" placeholder="Enter a Trove Id">
                                     <span v-if="popoverForTroveId.length > 0" class="tooltiptext">{{ popoverForTroveId
-                                        }}</span>
+                                    }}</span>
                                     </input>
                                 </td>
                                 <td> <!-- troveUserApiKey -->
@@ -327,13 +325,13 @@ async function saveData() {
                             <td :style="{ 'background-color': notifyEditErrors[0][index] }">{{ troveId.troveUserId }}
                                 <span v-if="popoverEditErrors[0][index].length > 0" class="tooltiptext">{{
                                     popoverEditErrors[0][index]
-                                }}</span>
+                                    }}</span>
                             </td>
                             <td :style="{ 'background-color': notifyEditErrors[1][index] }">{{ troveId.troveUserApiKey
-                            }}
+                                }}
                                 <span v-if="popoverEditErrors[1][index].length > 0" class="tooltiptext">{{
                                     popoverEditErrors[1][index]
-                                }}</span>
+                                    }}</span>
                             </td>
                             <td>
                                 <EditItem

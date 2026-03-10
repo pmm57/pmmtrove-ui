@@ -56,7 +56,7 @@ function statusColour(status) {
 async function loadListArticles(firstLoad) {
     console.log('UserListView ', navStore.listId, firstLoad);
     userData.userReloadList = navStore.listId;
-    const url = import.meta.env.VITE_SERVER_URL + "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
+    const url = "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
     const options = {
         method: "get",
         mode: "cors",

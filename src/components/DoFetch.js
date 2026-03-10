@@ -1,9 +1,10 @@
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 // Async Do Fetch
-export async function useDoFetch (calledFrom, url, options) {
+const serverUrl = import.meta.env.VITE_SERVER_URL
+export async function useDoFetch (calledFrom, inUrl, options) {
     const errorsStore = useErrorsArrayStore()
     const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
-    const request = new Request(url, options);
+    const request = new Request(serverUrl + inUrl, options);
     const fetchPromise = fetch(request);
     const response = await fetchPromise
         .catch (error => {
