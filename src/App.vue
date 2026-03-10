@@ -117,7 +117,7 @@ function handleMessage(e) {
             // Check if loading all lists
             if (!userData.userListsReady) {
                 // Check if have loaded all
-                console.log(`App/sseUserListsArticles Check userListsReady loadedIndex:%s, NbrDupLists:%s, troveTotal:%s`, userData.loadedIndex, userData.userDuplicateListIds.length, userData.troveQueryTotal)
+                // console.log(`App/sseUserListsArticles Check userListsReady loadedIndex:%s, NbrDupLists:%s, troveTotal:%s`, userData.loadedIndex, userData.userDuplicateListIds.length, userData.troveQueryTotal)
                 if ((userData.loadedIndex + 1 + userData.userDuplicateListIds.length) >= userData.troveQueryTotal) {
                     console.log('App/sseUserListsArticles Set userListsReady true')
                     userData.userListsReady = true
