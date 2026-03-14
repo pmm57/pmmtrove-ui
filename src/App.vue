@@ -284,7 +284,7 @@ async function verifyServerUp() {
     const data = await useDoFetch('verifyServerUp', "/check", options);
     if (typeof data == 'boolean') {
         errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
-        console.log('verifyServerUp: Error in event handler::', error);
+        console.log('verifyServerUp: Error in Fetch verifyServerUp');
         return
     }
     userData.arrayMinedStatus = data.arrayMinedStatus
