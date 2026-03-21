@@ -1,16 +1,14 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import ArticleUrls from '@/components/ArticleUrls.vue'
 import EditItem from '@/components/EditItem.vue'
 import { useDoFetch } from '@/components/DoFetch.js';
 import { unstringifyName } from '@/components/UnstringifyName.js';
 import { useUserDataStore } from '@/stores/userdata';
-import { useErrorsArrayStore } from '@/stores/errorsarray';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
-const errorsStore = useErrorsArrayStore();
 const userData = useUserDataStore();
 //
 let loading = ref(false);
@@ -23,12 +21,14 @@ let searchPhrase = ref(false);
 const limitStates = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 let allStates = ref(true);
 let limitState = ref("");
+let allYears = ref(true);
 const limitDecades = ["1800-1809", "1810-1819", "1820-1829", "1830-1839", "1840-1849", "1850-1859", "1860-1869", "1870-1879", "1880-1889", "1890-1899", "1900-1909", "1900-1909", "1920-1929", "1930-1939", "1940-1949", "1950-1959", "1960-1969", "1970-1979"];
 let showLimitToDecade = ref(false);
 let limitDecade = ref("");
-let allYears = ref(true);
+let showLimitToYear = ref(false);
+let allDecadeYears = ref(false);
 let showLimitYear = ref(false);
-let limitYears = reactive([]);
+let limitYears = ref([]);
 let limitYear = ref("");
 let showNew = ref(true);
 let showKnown = ref(false);
@@ -90,25 +90,25 @@ let searchData = reactive({});
 //   searchLimitState: '',
 //   searchAllYears: true,
 //   searchLimitDecade: '',
-//   searchLimitYear: '',
-//   searchResults: [],
-//   searchCountState :[],
-//   searchCountDecade :[],
-//   searchCountYear : []}
+//   searchLimitYear: ''
+let searchResults = ref([])
+let searchCountState = ref([])
+let searchCountDecade = ref([])
+let searchCountYear = ref([])
 //
 //  Post array of Ignored Article Id's
 function updateIgnoredArticles() {
     var items = [];
     var action = ''
-    searchData.searchResults.forEach((el, index) => {
+    searchResults.value.forEach((el, index) => {
         if (el.status == 'IgnoreArticle') {
             // console.log ('Ignore Article ', el)
-            searchData.searchResults[index].status = 'Ignored';
+            searchResults.value[index].status = 'Ignored';
             action = 'add'
         }
         if (el.status == 'UnignoreArticle') {
             // console.log ('Ignore Article ', el)
-            searchData.searchResults[index].status = 'New';
+            searchResults.value[index].status = 'New';
             action = 'remove'
         }
         if (action.length > 0) {
@@ -180,34 +180,51 @@ function checkIfLimitState() {
     changeSearch()
 }
 //
-function checkIfLimitYears() {
-    limitYears = [];
-    // console.log ("Check Limit Year:", allYears.value)
+function checkIfAllYears() {
+    console.log ("Check All Year:", allYears.value)
     if (allYears.value) {
         limitDecade.value = "";
         showLimitToDecade.value = false;
+        showLimitToYear.value = false;
+        allDecadeYears.value = false;
         showLimitYear.value = false;
-    } else {
-        showLimitToDecade.value = true;
-        limitDecade.value = "187";
-        // If there is a search result with a decade limit
-        // then there should be Year Counts to use for radio buttons
-        if ((searchData.hasOwnProperty('searchCountYear'))
-            && (searchData.searchCountYear.length > 0)) {
-            showLimitYear.value = true;
-        }
-    }
+        changeSearch()
+        return
+    } 
+    showLimitToDecade.value = true;
+    showLimitToYear.value = true;
+    allDecadeYears.value = true;
+    limitDecade.value = "187";
+     checkLimitDecade ()
+     return
+}
+//
+function checkLimitDecade () {
+    // Populate with years of decade
+    console.log ("checkLimitDecade ", limitDecade.value)
+    limitYears.value = Array.from(
+        { length: 10 },
+        (_, i) => Number(`${limitDecade.value}${i}`)
+    )
+    limitYear.value = limitYears.value[0]
+    console.log ("limitYears ", limitYears.value)
     changeSearch()
 }
 // On clicking the hide row
-function hideRowClick(index) {
-    switch (searchData.searchResults[index].status) {
+function hideRowClick(articleId) {
+    // console.log ('hideRowClick ', articleId);
+    const index = searchResults.value.findIndex((x) => x.id === articleId)
+    if (index < 0) {
+        console.log (`hideRowClick article %s NOT FOUND`, articleId)
+        return
+    }
+    switch (searchResults.value[index].status) {
         case 'HideArticle':
-            searchData.searchResults[index].status = 'New';
+            searchResults.value[index].status = 'New';
             --searchCounts.nbrHidden;
             break;
         default:
-            searchData.searchResults[index].status = 'HideArticle';
+            searchResults.value[index].status = 'HideArticle';
             ++searchCounts.nbrHidden;
     }
 }
@@ -216,36 +233,42 @@ function hideRowClick(index) {
 //                      => OR Save => Ignored
 // Ignored => UnignoreArticle
 //
-function ignoreArticleClick(index) {
-    // console.log ('ignoreArticleClick ', searchData.searchResults[index].status);
-    switch (searchData.searchResults[index].status) { // Current Status
+function ignoreArticleClick(articleId) {
+    // console.log ('ignoreArticleClick ', articleId);
+    const index = searchResults.value.findIndex((x) => x.id === articleId)
+    if (index < 0) {
+        console.log (`ignoreArticleClick article %s NOT FOUND`, articleId)
+        return
+    }
+    switch (searchResults.value[index].status) { // Current Status
         case 'Ignored': // Is in DB IgnoredArticles List - Unignore It
-            searchData.searchResults[index].status = 'UnignoreArticle';
+            searchResults.value[index].status = 'UnignoreArticle';
             ++searchCounts.nbrToUnignore;
-            ignoreAction = "UnIgnore";
-            ignoreIcon = "bi bi-file-earmark-arrow-up";
+            ignoreAction.value = "UnIgnore";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
         case 'UnignoreArticle': // Is in DB IgnoredArticles List Was to be Uninored - changed mind
-            searchData.searchResults[index].status = 'Ignored';
+            searchResults.value[index].status = 'Ignored';
             --searchCounts.nbrToUnignore;
-            ignoreAction = "UnIgnore";
-            ignoreIcon = "bi bi-file-earmark-arrow-up";
+            ignoreAction.value = "UnIgnore";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
         case 'IgnoreArticle': // Was set to be Ignored - changed mind
-            searchData.searchResults[index].status = 'New';
-            ignoreAction = "Add to Ignore List";
-            ignoreIcon = "bi bi-file-earmark-arrow-down";
+            searchResults.value[index].status = 'New';
+            ignoreAction.value = "Add to Ignore List";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-down";
             --searchCounts.nbrToIgnore;
             break;
         default: // Was new - Now To be Ignored
-            ignoreAction = "Remove from TO Ignore List";
-            ignoreIcon = "bi bi-file-earmark-arrow-up";
-            searchData.searchResults[index].status = 'IgnoreArticle';
+            ignoreAction.value = "Remove from TO Ignore List";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
+            searchResults.value[index].status = 'IgnoreArticle';
             ++searchCounts.nbrToIgnore;
     }
     if ((searchCounts.nbrToIgnore > 0) || (searchCounts.nbrToUnignore > 0)) {
         disableUpdateIgnored.value = false;
     }
+    // console.log ('ignoreArticleClick Done');
 }
 //
 function getSearch() {
@@ -302,9 +325,9 @@ function changeSearch() {
 //
 function outputSearch() {
     // Get counts
-    searchData.searchCountState = [];
-    searchData.searchCountDecade = [];
-    searchData.searchCountYear = [];
+    searchCountState.value = [];
+    searchCountDecade.value = [];
+    searchCountYear.value = [];
     searchCounts.nbrNew = 0;
     searchCounts.nbrKnown = 0;
     searchCounts.nbrIgnored = 0;
@@ -312,7 +335,7 @@ function outputSearch() {
     searchCounts.nbrToUnignore = 0;
     searchCounts.nbrLessRelevant = 0;
     searchCounts.nbrHidden = 0;
-    searchData.searchResults.forEach(element => {
+    searchResults.value.forEach(element => {
         //
         switch (element.status) {
             case 'HideArticle':
@@ -334,30 +357,30 @@ function outputSearch() {
                 ++searchCounts.nbrNew;
         }
         //
-        var stateIndex = searchData.searchCountState.findIndex(item => item.label == element.state);
+        var stateIndex = searchCountState.value.findIndex(item => item.label == element.state);
         if (stateIndex == -1) { // Sort Insert
             var newState = {
                 label: element.state,
                 nbrFound: 0
             };
             stateIndex = 0;
-            var listLen = searchData.searchCountState.length;
+            var listLen = searchCountState.value.length;
             if (listLen > 0) {
-                while (searchData.searchCountState[stateIndex].label < element.state) {
+                while (searchCountState.value[stateIndex].label < element.state) {
                     ++stateIndex;
                     if (stateIndex == listLen) {
                         break;
                     }
                 }
-                searchData.searchCountState.splice(stateIndex, 0, newState);
+                searchCountState.value.splice(stateIndex, 0, newState);
             } else {
-                searchData.searchCountState.push(newState);
+                searchCountState.value.push(newState);
             }
         }
-        ++searchData.searchCountState[stateIndex].nbrFound;
+        ++searchCountState.value[stateIndex].nbrFound;
         //
         var resDecade = element.date.slice(0, 3);
-        var decadeIndex = searchData.searchCountDecade.findIndex(item => item.label == resDecade);
+        var decadeIndex = searchCountDecade.value.findIndex(item => item.label == resDecade);
         if (decadeIndex == -1) { // Sort Insert
             var newDecade = {
                 label: resDecade,
@@ -365,45 +388,45 @@ function outputSearch() {
                 arrayYear: []
             };
             decadeIndex = 0;
-            var listLen = searchData.searchCountDecade.length;
+            var listLen = searchCountDecade.value.length;
             if (listLen > 0) {
-                while (searchData.searchCountDecade[decadeIndex].label < resDecade) {
+                while (searchCountDecade.value[decadeIndex].label < resDecade) {
                     ++decadeIndex;
                     if (decadeIndex == listLen) {
                         break;
                     }
                 }
-                searchData.searchCountDecade.splice(decadeIndex, 0, newDecade);
+                searchCountDecade.value.splice(decadeIndex, 0, newDecade);
             } else {
-                searchData.searchCountDecade.push(newDecade);
+                searchCountDecade.value.push(newDecade);
             }
         }
-        ++searchData.searchCountDecade[decadeIndex].nbrFound;
+        ++searchCountDecade.value[decadeIndex].nbrFound;
         //
         // Only Count Years if a Decade Limit has been done
         if (!(searchData.searchAllYears)) {
             var resYear = element.date.slice(0, 4);
-            var yearIndex = searchData.searchCountYear.findIndex(item => item.label == resYear);
+            var yearIndex = searchCountYear.value.findIndex(item => item.label == resYear);
             if (yearIndex == -1) { // Sort Insert
                 var newYear = {
                     label: resYear,
                     nbrFound: 0
                 };
                 yearIndex = 0;
-                var listLen = searchData.searchCountYear.length;
+                var listLen = searchCountYear.value.length;
                 if (listLen > 0) {
-                    while (searchData.searchCountYear[yearIndex].label < resYear) {
+                    while (searchCountYear.value[yearIndex].label < resYear) {
                         ++yearIndex;
                         if (yearIndex == listLen) {
                             break;
                         }
                     }
-                    searchData.searchCountYear.splice(yearIndex, 0, newYear);
+                    searchCountYear.value.splice(yearIndex, 0, newYear);
                 } else {
-                    searchData.searchCountYear.push(newYear);
+                    searchCountYear.value.push(newYear);
                 }
             }
-            ++searchData.searchCountYear[yearIndex].nbrFound;
+            ++searchCountYear.value[yearIndex].nbrFound;
         }
     });
     //
@@ -414,13 +437,10 @@ function outputSearch() {
     // If there is a search result with a decade limit
     // then there should be Year Counts
     if ((searchData.hasOwnProperty('searchCountYear'))
-        && (searchData.searchCountYear.length > 0)) {
-        limitYears = searchData.searchCountYear
+        && (searchCountYear.value.length > 0)) {
         showReturnedYears.value = true;
-        showLimitYear.value = true;
     } else {
         showReturnedYears.value = false;
-        showLimitYear.value = false;
     }
     //
     disableNext.value = false;
@@ -476,6 +496,13 @@ function showResultRow(status) {
     }
 }
 //
+function visibleResults() {
+  return searchResults.value.filter(
+    row => showResultRow(row.status)
+  );
+}
+
+//
 function haveListLink(listId) {
     let haveLink = userData.userListsReady
     let idxList = userData.userLists.findIndex((item) => item.TroveListId == Number(listId));
@@ -510,17 +537,17 @@ function showIgnoreAction(status) {
             showIgnoreActionFiller = '';
             return false;
         case 'Ignored':
-            ignoreAction = "UnIgnore";
-            ignoreIcon = "bi bi-file-earmark-arrow-up";
+            ignoreAction.value = "UnIgnore";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             return true;
         case 'IgnoreArticle':
-            ignoreAction = "Remove from TO Ignore List";
-            ignoreIcon = "bi bi-file-earmark-arrow-up";
+            ignoreAction.value = "Remove from TO Ignore List";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             return true;
         case 'LowRelevance':
         default:
-            ignoreAction = "Add to Ignore List";
-            ignoreIcon = "bi bi-file-earmark-arrow-down";
+            ignoreAction.value = "Add to Ignore List";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-down";
             return true;
     }
 }
@@ -528,8 +555,8 @@ function showIgnoreAction(status) {
 function showHideAction(status) {
     switch (status) {
         case 'HideArticle':
-            hideAction = "Unhide Row";
-            hideIcon = "bi bi-toggle-on";
+            hideAction.value = "Unhide Row";
+            hideIcon.value = "bi bi-toggle-on";
             break;
         // case 'Known':
         // case 'KnownStored':
@@ -537,8 +564,8 @@ function showHideAction(status) {
         // case 'IgnoreArticle':
         // case 'LowRelevance':
         default:
-            hideAction = "Hide Row";
-            hideIcon = "bi bi-toggle-off";
+            hideAction.value = "Hide Row";
+            hideIcon.value = "bi bi-toggle-off";
     }
     return true;
 }
@@ -557,16 +584,16 @@ function foundCount(which, countInfo, last) {
 //
 function identifyDuplicate(index) {
     let dupFound = false;
-    if (searchData.searchResults[index].articleMatch < 50) {
+    if (searchResults.value[index].articleMatch < 50) {
         dupFound = true;
     } else {
-        if (index == (searchData.searchResults.length - 1)) return {};
-        if (searchData.searchResults[index + 1].articleMatch > 50) return {};
+        if (index == (searchResults.value.length - 1)) return {};
+        if (searchResults.value[index + 1].articleMatch > 50) return {};
         // Are the dates close enough
-        const thisDateParts = searchData.searchResults[index].date.split('-');
+        const thisDateParts = searchResults.value[index].date.split('-');
         const thisDate = new Date(thisDateParts[0], thisDateParts[1], thisDateParts[2]);
         const thisDate_ms = thisDate.getTime();
-        const nextDateParts = searchData.searchResults[index + 1].date.split('-');
+        const nextDateParts = searchResults.value[index + 1].date.split('-');
         const nextDate = new Date(nextDateParts[0], nextDateParts[1], nextDateParts[2]);
         const nextDate_ms = nextDate.getTime();
         const daysApart = Math.round(Math.abs((thisDate_ms) - (nextDate_ms)) / 8.64e7);
@@ -615,7 +642,7 @@ function waitSearch() {
                 searchData.maxPageNbr = returnData.maxPageNbr;
                 searchData.pageNbr = returnData.pageNbr;
                 searchData.nextURL = returnData.nextURL;
-                searchData.searchResults.push(...returnData.searchResults);
+                searchResults.value.push(...returnData.searchResults);
             } else {
                 searchData = JSON.parse(e.data);
                 searchData.maxPageNbr = Math.ceil(searchData.total / 50.0);
@@ -700,8 +727,12 @@ if (navStore.troveSearchName != '') {
             limitDecade.value = '184';
         }
     }
-    postSearch(true);
 }
+onMounted(() => {
+  if (navStore.troveSearchName !== '') {
+    postSearch(true);
+  }
+});
 </script>
 //
 <template>
@@ -720,19 +751,19 @@ if (navStore.troveSearchName != '') {
                         id="checkboxSearchPhrase">
                     <label class="form-check-label" for="checkboxSearchPhrase">Search Proximate</label>
                 </div>
-                <div class="fform-check form-check-inline">
+                <div class="form-check form-check-inline">
                     <input type="checkbox" class="form-check-input" v-model="allStates" @change="checkIfLimitState"
                         id="checkboxAllStates">
                     <label class="form-check-label" for="checkboxAllStates">Include All States</label>
                 </div>
                 <div class="form-check form-check-inline">
-                    <input type="checkbox" class="form-check-input" v-model="allYears" @change="checkIfLimitYears"
+                    <input type="checkbox" class="form-check-input" v-model="allYears" @change="checkIfAllYears"
                         id="checkboxAllYears">
                     <label class="form-check-label" for="checkboxAllYears">Include All Years</label>
                 </div>
                 <!--Radio group of States to Limit Search -->
                 <div v-show="!allStates">
-                    <div class="form-check form-check-inline" v-for="state in limitStates" @change="changeSearch()">
+                    <div class="form-check form-check-inline" v-for="state in limitStates " :key="state" @change="changeSearch()">
                         <input class="form-check-input" type="radio" name=stateLimit :id="'radioState' + state"
                             :value="state" v-model="limitState">
                         <label class="form-check-label form-nowrap" :for="'radioState' + state">{{ state }}</label>
@@ -740,18 +771,21 @@ if (navStore.troveSearchName != '') {
                 </div>
                 <div v-show="showLimitToDecade">
                     <!--Radio group of Decade to Limit Search -->
-                    <div v-for="decade in limitDecades" @change="changeSearch()" class="form-check form-check-inline">
+                    <div v-for="decade in limitDecades" :key="decade" class="form-check form-check-inline">
                         <input type="radio" class="form-check-input" name=decadeLimit :id="'radioDecade' + decade"
-                            :value="decade.substring(0, 3)" v-model="limitDecade">
+                            :value="decade.substring(0, 3)" v-model="limitDecade" @change="checkLimitDecade()">
                         <label class="form-check-label form-nowrap" :for="'radioDecade' + decade">{{ decade }}</label>
                     </div>
                 </div>
-                <div v-show="showLimitYear">
+                <div v-show="showLimitToYear">
+                    <input type="checkbox" class="form-check-input  form-check-inline" v-model="allDecadeYears" @change="showLimitYear = !showLimitYear"
+                        id="checkboxAllDecadeYears">
+                    <label class="form-check-label" for="checkboxAllDecadeYears">Include All Decade Years&nbsp;</label>
                     <!--Radio group of Years to Limit Search -->
-                    <div v-for="year in limitYears" @change="changeSearch()" class="form-check form-check-inline">
-                        <input type="radio" class="form-check-input" name=yearLimit :id="'radioYear' + year.label"
-                            :value="year.label" v-model="limitYear">
-                        <label class="form-check-label form-nowrap" :for="'radioYear' + year.label">{{ year.label
+                    <div v-show="showLimitYear" v-for="year in limitYears" :key="year" @change="changeSearch()" class="form-check form-check-inline">
+                        <input type="radio" class="form-check-input" name=yearLimit :id="'radioYear' + year"
+                            :value="year" v-model="limitYear">
+                        <label class="form-check-label form-nowrap" :for="'radioYear' + year">{{ year
                             }}</label>
                     </div>
                 </div>
@@ -818,18 +852,18 @@ if (navStore.troveSearchName != '') {
                     <label class="form-check-label" for="toggleHiddenSwitch">Show Hidden Articles</label>
                 </div>
                 <div id="returnedStates">
-                    <span v-for="state in searchData.searchCountState">
+                    <span v-for="state in searchCountState" :key="state">
                         <span v-if="state.nbrFound > 0" v-text="state.label + ' (' + state.nbrFound + ')'"></span>
                     </span>
                 </div>
                 <div id="returnedDecade">
-                    <span v-for="(decade, index) in searchData.searchCountDecade">
-                        <span>{{ foundCount('D', decade, searchData.searchCountDecade.length - index - 1) }}</span>
+                    <span v-for="(decade, index) in searchCountDecade" :key="index">
+                        <span>{{ foundCount('D', decade, searchCountDecade.length - index - 1) }}</span>
                     </span>
                 </div>
                 <div id="returnedYears" v-show="showReturnedYears">
-                    <span v-for="(year, index) in searchData.searchCountYear">
-                        <span>{{ foundCount('Y', year, searchData.searchCountYear.length - index - 1) }}</span>
+                    <span v-for="(year, index) in searchCountYear" :key="index">
+                        <span>{{ foundCount('Y', year, searchCountYear.length - index - 1) }}</span>
                     </span>
                 </div>
                 <div id="searchResultsCounts">
@@ -858,70 +892,68 @@ if (navStore.troveSearchName != '') {
                         </tr>
                     </thead>
                     <tbody>
-                        <template v-for="(row, index) in searchData.searchResults">
-                            <tr v-show="showResultRow(row.status)">
-                                <!-- Row -->
-                                {{ index + 1 }}
-                                <!-- Date -->
-                                <td :style="identifyDuplicate(index)">
-                                    {{ row.date }}
-                                </td>
-                                <!-- Article Id -->
-                                <td v-if="row.viewedIndex > -1">
-                                    <ArticleUrls :key="row.viewedIndex" :inline="false"
-                                        :articleListArray="[{ idxViewedArticle: row.viewedIndex, troveListId: row.dbListId, troveArticleId: row.id }]">
-                                        ></ArticleUrls>
-                                </td>
-                                <td v-else-if="row.dbListId != 0">
-                                    {{ row.id }}
-                                    <!-- <router-link v-if="haveListLink(row.dbListId)" :to="'/userListPage/' + row.dbListId"
-                    class="active link-primary">{{ row.listName }}</router-link> -->
-                                    <a href="#" v-if="haveListLink(row.dbListId)"
-                                        @click.prevent="openList(row.dbListId)">
-                                        {{ row.listName }}
-                                    </a>
-                                    <p v-else>
-                                        {{ row.listName }}
-                                    </p>
-                                </td>
-                                <td v-else>
-                                    {{ row.id }}
-                                </td>
-                                <!-- Action -->
-                                <td>
-                                    <EditItem v-if="showIgnoreAction(row.status)"
-                                        @click-item="ignoreArticleClick(index)" :action="ignoreAction"
-                                        :icon="ignoreIcon" />
-                                    {{ showIgnoreActionFiller }}
-                                    <EditItem v-if="showHideAction(row.status)" @click-item="hideRowClick(index)"
-                                        :action="hideAction" :icon="hideIcon" />
-                                </td>
-                                <!-- Known -->
-                                <td>
-                                    {{ showStatus(row.status) }}
-                                </td>
-                                <!-- Relevent -->
-                                <td v-if="row.relevance === 'very relevant'">
-                                    Yes
-                                </td>
-                                <td v-else>
-                                    No
-                                </td>
-                                <!-- Link -->
-                                <td>
-                                    <a :href="row.troveUrl" target="_blank">Trove</a>
-                                </td>
-                                <!-- Newspaper -->
-                                <td>
-                                    {{ row.title.title }}
-                                </td>
-                                <!-- Heading / Snippet -->
-                                <td>
-                                    {{ row.heading }}</br>{{ row.snippet }}</br>{{ row.textSnip }}</br>{{
-                                        row.articleMatch }}
-                                </td>
-                            </tr>
-                        </template>
+                        <tr v-for="(row, index) in visibleResults()" :key="row.id">
+                            <!-- Row -->
+                            {{ index + 1 }}
+                            <!-- Date -->
+                            <td :style="identifyDuplicate(index)">
+                                {{ row.date }}
+                            </td>
+                            <!-- Article Id -->
+                            <td v-if="row.viewedIndex > -1">
+                                <ArticleUrls :key="row.viewedIndex" :inline="false"
+                                    :articleListArray="[{ idxViewedArticle: row.viewedIndex, troveListId: row.dbListId, troveArticleId: row.id }]">
+                                    ></ArticleUrls>
+                            </td>
+                            <td v-else-if="row.dbListId != 0">
+                                {{ row.id }}
+                                <!-- <router-link v-if="haveListLink(row.dbListId)" :to="'/userListPage/' + row.dbListId"
+                class="active link-primary">{{ row.listName }}</router-link> -->
+                                <a href="#" v-if="haveListLink(row.dbListId)"
+                                    @click.prevent="openList(row.dbListId)">
+                                    <br>{{ row.listName }}
+                                </a>
+                                <p v-else>
+                                    {{ row.listName }}
+                                </p>
+                            </td>
+                            <td v-else>
+                                {{ row.id }}
+                            </td>
+                            <!-- Action -->
+                            <td>
+                                <EditItem v-if="showIgnoreAction(row.status)"
+                                    @click-item="ignoreArticleClick(row.id)" :action="ignoreAction"
+                                    :icon="ignoreIcon" />
+                                {{ showIgnoreActionFiller }}
+                                <EditItem v-if="showHideAction(row.status)" @click-item="hideRowClick(row.id)"
+                                    :action="hideAction" :icon="hideIcon" />
+                            </td>
+                            <!-- Known -->
+                            <td>
+                                {{ showStatus(row.status) }}
+                            </td>
+                            <!-- Relevent -->
+                            <td v-if="row.relevance === 'very relevant'">
+                                Yes
+                            </td>
+                            <td v-else>
+                                No
+                            </td>
+                            <!-- Link -->
+                            <td>
+                                <a :href="row.troveUrl" target="_blank">Trove</a>
+                            </td>
+                            <!-- Newspaper -->
+                            <td>
+                                {{ row.title.title }}
+                            </td>
+                            <!-- Heading / Snippet -->
+                            <td>
+                                {{ row.heading }}<br>{{ row.snippet }}<br>{{ row.textSnip }}<br>{{
+                                    row.articleMatch }}
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
