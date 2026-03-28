@@ -38,6 +38,7 @@ export const useUserDataStore = defineStore('userData', () => {
     // listItem.TroveListLinkedPerson
     // listItem.TroveListArticleMinedStatusCounts
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const userListArticles = ref([])
     // A 2 dimensional array - First index is same as listItem
     //   TroveListArticleViewedIdx 
@@ -225,7 +226,7 @@ export const useUserDataStore = defineStore('userData', () => {
         idxViewedArticle,
         viewedArticleMetadata
         ) {
-        console.log ('userData/updMetadataTypeArticleLinks - Number', viewedArticleMetadata.length)
+        console.log (`userData/updMetadataTypeArticleLinks - Article:%s, Number Metadata:%s`, viewedArticleId, viewedArticleMetadata.length)
         // Wait until metadata is loaded
         if (!this.metadataTypeByMetadata.length) {
             setTimeout(() =>

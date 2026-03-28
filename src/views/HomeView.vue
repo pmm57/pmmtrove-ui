@@ -7,7 +7,6 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 import { useUserDataStore } from '@/stores/userdata'
-// import { useAuth0 } from '@auth0/auth0-vue'
 import { useAuth } from '@/auth'
 import { shouldUseAuth0 } from '@/auth/authMode'
 import MockLogin from '@/components/MockLogin.vue'
@@ -53,9 +52,7 @@ const selectedTroveUserId = ref('')
 const loadingTroveUseData = ref(false) // Shows / Hides loadingMsg
 var inUserId = ''
 var intervalLoading = null
-const verifyPrompt = 'Verify'
 const verifyChgPrompt = 'Verify Changed User'
-var verifyUserPrompt = 'Verify'
 //
 // const isLoading = ref(false)
 const isAuthenticated = ref(false)
@@ -65,8 +62,6 @@ const user = ref(null)
 
 onMounted(async () => {
     const auth = await useAuth()
-
-    // isLoading.value = auth.isLoading
     isAuthenticated.value = auth.isAuthenticated
     error.value = auth.error
     loginWithRedirect.value = auth.loginWithRedirect
@@ -116,17 +111,17 @@ watch(
         clearInterval(intervalLoading);
         intervalLoading = null;
         navBarStore.disableTroveLists = false;
-        console.log(`HomeView Watch: Good TO Go`)
-        // If this was a Browser Reload from Server - CHeck if the full load never completed
+        console.log(`HomeView Watch: Good TO Go - Is Authenticated:%s, Verified User:%s`, isAuthenticated.value.value, userData.verifiedTroveUserName)
+        // If this was a Browser Reload from Server - Check if the full load never completed
         // Indicated by last list that is not a duplicate having a count > 0 but no artices in its Article Array
         //  force a refresh
         if (userReloadLists) {
             userReloadLists = false;
             for (let i = (userData.userLists.length - 1); i >= 0; --i) {
-                console.log(`HomeView Reload: Duplicate Ids %s, Check Id %s, Count %s, Length %s`,
-                    userData.userDuplicateListIds, userData.userLists[i].TroveListId, userData.userListArticles[i].TroveListItemCount, userData.userListArticles[i].length)
+                console.log(`HomeView Reload: Duplicate List Id %s, Check Id %s, Count %s, Length %s`,
+                    userData.userDuplicateListIds, userData.userLists[i].TroveListId, userData.userLists[i].TroveListItemCount, userData.userListArticles[i].length)
                 if (userData.userDuplicateListIds.includes(Number(userData.userLists[i].TroveListId))) {
-                    console.log(`HomeView Reload: Matched Duplicate ID %s`, userData.userLists[i].TroveListId)
+                    console.log(`HomeView Reload: Matched Duplicate ID %s try next`, userData.userLists[i].TroveListId)
                 } else {
                     console.log(`HomeView Reload: Check Array Length %s %s`, userData.userLists[i].TroveListId, userData.userListArticles[i].length)
                     if (userData.userListArticles[i].length == 0) {
@@ -182,7 +177,7 @@ async function getUserTroveIds(authUserName) {
                 break
             case 1: // If only one then use that as Trove User Id
                 inUserId = authUserWithTroveId.value[0].troveUserId
-                console.log(`HomeView/getUserTroveIds verifyTroveUser: %s `, inUserId)
+                console.log(`HomeView/getUserTroveIds Direct verifyTroveUser: %s `, inUserId)
                 verifyTroveUser(false)
                 break
             default: // Ask user to select one
@@ -249,13 +244,15 @@ function resetTroveUser() {
     resetServer()
 }
 
-if (isAuthenticated.value.value && !userData.verifiedTroveUserName) {
-    console.log(`HomeView Start call getUserTroveIds`)
-    getUserTroveIds(user.value.value?.nickname)
-} else {
-    // Coming back from another tab
-    authUserWithTroveId.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
-}
+console.log(`HomeView Started`)
+// if (isAuthenticated.value.value && !userData.verifiedTroveUserName) {
+//     console.log(`HomeView Start call getUserTroveIds`)
+//     getUserTroveIds(user.value.value?.nickname)
+// } else {
+//     // Coming back from another tab
+//     console.log(`HomeView Tabbed`)
+//     authUserWithTroveId.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
+// }
 </script>
 
 <template>

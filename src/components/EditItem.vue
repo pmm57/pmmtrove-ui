@@ -1,3 +1,4 @@
+<!-- eslint-disable @typescript-eslint/no-unused-vars -->
 <script setup>
 const props = defineProps(['action', 'icon'])
 </script>
