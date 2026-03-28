@@ -41,7 +41,7 @@ function handleMessage(e) {
         case 'sseUserLists':
             // console.log(sseRetrieve.event);
             // console.log (JSON.stringify(sseRetrieve))
-            userData.clearStore
+            userData.clearCacheStore()
             userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
             userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
             userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
