@@ -5,7 +5,7 @@ const props = defineProps(['action', 'icon'])
 
 <template>
   <a @click.prevent="$emit('click-item')" href="#">
-    <span class="tooltiptext">{{ action }}</span>
+    <span class="tooltiptext" v-html="action"></span>
     <i :class="icon"></i>
   </a>
 </template>
