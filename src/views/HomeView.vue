@@ -177,6 +177,7 @@ async function getUserTroveIds(authUserName) {
                 break
             case 1: // If only one then use that as Trove User Id
                 inUserId = authUserWithTroveId.value[0].troveUserId
+                userData.verifiedTroveUserName = true
                 console.log(`HomeView/getUserTroveIds Direct verifyTroveUser: %s `, inUserId)
                 verifyTroveUser(false)
                 break
