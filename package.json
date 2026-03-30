@@ -13,6 +13,8 @@
   "dependencies": {
     "@auth0/auth0-vue": "^2.5.0",
     "@popperjs/core": "^2.11.8",
+    "@vueuse/core": "^14.2.1",
+    "@vueuse/math": "^14.2.1",
     "bootstrap": "^5.3.3",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import ArticleUrls from '@/components/ArticleUrls.vue'
 import EditItem from '@/components/EditItem.vue'
 import { useDoFetch } from '@/components/DoFetch.js';
@@ -10,6 +10,43 @@ const router = useRouter();
 import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
 const userData = useUserDataStore();
+//
+import { useMagicKeys, whenever, useActiveElement } from '@vueuse/core'
+import { logicAnd, logicOr } from '@vueuse/math'
+const { i, u, t, h, s} = useMagicKeys()
+const activeElement = useActiveElement()
+const notTyping = computed(() =>
+    !['INPUT', 'TEXTAREA'].includes(activeElement.value?.tagName)
+)
+const firstVisibleRow = computed(() => {
+    const rows = visibleResults()
+    return rows.length > 0 ? rows[0] : null
+})
+whenever(
+    logicAnd(logicOr(i,u), notTyping),
+    () => {
+        if (firstVisibleRow.value) {
+            ignoreArticleClick(firstVisibleRow.value.idxSearch)
+        }
+    }
+)
+whenever(
+    logicAnd(logicOr(h,s), notTyping),
+    () => {
+        if (firstVisibleRow.value) {
+            hideRowClick(firstVisibleRow.value.idxSearch)
+        }
+    }
+)
+// T → open first row Trove link
+whenever(
+  logicAnd(t, notTyping),
+  () => {
+    const row = firstVisibleRow.value
+    if (row) window.open(row.troveUrl, '_blank')
+  }
+)
+
 //
 let loading = ref(false);
 let loadingText = ref("");
@@ -45,7 +82,6 @@ let toggleKnown = ref(false);
 let toggleRelevant = ref(false);
 let toggleIgnored = ref(false);
 let toggleHidden = ref(false);
-let dupColour = "lightGreen";
 
 let searchCounts = reactive({
     nbrNew: 0,
@@ -473,7 +509,7 @@ function showResultRow(status) {
 function visibleResults() {
     // console.log ('visibleSearch Start', JSON.stringify(searchResults.value))
     const visibleSearch =  searchResults.value
-    .map((row, index) => ({ ...row, idxSearch: index }))
+    .map((row, index) => ({ ...row, idxSearch: index, dateBackground: {backgroundColour: identifyDuplicate(index)}}))
     .filter(item => showResultRow(item.status));
     // console.log ('visibleSearch Fin', JSON.stringify(visibleSearch))
     return visibleSearch
@@ -505,7 +541,7 @@ function showStatus(status) {
     }
 }
 //
-function showIgnoreAction(status) {
+function showIgnoreAction(index, status) {
     showIgnoreActionFiller = ' - ';
     switch (status) {
         case 'HideArticle':
@@ -515,24 +551,28 @@ function showIgnoreAction(status) {
             return false;
         case 'Ignored':
             ignoreAction.value = "UnIgnore";
+            if (index == 0) ignoreAction.value = "<u>U</u>nIgnore";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             return true;
         case 'IgnoreArticle':
-            ignoreAction.value = "Remove from TO Ignore List";
+            ignoreAction.value = "Unlink from TO Ignore List";
+            if (index == 0) ignoreAction.value = "<u>U</u>nlink from TO Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             return true;
         case 'LowRelevance':
         default:
-            ignoreAction.value = "Add to Ignore List";
+            ignoreAction.value = "Include in Ignore List";
+            if (index == 0) ignoreAction.value = "<u>I</u>nclude in <u>I</u>gnore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-down";
             return true;
     }
 }
 //
-function showHideAction(status) {
+function showHideAction(index, status) {
     switch (status) {
         case 'HideArticle':
-            hideAction.value = "Unhide Row";
+            hideAction.value = "Show Row";
+            if (index == 0) hideAction.value = "<u>S</u>how Row";
             hideIcon.value = "bi bi-toggle-on";
             break;
         // case 'Known':
@@ -542,6 +582,7 @@ function showHideAction(status) {
         // case 'LowRelevance':
         default:
             hideAction.value = "Hide Row";
+            if (index == 0) hideAction.value = "<u>H</u>ide Row";
             hideIcon.value = "bi bi-toggle-off";
     }
     return true;
@@ -560,35 +601,33 @@ function foundCount(which, countInfo, last) {
 }
 //
 function identifyDuplicate(index) {
-    let dupFound = false;
-    if (searchResults.value[index].articleMatch < 50) {
-        dupFound = true;
-    } else {
-        if (index == (searchResults.value.length - 1)) return {};
-        if (searchResults.value[index + 1].articleMatch > 50) return {};
-        // Are the dates close enough
-        const thisDateParts = searchResults.value[index].date.split('-');
-        const thisDate = new Date(thisDateParts[0], thisDateParts[1], thisDateParts[2]);
-        const thisDate_ms = thisDate.getTime();
-        const nextDateParts = searchResults.value[index + 1].date.split('-');
-        const nextDate = new Date(nextDateParts[0], nextDateParts[1], nextDateParts[2]);
-        const nextDate_ms = nextDate.getTime();
-        const daysApart = Math.round(Math.abs((thisDate_ms) - (nextDate_ms)) / 8.64e7);
-        if (daysApart < 6) {
-            if (dupColour == "lightYellow") {
-                dupColour = "lightGreen";
-            } else {
-                dupColour = "lightYellow";
-            }
-            dupFound = true;
-        }
-    }
-    //
-    if (dupFound) {
-        // console.log ("identifyDuplicate:", dupFound)
-        return { background: dupColour };
-    }
-    return {};
+    // let dupColour = "transparent";
+    if (searchResults.value[index].articleMatch < 50) return "lightGreen"// Article within 6 days of previous and close match
+    // if (index == (searchResults.value.length - 1)) return "transparent";
+    // if (searchResults.value[index + 1].articleMatch > 50) return "transparent";
+    //     // Are the dates close enough
+    //     const thisDateParts = searchResults.value[index].date.split('-');
+    //     const thisDate = new Date(thisDateParts[0], thisDateParts[1], thisDateParts[2]);
+    //     const thisDate_ms = thisDate.getTime();
+    //     const nextDateParts = searchResults.value[index + 1].date.split('-');
+    //     const nextDate = new Date(nextDateParts[0], nextDateParts[1], nextDateParts[2]);
+    //     const nextDate_ms = nextDate.getTime();
+    //     const daysApart = Math.round(Math.abs((thisDate_ms) - (nextDate_ms)) / 8.64e7);
+    //     if (daysApart < 6) {
+    //         if (dupColour == "lightYellow") {
+    //             dupColour = "lightGreen";
+    //         } else {
+    //             dupColour = "lightYellow";
+    //         }
+    //         dupFound = true;
+    //     }
+    // //
+    // if (dupFound) {
+    //     // console.log ("identifyDuplicate:", dupFound)
+    //     // return { background: dupColour };
+    //     return dupColour };
+    // }
+    return "transparent";
 }
 //
 function waitSearch() {
@@ -627,7 +666,7 @@ function waitSearch() {
                 console.log('Pages ', searchData.total, searchData.pageNbr, searchData.maxPageNbr);
             }
             searchResults.value = [...returnData.searchResults];
-            const shortSearchResults = searchResults.value.map(({ id, status }) => ({id,status}));
+            const shortSearchResults = searchResults.value.map(({ id, status, articleMatch }) => ({id,status,articleMatch}));
             console.log('SearchTroveView/waitSearch Return Result = ', JSON.stringify(shortSearchResults));
             source.close();
             outputSearch();
@@ -716,7 +755,7 @@ onMounted(() => {
 //
 <template>
     <div class="card">
-        <details :open="showSearchToggle">
+        <details :open="showSearchToggle" @toggle="showSearchToggle = $event.target.open">
             <summary>Trove Search</summary>
             <div class="card-body">
                 <!-- Search Input -->
@@ -847,9 +886,9 @@ onMounted(() => {
                             <th>Row</th>
                             <th>Date</th>
                             <th>Article ID</th>
-                            <th>Action</th>
                             <th>Known</th>
                             <th>Relevant</th>
+                            <th>Action</th>
                             <th>Link</th>
                             <th>Newspaper</th>
                             <th>Heading / Snippet</th>
@@ -860,7 +899,7 @@ onMounted(() => {
                             <!-- Row -->
                             {{ row.idxSearch + 1 }}
                             <!-- Date -->
-                            <td :style="identifyDuplicate(index)">
+                            <td :style="row.dateBackground">
                                 {{ row.date }}
                             </td>
                             <!-- Article Id -->
@@ -884,15 +923,6 @@ onMounted(() => {
                             <td v-else>
                                 {{ row.id }}
                             </td>
-                            <!-- Action -->
-                            <td>
-                                <EditItem v-if="showIgnoreAction(row.status)"
-                                    @click-item="ignoreArticleClick(row.idxSearch)" :action="ignoreAction"
-                                    :icon="ignoreIcon" />
-                                {{ showIgnoreActionFiller }}
-                                <EditItem v-if="showHideAction(row.status)" @click-item="hideRowClick(row.idxSearch)"
-                                    :action="hideAction" :icon="hideIcon" />
-                            </td>
                             <!-- Known -->
                             <td>
                                 {{ showStatus(row.status) }}
@@ -904,9 +934,25 @@ onMounted(() => {
                             <td v-else>
                                 No
                             </td>
+                            <!-- Action -->
+                            <td>
+                                <EditItem v-if="showIgnoreAction(index, row.status)"
+                                    @click-item="ignoreArticleClick(row.idxSearch)" :action="ignoreAction"
+                                    :icon="ignoreIcon" />
+                                {{ showIgnoreActionFiller }}
+                                <EditItem v-if="showHideAction(index, row.status)" @click-item="hideRowClick(row.idxSearch)"
+                                    :action="hideAction" :icon="hideIcon" />
+                            </td>
                             <!-- Link -->
                             <td>
-                                <a :href="row.troveUrl" target="_blank">Trove</a>
+                                <a :href="row.troveUrl" target="_blank">
+                                    <template v-if="index === 0">
+                                        <span class="hotkey">T</span>rove
+                                    </template>
+                                    <template v-else>
+                                        Trove
+                                    </template>
+                                </a>
                             </td>
                             <!-- Newspaper -->
                             <td>
@@ -925,4 +971,10 @@ onMounted(() => {
     </div>
 </template>
 
-<style></style>
+<style>
+.hotkey {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+}
+</style>
