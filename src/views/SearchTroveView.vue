@@ -18,10 +18,7 @@ const activeElement = useActiveElement()
 const notTyping = computed(() =>
     !['INPUT', 'TEXTAREA'].includes(activeElement.value?.tagName)
 )
-const firstVisibleRow = computed(() => {
-    const rows = visibleResults()
-    return rows.length > 0 ? rows[0] : null
-})
+const firstVisibleRow = computed(() => visibleRows.value[0] ?? null);
 whenever(
     logicAnd(logicOr(i,u), notTyping),
     () => {
@@ -46,7 +43,6 @@ whenever(
     if (row) window.open(row.troveUrl, '_blank')
   }
 )
-
 //
 let loading = ref(false);
 let loadingText = ref("");
@@ -69,9 +65,9 @@ let limitYears = ref([]);
 let limitYear = ref("");
 let ignoreAction = ref('');
 let ignoreIcon = ref('');
-let showIgnoreActionFiller = '';
-let hideAction = ref('');
-let hideIcon = ref('');
+// let showIgnoreActionFiller = '';
+// let hideAction = ref('');
+// let hideIcon = ref('');
 let showReturnedYears = ref(false);
 let disableSearch = ref(true);
 let disableNext = ref(false);
@@ -123,6 +119,15 @@ let searchCountState = ref([])
 let searchCountDecade = ref([])
 let searchCountYear = ref([])
 //
+const visibleRows = computed(() => {
+  return searchResults.value
+    .map((row, index) => ({
+      ...row,
+      idxSearch: index,
+      dateBackground: { backgroundColor: identifyDuplicate(index) },
+    }))
+    .filter(item => showResultRow(item.status));
+});
 //  Post array of Ignored Article Id's
 function updateIgnoredArticles() {
     var items = [];
@@ -189,7 +194,7 @@ function checkSearchPhrase() {
     } else {
         //remove "
         if (isPhrase) {
-            var str = searchFor.value.replaceAll('"');
+            var str = searchFor.value.replaceAll('"','');
             // console.log (str);
             searchFor.value = str;
         }
@@ -506,14 +511,14 @@ function showResultRow(status) {
     }
 }
 //
-function visibleResults() {
-    // console.log ('visibleSearch Start', JSON.stringify(searchResults.value))
-    const visibleSearch =  searchResults.value
-    .map((row, index) => ({ ...row, idxSearch: index, dateBackground: {backgroundColour: identifyDuplicate(index)}}))
-    .filter(item => showResultRow(item.status));
-    // console.log ('visibleSearch Fin', JSON.stringify(visibleSearch))
-    return visibleSearch
-}
+// function visibleResults() {
+//     // console.log ('visibleSearch Start', JSON.stringify(searchResults.value))
+//     const visibleSearch =  searchResults.value
+//     .map((row, index) => ({ ...row, idxSearch: index, dateBackground: {backgroundColour: identifyDuplicate(index)}}))
+//     .filter(item => showResultRow(item.status));
+//     // console.log ('visibleSearch Fin', JSON.stringify(visibleSearch))
+//     return visibleSearch
+// }
 
 //
 function haveListLink(listId) {
@@ -541,52 +546,100 @@ function showStatus(status) {
     }
 }
 //
-function showIgnoreAction(index, status) {
-    showIgnoreActionFiller = ' - ';
-    switch (status) {
-        case 'HideArticle':
-        case 'Known':
-        case 'KnownStored':
-            showIgnoreActionFiller = '';
-            return false;
-        case 'Ignored':
-            ignoreAction.value = "UnIgnore";
-            if (index == 0) ignoreAction.value = "<u>U</u>nIgnore";
-            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-            return true;
-        case 'IgnoreArticle':
-            ignoreAction.value = "Unlink from TO Ignore List";
-            if (index == 0) ignoreAction.value = "<u>U</u>nlink from TO Ignore List";
-            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-            return true;
-        case 'LowRelevance':
-        default:
-            ignoreAction.value = "Include in Ignore List";
-            if (index == 0) ignoreAction.value = "<u>I</u>nclude in <u>I</u>gnore List";
-            ignoreIcon.value = "bi bi-file-earmark-arrow-down";
-            return true;
-    }
+function getIgnoreUI(index, status) {
+  // return null when the ignore action should not be shown
+  switch (status) {
+    case 'HideArticle':
+    case 'Known':
+    case 'KnownStored':
+      return null;
+    case 'Ignored':
+      return {
+        filler: ' - ',
+        action: index === 0 ? '<u>U</u>nIgnore' : 'UnIgnore',
+        icon: 'bi bi-file-earmark-arrow-up',
+      };
+    case 'IgnoreArticle':
+      return {
+        filler: ' - ',
+        action: index === 0 ? '<u>U</u>nlink from TO Ignore List' : 'Unlink from TO Ignore List',
+        icon: 'bi bi-file-earmark-arrow-up',
+      };
+    case 'UnignoreArticle':
+      // optional: if you want a UI state for this
+      return {
+        filler: ' - ',
+        action: index === 0 ? '<u>U</u>nIgnore' : 'UnIgnore',
+        icon: 'bi bi-file-earmark-arrow-up',
+      };
+
+    default:
+      return {
+        filler: ' - ',
+        action: index === 0 ? '<u>I</u>nclude in <u>I</u>gnore List' : 'Include in Ignore List',
+        icon: 'bi bi-file-earmark-arrow-down',
+      };
+  }
 }
-//
-function showHideAction(index, status) {
-    switch (status) {
-        case 'HideArticle':
-            hideAction.value = "Show Row";
-            if (index == 0) hideAction.value = "<u>S</u>how Row";
-            hideIcon.value = "bi bi-toggle-on";
-            break;
-        // case 'Known':
-        // case 'KnownStored':
-        // case 'Ignored':
-        // case 'IgnoreArticle':
-        // case 'LowRelevance':
-        default:
-            hideAction.value = "Hide Row";
-            if (index == 0) hideAction.value = "<u>H</u>ide Row";
-            hideIcon.value = "bi bi-toggle-off";
-    }
-    return true;
+
+function getHideUI(index, status) {
+  if (status === 'HideArticle') {
+    return {
+      action: index === 0 ? '<u>S</u>how Row' : 'Show Row',
+      icon: 'bi bi-toggle-on',
+    };
+  }
+  return {
+    action: index === 0 ? '<u>H</u>ide Row' : 'Hide Row',
+    icon: 'bi bi-toggle-off',
+  };
 }
+// function showIgnoreAction(index, status) {
+//     showIgnoreActionFiller = ' - ';
+//     switch (status) {
+//         case 'HideArticle':
+//         case 'Known':
+//         case 'KnownStored':
+//             showIgnoreActionFiller = '';
+//             return false;
+//         case 'Ignored':
+//             ignoreAction.value = "UnIgnore";
+//             if (index == 0) ignoreAction.value = "<u>U</u>nIgnore";
+//             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
+//             return true;
+//         case 'IgnoreArticle':
+//             ignoreAction.value = "Unlink from TO Ignore List";
+//             if (index == 0) ignoreAction.value = "<u>U</u>nlink from TO Ignore List";
+//             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
+//             return true;
+//         case 'LowRelevance':
+//         default:
+//             ignoreAction.value = "Include in Ignore List";
+//             if (index == 0) ignoreAction.value = "<u>I</u>nclude in <u>I</u>gnore List";
+//             ignoreIcon.value = "bi bi-file-earmark-arrow-down";
+//             return true;
+//     }
+// }
+// //
+// function showHideAction(index, status) {
+//     switch (status) {
+//         case 'HideArticle':
+//             hideAction.value = "Show Row";
+//             if (index == 0) hideAction.value = "<u>S</u>how Row";
+//             hideIcon.value = "bi bi-toggle-on";
+//             break;
+//         // case 'Known':
+//         // case 'KnownStored':
+//         // case 'Ignored':
+//         // case 'IgnoreArticle':
+//         // case 'LowRelevance':
+//         default:
+//             hideAction.value = "Hide Row";
+//             if (index == 0) hideAction.value = "<u>H</u>ide Row";
+//             hideIcon.value = "bi bi-toggle-off";
+//     }
+//     return true;
+// }
 //
 function foundCount(which, countInfo, last) {
     // console.log ('foundCount', which, countInfo, last)
@@ -895,7 +948,7 @@ onMounted(() => {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(row, index) in visibleResults()" :key="row.id">
+                        <tr v-for="(row, index) in visibleRows" :key="row.id">
                             <!-- Row -->
                             {{ row.idxSearch + 1 }}
                             <!-- Date -->
@@ -935,13 +988,21 @@ onMounted(() => {
                                 No
                             </td>
                             <!-- Action -->
-                            <td>
-                                <EditItem v-if="showIgnoreAction(index, row.status)"
-                                    @click-item="ignoreArticleClick(row.idxSearch)" :action="ignoreAction"
-                                    :icon="ignoreIcon" />
-                                {{ showIgnoreActionFiller }}
-                                <EditItem v-if="showHideAction(index, row.status)" @click-item="hideRowClick(row.idxSearch)"
-                                    :action="hideAction" :icon="hideIcon" />
+                             <td>
+                                <template v-if="getIgnoreUI(index, row.status)">
+                                    <EditItem
+                                    @click-item="ignoreArticleClick(row.idxSearch)"
+                                    :action="getIgnoreUI(index, row.status).action"
+                                    :icon="getIgnoreUI(index, row.status).icon"
+                                    />
+                                    {{ getIgnoreUI(index, row.status).filler }}
+                                </template>
+
+                                <EditItem
+                                    @click-item="hideRowClick(row.idxSearch)"
+                                    :action="getHideUI(index, row.status).action"
+                                    :icon="getHideUI(index, row.status).icon"
+                                />
                             </td>
                             <!-- Link -->
                             <td>
