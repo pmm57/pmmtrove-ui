@@ -65,11 +65,9 @@ let limitYears = ref([]);
 let limitYear = ref("");
 let ignoreAction = ref('');
 let ignoreIcon = ref('');
-// let showIgnoreActionFiller = '';
-// let hideAction = ref('');
-// let hideIcon = ref('');
 let showReturnedYears = ref(false);
 let disableSearch = ref(true);
+let disablePrev = ref(false);
 let disableNext = ref(false);
 let disableUpdateIgnored = ref(true);
 let toggleNew = ref(true);
@@ -78,7 +76,11 @@ let toggleKnown = ref(false);
 let toggleRelevant = ref(false);
 let toggleIgnored = ref(false);
 let toggleHidden = ref(false);
-
+let currentSearchId = 0;
+let searchPageSize = 50;
+let searchTotal = 0;
+let searchMaxPageNbr = 0;
+let visiblePageNbr = ref(0);
 let searchCounts = reactive({
     nbrNew: 0,
     nbrKnown: 0,
@@ -88,44 +90,34 @@ let searchCounts = reactive({
     nbrToUnignore: 0,
     nbrHidden: 0
 });
-let newSearch = reactive({})
+let thisSearch = reactive({})
 // {searchId: 0,
-// searchString: '',  
-// next: false,
-//   total: 0,
-//   pageNbr: 1,
-//   maxPageNbr: n,
-// nextURL: '',
+// searchString: ''
 // searchAllStates: true,
 // searchLimitState: '',
 // searchAllYears: true,
 // searchLimitDecade: '',
 // searchLimitYear: ''};
-let searchData = reactive({});
-// {  searchId: 0,  
-//   searchString: '',  
-//   next: false,
-//   total: 0,
-//   pageNbr: 1,
-//   maxPageNbr: n,
-//   nextURL: '',
-//   searchAllStates: true,
-//   searchLimitState: '',
-//   searchAllYears: true,
-//   searchLimitDecade: '',
-//   searchLimitYear: ''
 let searchResults = ref([])
 let searchCountState = ref([])
 let searchCountDecade = ref([])
 let searchCountYear = ref([])
 //
 const visibleRows = computed(() => {
+  const startIndex = (visiblePageNbr.value - 1) * searchPageSize;
+  const endIndex = startIndex + searchPageSize;
   return searchResults.value
-    .map((row, index) => ({
-      ...row,
-      idxSearch: index,
-      dateBackground: { backgroundColor: identifyDuplicate(index) },
-    }))
+    .slice(startIndex, endIndex)
+    .map((row, index) => {
+      const globalIndex = startIndex + index;
+      return {
+        ...row,
+        idxSearch: globalIndex,
+        dateBackground: {
+          backgroundColor: identifyDuplicate(globalIndex),
+        },
+      };
+    })
     .filter(item => showResultRow(item.status));
 });
 //  Post array of Ignored Article Id's
@@ -171,7 +163,6 @@ function updateIgnoredArticles() {
     searchCounts.nbrToIgnore = 0;
     searchCounts.nbrToUnignore = 0;
     disableUpdateIgnored.value = true;
-    // searchBlock.value = false;
 }
 //
 function checkSearchPhrase() {
@@ -255,6 +246,11 @@ function hideRowClick(idxSearch) {
             ++searchCounts.nbrHidden;
     }
 }
+//
+function onSearchToggle(event) {
+  showSearchToggle.value = event.target.open
+  searchBlock.value = false
+}
 // On clicking the ignore row
 // New => IgnoreArticle => Remove from TO Ignore
 //                      => OR Save => Ignored
@@ -294,14 +290,11 @@ function ignoreArticleClick(idxSearch) {
 }
 //
 function getSearch() {
+    visiblePageNbr.value = 0
+    searchMaxPageNbr = 0
     var aSearch = {
         searchId: 0,
         searchString: searchFor.value,
-        next: false,
-        total: 0,
-        pageNbr: 0,
-        maxPageNbr: 0,
-        nextURL: '',
         searchAllStates: allStates.value,
         searchLimitState: '',
         searchAllYears: allYears.value,
@@ -333,16 +326,16 @@ function changeSearchText() {
 // Has user changed the search
 function changeSearch() {
     //
-    newSearch = getSearch();
-    // console.log (`Check Same Search %s %s`, newSearch.searchId, searchData.searchId);
-    if (newSearch.searchId != searchData.searchId) {
+    thisSearch = getSearch();
+    // console.log (`Check Same Search %s %s`, thisSearch.searchId, currentSearchId);
+    if (thisSearch.searchId != currentSearchId) {
         disableSearch.value = false;
     } else {
         disableSearch.value = true;
     }
 }
 //
-function outputSearch() {
+function countSearchResults() {
     // Get counts
     searchCountState.value = [];
     searchCountDecade.value = [];
@@ -423,7 +416,7 @@ function outputSearch() {
         ++searchCountDecade.value[decadeIndex].nbrFound;
         //
         // Only Count Years if a Decade Limit has been done
-        if (!(searchData.searchAllYears)) {
+        if (!(thisSearch.searchAllYears)) {
             var resYear = element.date.slice(0, 4);
             var yearIndex = searchCountYear.value.findIndex(item => item.label == resYear);
             if (yearIndex == -1) { // Sort Insert
@@ -451,16 +444,11 @@ function outputSearch() {
     //
     // If there is a search result with a decade limit
     // then there should be Year Counts
-    if ((searchData.hasOwnProperty('searchCountYear'))
+    if ((thisSearch.hasOwnProperty('searchCountYear'))
         && (searchCountYear.value.length > 0)) {
         showReturnedYears.value = true;
     } else {
         showReturnedYears.value = false;
-    }
-    //
-    disableNext.value = false;
-    if (searchData.nextURL == 'done') {
-        disableNext.value = true;
     }
     //
     loading.value = false;
@@ -510,16 +498,6 @@ function showResultRow(status) {
             }
     }
 }
-//
-// function visibleResults() {
-//     // console.log ('visibleSearch Start', JSON.stringify(searchResults.value))
-//     const visibleSearch =  searchResults.value
-//     .map((row, index) => ({ ...row, idxSearch: index, dateBackground: {backgroundColour: identifyDuplicate(index)}}))
-//     .filter(item => showResultRow(item.status));
-//     // console.log ('visibleSearch Fin', JSON.stringify(visibleSearch))
-//     return visibleSearch
-// }
-
 //
 function haveListLink(listId) {
     let haveLink = userData.userListsReady
@@ -581,7 +559,7 @@ function getIgnoreUI(index, status) {
       };
   }
 }
-
+//
 function getHideUI(index, status) {
   if (status === 'HideArticle') {
     return {
@@ -594,52 +572,6 @@ function getHideUI(index, status) {
     icon: 'bi bi-toggle-off',
   };
 }
-// function showIgnoreAction(index, status) {
-//     showIgnoreActionFiller = ' - ';
-//     switch (status) {
-//         case 'HideArticle':
-//         case 'Known':
-//         case 'KnownStored':
-//             showIgnoreActionFiller = '';
-//             return false;
-//         case 'Ignored':
-//             ignoreAction.value = "UnIgnore";
-//             if (index == 0) ignoreAction.value = "<u>U</u>nIgnore";
-//             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-//             return true;
-//         case 'IgnoreArticle':
-//             ignoreAction.value = "Unlink from TO Ignore List";
-//             if (index == 0) ignoreAction.value = "<u>U</u>nlink from TO Ignore List";
-//             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-//             return true;
-//         case 'LowRelevance':
-//         default:
-//             ignoreAction.value = "Include in Ignore List";
-//             if (index == 0) ignoreAction.value = "<u>I</u>nclude in <u>I</u>gnore List";
-//             ignoreIcon.value = "bi bi-file-earmark-arrow-down";
-//             return true;
-//     }
-// }
-// //
-// function showHideAction(index, status) {
-//     switch (status) {
-//         case 'HideArticle':
-//             hideAction.value = "Show Row";
-//             if (index == 0) hideAction.value = "<u>S</u>how Row";
-//             hideIcon.value = "bi bi-toggle-on";
-//             break;
-//         // case 'Known':
-//         // case 'KnownStored':
-//         // case 'Ignored':
-//         // case 'IgnoreArticle':
-//         // case 'LowRelevance':
-//         default:
-//             hideAction.value = "Hide Row";
-//             if (index == 0) hideAction.value = "<u>H</u>ide Row";
-//             hideIcon.value = "bi bi-toggle-off";
-//     }
-//     return true;
-// }
 //
 function foundCount(which, countInfo, last) {
     // console.log ('foundCount', which, countInfo, last)
@@ -654,36 +586,12 @@ function foundCount(which, countInfo, last) {
 }
 //
 function identifyDuplicate(index) {
-    // let dupColour = "transparent";
     if (searchResults.value[index].articleMatch < 50) return "lightGreen"// Article within 6 days of previous and close match
-    // if (index == (searchResults.value.length - 1)) return "transparent";
-    // if (searchResults.value[index + 1].articleMatch > 50) return "transparent";
-    //     // Are the dates close enough
-    //     const thisDateParts = searchResults.value[index].date.split('-');
-    //     const thisDate = new Date(thisDateParts[0], thisDateParts[1], thisDateParts[2]);
-    //     const thisDate_ms = thisDate.getTime();
-    //     const nextDateParts = searchResults.value[index + 1].date.split('-');
-    //     const nextDate = new Date(nextDateParts[0], nextDateParts[1], nextDateParts[2]);
-    //     const nextDate_ms = nextDate.getTime();
-    //     const daysApart = Math.round(Math.abs((thisDate_ms) - (nextDate_ms)) / 8.64e7);
-    //     if (daysApart < 6) {
-    //         if (dupColour == "lightYellow") {
-    //             dupColour = "lightGreen";
-    //         } else {
-    //             dupColour = "lightYellow";
-    //         }
-    //         dupFound = true;
-    //     }
-    // //
-    // if (dupFound) {
-    //     // console.log ("identifyDuplicate:", dupFound)
-    //     // return { background: dupColour };
-    //     return dupColour };
-    // }
     return "transparent";
 }
 //
 function waitSearch() {
+    var started = true;
     loading.value = true;
     searchBlock.value = false;
     loadingText.value = "Loading Search Results ";
@@ -691,7 +599,7 @@ function waitSearch() {
         loadingText.value += '.';
     }, 500);
     if (!!window.EventSource) {
-        var searchName = userData.troveDetails.troveUserId + ':searchNbr' + newSearch.searchId;
+        var searchName = userData.troveDetails.troveUserId + ':searchNbr' + thisSearch.searchId;
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/loadSearch/' + searchName;
         // console.log(streamName);
         var source = new EventSource(streamName, { withCredentials: true });
@@ -706,23 +614,23 @@ function waitSearch() {
         source.addEventListener(searchName, function (e) {
             clearInterval(intervalLoading);
             var returnData = JSON.parse(e.data);
-            // console.log('SearchTroveView/waitSearch Return Result = ', JSON.stringify(returnData));
-            if (returnData.next) {
-                searchData.next = returnData.next;
-                searchData.maxPageNbr = returnData.maxPageNbr;
-                searchData.pageNbr = returnData.pageNbr;
-                searchData.nextURL = returnData.nextURL;
+            console.log(`SearchTroveView/waitSearch Return Started:%s NumberReturned:%s`, started, returnData.searchResults.length);
+            if (started){
+                searchTotal = returnData.total;
+                searchMaxPageNbr = Math.ceil(searchTotal / searchPageSize);
+                searchResults.value = [...returnData.searchResults];
+                started = false;
+                chgVisiblePage(1)
             } else {
-                searchData = JSON.parse(e.data);
-                searchData.maxPageNbr = Math.ceil(searchData.total / 50.0);
-                searchData.pageNbr = 1;
-                console.log('Pages ', searchData.total, searchData.pageNbr, searchData.maxPageNbr);
+                searchResults.value.push(...returnData.searchResults);
             }
-            searchResults.value = [...returnData.searchResults];
-            const shortSearchResults = searchResults.value.map(({ id, status, articleMatch }) => ({id,status,articleMatch}));
-            console.log('SearchTroveView/waitSearch Return Result = ', JSON.stringify(shortSearchResults));
-            source.close();
-            outputSearch();
+            // const shortSearchResults = searchResults.value.map(({ id, status, articleMatch }) => ({id,status,articleMatch}));
+            // console.log('SearchTroveView/waitSearch Return Result = ', JSON.stringify(shortSearchResults));
+            //
+            if (returnData.nextURL == 'done') {
+                source.close();
+            }
+            countSearchResults();
         }, false);
         source.addEventListener('error', function (e) {
             if (e.target.readyState == EventSource.CLOSED) {
@@ -737,21 +645,16 @@ function waitSearch() {
     }
 }
 //
-function postSearch(blnNew) {
+function postSearch() {
     // searchField.blur();
     disableSearch.value = true;
+    disablePrev.value = true;
     disableNext.value = true;
     disableUpdateIgnored.value = true;
     //
-    // console.log('Post Search ', blnNew, JSON.stringify(searchData.nextURL))
-    newSearch = getSearch();
-    if (!(blnNew)) { // Next
-        newSearch.next = true;
-        newSearch.maxPageNbr = searchData.maxPageNbr;
-        newSearch.pageNbr = ++searchData.pageNbr;
-        newSearch.nextURL = searchData.nextURL;
-    }
-    console.log('Post this Search', JSON.stringify(newSearch));
+    thisSearch = getSearch();
+    currentSearchId = thisSearch.searchId
+    console.log('Post this Search', JSON.stringify(thisSearch));
     const options = {
         method: "post",
         mode: "cors",
@@ -761,11 +664,27 @@ function postSearch(blnNew) {
             'Content-Type': 'application/json'
         },
         //make sure to serialize your JSON body
-        body: JSON.stringify(newSearch)
+        body: JSON.stringify(thisSearch)
     };
     // console.log(options);
     useDoFetch('Search', "/searchTrove/", options)
     waitSearch();
+}
+//
+function chgVisiblePage(by) {
+    visiblePageNbr.value = Math.min(
+        searchMaxPageNbr,
+        Math.max(1, visiblePageNbr.value + by)
+    );
+    disablePrev.value = false;
+    if (visiblePageNbr.value == 1) {
+        disablePrev.value = true;
+    }
+    disableNext.value = false;
+    if (visiblePageNbr.value == searchMaxPageNbr) {
+        disableNext.value = true;
+    }
+    console.log (`SearchTroveView/chgVisiblePage by:%s now:%s`, by, visiblePageNbr.value)
 }
 //
 function openList(listLink) {
@@ -774,7 +693,7 @@ function openList(listLink) {
     router.push({ name: 'userListPage' });
 }
 // Initialisation
-searchData.searchId = 0;
+thisSearch.searchId = 0;
 // Get passed Data
 // console.log ('Passed Person: ', navStore.troveSearchName);
 if (navStore.troveSearchName != '') {
@@ -801,14 +720,14 @@ if (navStore.troveSearchName != '') {
 }
 onMounted(() => {
   if (navStore.troveSearchName !== '') {
-    postSearch(true);
+    postSearch();
   }
 });
 </script>
 //
 <template>
     <div class="card">
-        <details :open="showSearchToggle" @toggle="showSearchToggle = $event.target.open">
+        <details :open="showSearchToggle" @toggle="onSearchToggle">
             <summary>Trove Search</summary>
             <div class="card-body">
                 <!-- Search Input -->
@@ -861,7 +780,7 @@ onMounted(() => {
                     </div>
                 </div>
                 <div class="form-group">
-                    <input @click.prevent="postSearch(true)" :class="{ disabled: disableSearch }"
+                    <input @click.prevent="postSearch()" :class="{ disabled: disableSearch }"
                         class="btn btn-primary" type="button" value="Search">
                 </div>
             </div>
@@ -875,17 +794,20 @@ onMounted(() => {
         </div>
         <div v-show="searchBlock" class="card-body">
             <div>
-                <div v-show="searchData.maxPageNbr > 1" id="currentPage">
-                    Page {{ searchData.pageNbr }} of {{ searchData.maxPageNbr }}
+                <div v-show="searchMaxPageNbr > 1" id="currentPage">
+                    Page {{ visiblePageNbr }} of {{ searchMaxPageNbr }}
+                    <button @click.prevent="chgVisiblePage(-1)" type="button" :class="{ disabled: disablePrev }"
+                        class="btn btn-primary">Prev Page
+                    </button>
+                    <button @click.prevent="chgVisiblePage(1)" type="button" :class="{ disabled: disableNext }"
+                        class="btn btn-primary">Next Page
+                    </button>
+                    <button @click.prevent="updateIgnoredArticles" type="button" class="btn btn-primary"
+                        :class="{ disabled: disableUpdateIgnored }">Save {{ searchCounts.nbrToIgnore +
+                            searchCounts.nbrToUnignore }} Ignored/Unignore
+                        Articles
+                    </button>                
                 </div>
-                <button @click.prevent="postSearch(false)" type="button" :class="{ disabled: disableNext }"
-                    class="btn btn-primary">Next
-                    Page</button>
-                - <button @click.prevent="updateIgnoredArticles" type="button" class="btn btn-primary"
-                    :class="{ disabled: disableUpdateIgnored }">Save {{ searchCounts.nbrToIgnore +
-                        searchCounts.nbrToUnignore }} Ignored/Unignore
-                    Articles</button>
-                <br>
                 <div class="form-check-inline">
                     <input type="checkbox" class="form-check-input" id="toggleNewSwitch" v-model="toggleNew"
                         ref="refNewSwitch">
@@ -923,7 +845,7 @@ onMounted(() => {
                     </span>
                 </div>
                 <div id="searchResultsCounts">
-                    Articles Found <b>{{ searchData.total }}</b> - New <b>{{ searchCounts.nbrNew }}</b>
+                    Articles Found <b>{{ searchTotal }}</b> - New <b>{{ searchCounts.nbrNew }}</b>
                     - Known <b>{{ searchCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchCounts.nbrLessRelevant }}</b>
                     - To
                     Ignore <b>{{ searchCounts.nbrToIgnore }}</b>

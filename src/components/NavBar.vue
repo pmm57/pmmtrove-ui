@@ -83,14 +83,28 @@ const logoutUser = () => {
                 <a href="#" class="nav-link" @click.prevent="logoutUser">Logout</a>
             </li>
         </ul>
+        <RouterLink to="/" class="navbar-brand ms-auto d-flex align-items-center">
+            <img
+                src="https://assets.nla.gov.au/logos/trove/trove-colour.svg"
+                alt="Trove"
+                class="trove-brand-img"
+            />
+        </RouterLink>
     </div>
     <div v-show="errorsStore.arrayErrors.length > 0" class="card text-center">
         <button @click.prevent="errorsStore.arrayErrors = []" type="button" class="btn btn-primary">Clear
             Errors</button>
         <ul>
-            <li v-for="error in errorsStore.arrayErrors">
+            <li v-for="(error, index) in errorsStore.arrayErrors" :key="index">
                 {{ error.msg + "-" + error.param }}
             </li>
         </ul>
     </div>
 </template>
+<style>
+.trove-brand-img {
+  height: 100%;
+  max-height: 40px; /* Bootstrap navbar default */
+  width: auto;
+}
+</style>
