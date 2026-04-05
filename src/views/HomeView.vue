@@ -304,7 +304,7 @@ console.log(`HomeView Started`)
                 Your Trove Lists</button>
         </div>
     </div>
-    <div v-if="userData.userListsReady && (authUserWithTroveId.length > 0) && userData.verifiedTroveUserName"
+    <div v-if="userData.userListsReady && (authUserWithTroveId.length > 1) && userData.verifiedTroveUserName"
         class="card col-sm-4 text-center">
         <button @click.prevent="userData.verifiedTroveUserName = false" class="btn btn-primary">Change
             User</button>
