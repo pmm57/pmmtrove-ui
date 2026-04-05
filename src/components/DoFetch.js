@@ -1,10 +1,23 @@
 import { useErrorsArrayStore } from '@/stores/errorsarray'
+// Used for Timeout Check  in NavBar.vue
+function isOnRenderHost(fullUrl) {
+  try {
+    const u = new URL(fullUrl, window.location.origin)
+    return u.hostname.endsWith('.onrender.com')
+  } catch {
+    return false
+  }
+}
+const LAST_RENDER_FETCH_KEY = 'lastRenderFetchAt'
 // Async Do Fetch
 const serverUrl = import.meta.env.VITE_SERVER_URL
 export async function useDoFetch (calledFrom, inUrl, options) {
     const errorsStore = useErrorsArrayStore()
     const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
     const request = new Request(serverUrl + inUrl, options);
+    if (isOnRenderHost(serverUrl + inUrl)) {
+        localStorage.setItem(LAST_RENDER_FETCH_KEY, String(Date.now()))
+    }
     const fetchPromise = fetch(request);
     const response = await fetchPromise
         .catch (error => {
