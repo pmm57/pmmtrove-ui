@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { resetServer } from '@/components/ResetUser.js';
@@ -9,17 +9,97 @@ import { useErrorsArrayStore } from '@/stores/errorsarray'
 const errorsStore = useErrorsArrayStore()
 import { useAuth } from '@/auth'
 import { shouldUseAuth0 } from '@/auth/authMode'
+import { useDoFetch } from '@/components/DoFetch.js';
 
+// ---- auth state ----
 const logout = ref(null)
 const error = ref(null)
 const isAuthenticated = ref(false)
-
+// --------------------
+// Timeout config
+// --------------------
+const serverUrl = import.meta.env.VITE_SERVER_URL
+const WARN_AFTER_MS = 10 * 60 * 1000
+const RENDER_SPINDOWN_MS = 15 * 60 * 1000
+const LAST_RENDER_FETCH_KEY = 'lastRenderFetchAt'
+// Time tracking
+const nowTick = ref(Date.now())
+const lastRenderFetchAt = ref(Date.now())
+let tickTimer = null
+let storageHandler = null
+//
+function isRenderBackendBase() {
+    try {
+        const u = new URL(serverUrl, window.location.origin)
+        return u.hostname.endsWith('.onrender.com')
+    } catch {
+        return false
+    }
+}
+//
+function readLastFetch() {
+    const raw = localStorage.getItem(LAST_RENDER_FETCH_KEY)
+    const n = raw ? Number(raw) : NaN
+    return Number.isFinite(n) ? n : Date.now()
+}
+// Derived times
+const idleMs = computed(() => Math.max(0, nowTick.value - lastRenderFetchAt.value))
+const minutesIdle = computed(() => Math.floor(idleMs.value / 60000))
+const minutesToSpinDown = computed(() =>
+    Math.max(0, Math.ceil((RENDER_SPINDOWN_MS - idleMs.value) / 60000))
+)
+//
+const showTimeoutBanner = computed(() => {
+    if (!isRenderBackendBase()) return false
+    return idleMs.value >= WARN_AFTER_MS
+})
+// --------------------
+// Manual keep-alive
+// --------------------
+async function manualKeepAlive() {
+    const options = {
+        method: "get",
+        mode: "cors",
+        credentials: "include", // to send HTTP only cookies
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    };
+    const data = await useDoFetch('verifyServerUp', "/check", options);
+    if (typeof data == 'boolean') {
+        errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
+        console.log('manualKeepAlive: Error in Fetch');
+    }
+    lastRenderFetchAt.value = readLastFetch()
+}
 onMounted(async () => {
     const auth = await useAuth()
     isAuthenticated.value = auth.isAuthenticated
     error.value = auth.error
     logout.value = auth.logout
+    // Only enable timeout logic when backend is on Render
+    if (!isRenderBackendBase()) return
+    // Initialise last activity
+    lastRenderFetchAt.value = readLastFetch()
+    // Tick once per second for live countdown
+    tickTimer = setInterval(() => {
+        nowTick.value = Date.now()
+    }, 1000)
+    // Sync across tabs/windows
+    storageHandler = (ev) => {
+        if (ev.key === LAST_RENDER_FETCH_KEY) {
+        lastRenderFetchAt.value = readLastFetch()
+        }
+    }
+    window.addEventListener('storage', storageHandler)
+})
 
+onBeforeUnmount(() => {
+    // Nothing was set up locally, so nothing to clean up
+    if (!isRenderBackendBase()) return
+    if (tickTimer) clearInterval(tickTimer)
+    if (storageHandler) window.removeEventListener('storage', storageHandler)
 })
 
 const logoutUser = () => {
@@ -99,6 +179,26 @@ const logoutUser = () => {
                 {{ error.msg + "-" + error.param }}
             </li>
         </ul>
+    </div>
+    <div v-if="showTimeoutBanner"
+    class="alert alert-warning m-2 d-flex align-items-center justify-content-between"
+    >
+        <div>
+            <strong>Backend inactivity warning</strong>
+            <div class="small">
+                No Render-backend activity for ~{{ minutesIdle }} minutes.
+                Render free-tier services may spin down after 15 minutes without inbound traffic.
+                (approx {{ minutesToSpinDown }} minutes remaining)
+            </div>
+        </div>
+        <div class="ms-3">
+            <button
+                class="btn btn-sm btn-primary"
+                @click="manualKeepAlive"
+            >
+            {{ 'Keep alive now' }}
+            </button>
+        </div>
     </div>
 </template>
 <style>
