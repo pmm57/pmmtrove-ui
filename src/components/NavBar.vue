@@ -120,8 +120,8 @@ const logoutUser = () => {
 
 </script>
 <template>
-    <div class="navbar navbar-expand-sm bg-light">
-        <ul class="navbar-nav">
+    <div class="navbar navbar-expand-sm bg-light d-flex">
+        <ul class="navbar-nav mx-auto">
             <li class="nav-item">
                 <RouterLink to="/" class="nav-link" :class="{ disabled: navStore.disableHome }">Home</RouterLink>
             </li>
@@ -163,7 +163,7 @@ const logoutUser = () => {
                 <a href="#" class="nav-link" @click.prevent="logoutUser">Logout</a>
             </li>
         </ul>
-        <RouterLink to="/" class="navbar-brand ms-auto d-flex align-items-center">
+        <RouterLink to="/" class="navbar-brand d-flex align-items-center">
             <img
                 src="https://assets.nla.gov.au/logos/trove/trove-colour.svg"
                 alt="Trove"
