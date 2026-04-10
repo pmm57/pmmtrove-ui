@@ -298,9 +298,10 @@ verifyServerUp()
     <main>
         <NavBar />
         <div id="positionModals"></div>
-        <div class="container-fluid w-auto">
-            <!-- <RouterView @setup-user-sse="setupUserSse"/> -->
-            <RouterView />
+        <div class="container-fluid">
+            <div class="row justify-content-center">
+                    <RouterView />
+            </div>
         </div>
     </main>
 </template>

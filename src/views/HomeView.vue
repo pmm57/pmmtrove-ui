@@ -257,9 +257,6 @@ console.log(`HomeView Started`)
 </script>
 
 <template>
-    <!-- <div v-if="isLoading.value" class="card text-center">
-        <p>{{ loadingMsg }}</p>
-    </div> -->
     <div v-if="!isAuthenticated.value" class="card col-sm-4 text-center">
         <MockLogin v-if="!shouldUseAuth0" />
         <template v-else>

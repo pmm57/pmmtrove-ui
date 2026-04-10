@@ -226,7 +226,7 @@ export const useUserDataStore = defineStore('userData', () => {
         idxViewedArticle,
         viewedArticleMetadata
         ) {
-        console.log (`userData/updMetadataTypeArticleLinks - Article:%s, Number Metadata:%s`, viewedArticleId, viewedArticleMetadata.length)
+        console.log (`userData/updMetadataTypeArticleLinks - this.metadataTypeByMetadata.length:%s Article:%s, Number Metadata:%s`, this.metadataTypeByMetadata.length, viewedArticleId, viewedArticleMetadata.length)
         // Wait until metadata is loaded
         if (!this.metadataTypeByMetadata.length) {
             setTimeout(() =>

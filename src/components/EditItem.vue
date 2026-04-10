@@ -3,7 +3,7 @@
 const props = defineProps(['action', 'icon'])
 </script>
 
-<template>
+<template v-show="action.length > 0">
   <a @click.prevent="$emit('click-item')" href="#">
     <span class="tooltiptext" v-html="action"></span>
     <i :class="icon"></i>
