@@ -1,4 +1,6 @@
 import { useErrorsArrayStore } from '@/stores/errorsarray'
+import { useNavBarStore } from '@/stores/navbar'
+const navStore = useNavBarStore()
 // Used for Timeout Check  in NavBar.vue
 function isOnRenderHost(fullUrl) {
   try {
