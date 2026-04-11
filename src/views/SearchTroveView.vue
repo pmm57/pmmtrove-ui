@@ -914,9 +914,8 @@ onMounted(() => {
                 <div id="searchResultsCounts">
                     Page {{ visiblePageNbr }} Showing {{searchPageSize}} Article Status Counts - New <b>{{ searchPageCounts.nbrNew }}</b>
                     - Known <b>{{ searchPageCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchPageCounts.nbrLessRelevant }}</b>
-                    - To
-                    Ignore <b>{{ searchPageCounts.nbrToIgnore }}</b>
-                    - Ignored <b>{{ searchPageCounts.nbrIgnored }}</b> - To Unignore <b>{{ searchPageCounts.nbrToUnignore }}</b>
+                    - Ignored <b>{{ searchPageCounts.nbrIgnored }}</b> 
+                    - To Ignore <b>{{ searchPageCounts.nbrToIgnore }}</b>- To Unignore <b>{{ searchPageCounts.nbrToUnignore }}</b>
                 </div>
                 <div class="form-check-inline">
                     <input type="checkbox" class="form-check-input" id="toggleNewSwitch" v-model="toggleNew"
