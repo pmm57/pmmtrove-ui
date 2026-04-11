@@ -18,6 +18,7 @@ export const useNavBarStore = defineStore('navBar', () => {
   const savedPerson = reactive({});
   const storyPersonNew = ref(false)
   const troveSearchName = ref("")
+  const lastRenderFetchAt = ref(String(Date.now()))
   //
   function clearNavBar() {
     this.disableHome = false
@@ -54,5 +55,6 @@ export const useNavBarStore = defineStore('navBar', () => {
     savedPerson,
     storyPersonNew,
     troveSearchName,
+    lastRenderFetchAt,
   clearNavBar }
 })
