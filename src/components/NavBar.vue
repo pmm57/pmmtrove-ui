@@ -21,12 +21,9 @@ const isAuthenticated = ref(false)
 const serverUrl = import.meta.env.VITE_SERVER_URL
 const WARN_AFTER_MS = 10 * 60 * 1000
 const RENDER_SPINDOWN_MS = 15 * 60 * 1000
-const LAST_RENDER_FETCH_KEY = 'lastRenderFetchAt'
 // Time tracking
 const nowTick = ref(Date.now())
-const lastRenderFetchAt = ref(Date.now())
 let tickTimer = null
-let storageHandler = null
 //
 function isRenderBackendBase() {
     try {
@@ -36,14 +33,8 @@ function isRenderBackendBase() {
         return false
     }
 }
-//
-function readLastFetch() {
-    const raw = localStorage.getItem(LAST_RENDER_FETCH_KEY)
-    const n = raw ? Number(raw) : NaN
-    return Number.isFinite(n) ? n : Date.now()
-}
 // Derived times
-const idleMs = computed(() => Math.max(0, nowTick.value - lastRenderFetchAt.value))
+const idleMs = computed(() => Math.max(0, nowTick.value - navStore.lastRenderFetchAt))
 const minutesIdle = computed(() => Math.floor(idleMs.value / 60000))
 const minutesToSpinDown = computed(() =>
     Math.max(0, Math.ceil((RENDER_SPINDOWN_MS - idleMs.value) / 60000))
@@ -71,7 +62,6 @@ async function manualKeepAlive() {
         errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
         console.log('manualKeepAlive: Error in Fetch');
     }
-    lastRenderFetchAt.value = readLastFetch()
 }
 onMounted(async () => {
     const auth = await useAuth()
@@ -81,20 +71,10 @@ onMounted(async () => {
     // Only enable timeout logic when backend is on Render
     if (!isRenderBackendBase()) return
     // Initialise last activity
-    lastRenderFetchAt.value = readLastFetch()
     // Tick once per second for live countdown
     tickTimer = setInterval(() => {
         nowTick.value = Date.now()
-    }, 1000)
-    // Sync across tabs/windows
-    storageHandler = (ev) => {
-        console.log(`NavBar/storageHandler triggered:%s`, ev.key);
-        if (ev.key === LAST_RENDER_FETCH_KEY) {
-            lastRenderFetchAt.value = readLastFetch()
-            console.log(`NavBar/storageHandler lastRenderFetchAt:%s`, lastRenderFetchAt.value);
-        }
-    }
-    window.addEventListener('storage', storageHandler)
+    }, 30000)
 })
 
 onBeforeUnmount(() => {

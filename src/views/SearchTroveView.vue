@@ -85,7 +85,6 @@ const disablePrev = ref(false);
 const disableNext = ref(false);
 const disableUpdateIgnored = ref(true);
 const toggleNew = ref(true);
-const refNewSwitch = ref(null);
 const toggleKnown = ref(false);
 const toggleRelevant = ref(false);
 const toggleIgnored = ref(false);
@@ -177,7 +176,6 @@ function updateIgnoredArticles() {
         body: JSON.stringify(ignored)
     };
     useDoFetch('Ignore Articles', "/searchTrove/updateIgnored", options)
-    refNewSwitch.value.focus();
     countSearchResults();
     // searchPageCounts.nbrIgnored = searchPageCounts.nbrIgnored + searchPageCounts.nbrToIgnore - searchPageCounts.nbrToUnignore;
     // searchPageCounts.nbrToIgnore = 0;
@@ -918,24 +916,23 @@ onMounted(() => {
                     - To Ignore <b>{{ searchPageCounts.nbrToIgnore }}</b>- To Unignore <b>{{ searchPageCounts.nbrToUnignore }}</b>
                 </div>
                 <div class="form-check-inline">
-                    <input type="checkbox" class="form-check-input" id="toggleNewSwitch" v-model="toggleNew"
-                        ref="refNewSwitch">
+                    <input type="checkbox" class="form-check-input" id="toggleNewSwitch" v-model="toggleNew" @click="$event.target.blur()">
                     <label class="form-check-label" for="toggleNewSwitch">Show New Articles</label>
                 </div>
                 <div class="form-check-inline">
-                    <input type="checkbox" class="form-check-input" id="toggleKnownSwitch" v-model="toggleKnown">
+                    <input type="checkbox" class="form-check-input" id="toggleKnownSwitch" v-model="toggleKnown" @click="$event.target.blur()">
                     <label class="form-check-label" for="toggleKnownSwitch">Show Known Articles</label>
                 </div>
                 <div class="form-check-inline">
-                    <input type="checkbox" class="form-check-input" id="toggleRelevantSwitch" v-model="toggleRelevant">
+                    <input type="checkbox" class="form-check-input" id="toggleRelevantSwitch" v-model="toggleRelevant" @click="$event.target.blur()">
                     <label class="form-check-label" for="toggleRelevantSwitch">Show Less Relevant</label>
                 </div>
                 <div class="form-check-inline">
-                    <input type="checkbox" class="form-check-input" id="toggleIgnoredSwitch" v-model="toggleIgnored">
+                    <input type="checkbox" class="form-check-input" id="toggleIgnoredSwitch" v-model="toggleIgnored" @click="$event.target.blur()">
                     <label class="form-check-label" for="toggleIgnoredSwitch">Show Ignored Articles</label>
                 </div>
                 <div class="form-check-inline">
-                    <input type="checkbox" class="form-check-input" id="toggleHiddenSwitch" v-model="toggleHidden">
+                    <input type="checkbox" class="form-check-input" id="toggleHiddenSwitch" v-model="toggleHidden" @click="$event.target.blur()">
                     <label class="form-check-label" for="toggleHiddenSwitch">Show Hidden Articles</label>
                 </div>
                 <div id="returnedStates" v-show="showReturnedStates">
