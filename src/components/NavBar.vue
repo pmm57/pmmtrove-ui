@@ -88,6 +88,7 @@ onMounted(async () => {
     }, 1000)
     // Sync across tabs/windows
     storageHandler = (ev) => {
+        console.log(`NavBar/storageHandler triggered:%s`, ev.key);
         if (ev.key === LAST_RENDER_FETCH_KEY) {
             lastRenderFetchAt.value = readLastFetch()
             console.log(`NavBar/storageHandler lastRenderFetchAt:%s`, lastRenderFetchAt.value);
