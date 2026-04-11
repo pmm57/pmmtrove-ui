@@ -1,6 +1,5 @@
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 import { useNavBarStore } from '@/stores/navbar'
-const navStore = useNavBarStore()
 // Used for Timeout Check  in NavBar.vue
 function isOnRenderHost(fullUrl) {
   try {
@@ -14,6 +13,7 @@ function isOnRenderHost(fullUrl) {
 const serverUrl = import.meta.env.VITE_SERVER_URL
 export async function useDoFetch (calledFrom, inUrl, options) {
     const errorsStore = useErrorsArrayStore()
+    const navStore = useNavBarStore()
     const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
     const request = new Request(serverUrl + inUrl, options);
     if (isOnRenderHost(serverUrl + inUrl)) {
