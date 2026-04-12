@@ -84,6 +84,7 @@ const disableSearch = ref(true);
 const disablePrev = ref(false);
 const disableNext = ref(false);
 const disableUpdateIgnored = ref(true);
+const diasbledButtonText = ref('')
 const toggleNew = ref(true);
 const toggleKnown = ref(false);
 const toggleRelevant = ref(false);
@@ -108,6 +109,7 @@ let thisSearch = {searchId: 0,
 const thisSearchText = ref('')
 const visiblePageNbr = ref(0);
 const searchPageCounts = reactive({
+    nbrShown: 0,
     nbrNew: 0,
     nbrKnown: 0,
     nbrLessRelevant: 0,
@@ -177,9 +179,6 @@ function updateIgnoredArticles() {
     };
     useDoFetch('Ignore Articles', "/searchTrove/updateIgnored", options)
     countSearchResults();
-    // searchPageCounts.nbrIgnored = searchPageCounts.nbrIgnored + searchPageCounts.nbrToIgnore - searchPageCounts.nbrToUnignore;
-    // searchPageCounts.nbrToIgnore = 0;
-    // searchPageCounts.nbrToUnignore = 0;
     disableUpdateIgnored.value = true;
     lastActionSaved.value = "";
 }
@@ -324,6 +323,10 @@ function ignoreArticleClick(doing, idxSearch) {
             ++searchPageCounts.nbrToIgnore;
     }
     if ((searchPageCounts.nbrToIgnore > 0) || (searchPageCounts.nbrToUnignore > 0)) {
+        diasbledButtonText.value = "Save "
+        if (searchPageCounts.nbrToIgnore > 0) diasbledButtonText.value += searchPageCounts.nbrToIgnore + " Ignored "
+        if (searchPageCounts.nbrToUnignore > 0) diasbledButtonText.value += searchPageCounts.nbrToUnignore + " Unignore"
+        diasbledButtonText.value += " Articles"
         disableUpdateIgnored.value = false;
     }
     // console.log ('ignoreArticleClick Done');
@@ -384,6 +387,7 @@ function countSearchResults() {
     searchAllCounts.nbrKnown = 0;
     searchAllCounts.nbrIgnored = 0;
     searchAllCounts.nbrLessRelevant = 0;
+    searchPageCounts.nbrShown = 0;
     searchPageCounts.nbrNew = 0;
     searchPageCounts.nbrKnown = 0;
     searchPageCounts.nbrIgnored = 0;
@@ -394,6 +398,7 @@ function countSearchResults() {
     const end = start + searchPageSize;
     searchResults.value.forEach((element, index) => {
         var onPage = index >= start && index < end;
+        if (onPage) ++searchPageCounts.nbrShown;
         //
         switch (element.status) {
             case 'Known':
@@ -901,16 +906,14 @@ onMounted(() => {
                     </div>
                     <div id="actionButtons">
                         <button @click.prevent="updateIgnoredArticles()" type="button" class="btn btn-primary ms-2"
-                            :class="{ disabled: disableUpdateIgnored }">Save {{ searchPageCounts.nbrToIgnore +
-                                searchPageCounts.nbrToUnignore }} Ignored/Unignore
-                            Articles
+                            :class="{ disabled: disableUpdateIgnored }"> {{ diasbledButtonText }}
                         </button>
                         <button v-if="lastActionSaved.length > 0" @click.prevent="undoLastAction" type="button" class="btn btn-primary ms-2"> {{ lastActionSaved }} 
                         </button>                
                     </div>
                 </div>
                 <div id="searchResultsCounts">
-                    Page {{ visiblePageNbr }} Showing {{searchPageSize}} Article Status Counts - New <b>{{ searchPageCounts.nbrNew }}</b>
+                    Page {{ visiblePageNbr }} Showing {{searchPageCounts.nbrShown}} Article Status Counts - New <b>{{ searchPageCounts.nbrNew }}</b>
                     - Known <b>{{ searchPageCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchPageCounts.nbrLessRelevant }}</b>
                     - Ignored <b>{{ searchPageCounts.nbrIgnored }}</b> 
                     - To Ignore <b>{{ searchPageCounts.nbrToIgnore }}</b>- To Unignore <b>{{ searchPageCounts.nbrToUnignore }}</b>
