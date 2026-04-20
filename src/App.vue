@@ -31,7 +31,7 @@ function handleMessage(e) {
     const sseRetrieve = JSON.parse(e.data);
     var listIdx = 0
     var articleIdx = 0
-    console.log('App.vue SSE tiggered: ', userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
+    // console.log('App.vue SSE tiggered: ', userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
     if (sseRetrieve.sseUser != userData.troveDetails.troveUserId) {
         console.log(`App.vue/handleMessge UNMATCHED USER: %s - %s - %s`, sseRetrieve.event, userData.troveDetails.troveUserId, sseRetrieve.sseUser);
         return;
@@ -51,7 +51,7 @@ function handleMessage(e) {
             userData.updateAllLists(sseRetrieve.cacheUserLists)
             if (sseRetrieve.cacheViewedArticles.length > 0) {
                 userData.viewedArticles = sseRetrieve.cacheViewedArticles // Only has data on Reload
-                // console.log('sseUserLists - Viewed Articles ', JSON.stringify(sseRetrieve.cacheViewedArticles))
+                // console.log('App/sseUserLists - Viewed Articles ', JSON.stringify(sseRetrieve.cacheViewedArticles))
             }
             if (sseRetrieve.request == 'Reload') userData.userListsReady = true
             break
@@ -80,7 +80,7 @@ function handleMessage(e) {
             const cacheListArticles = sseRetrieve.cacheUserLists.TroveListArticles
             // Update List Details
             delete sseRetrieve.cacheUserLists.TroveListArticles
-            // console.log('sseUserListsArticles Update List Index %s Load State %s %s',
+            // console.log('App/sseUserListsArticles Update List Index %s Load State %s %s',
             //   sseRetrieve.updatedListIndex, userData.userLists[sseRetrieve.updatedListIndex].TroveListLoadState, sseRetrieve.cacheUserLists.TroveListLoadState)
             userData.userLists.splice(sseRetrieve.updatedListIndex, 1, sseRetrieve.cacheUserLists) // Triggers Reactivity
             // Update List Articles
@@ -92,16 +92,16 @@ function handleMessage(e) {
                     // Trim userListArticles
                     targetList.splice(cacheListArticles.length - 1)
                 }
-                // console.log('sseUserListsArticles Update List Count %s Articles %s Cache %s', userData.userLists[sseRetrieve.updatedListIndex].TroveListItemCount,
+                // console.log('App/sseUserListsArticles Update List Count %s Articles %s Cache %s', userData.userLists[sseRetrieve.updatedListIndex].TroveListItemCount,
                 //   userData.userListArticles[sseRetrieve.updatedListIndex].length, cacheListArticles.length)
                 var idxChange = -1;
                 for (let i = 0; i < cacheListArticles.length; i++) {
                     const obj1 = cacheListArticles[i] || {};
                     const obj2 = targetList[i] || {};
                     const diffProps = getObjDiff(obj1, obj2);
-                    // console.log('sseUserListsArticles %s Cache %s Old %s', i, JSON.stringify(obj1), JSON.stringify(obj2))
+                    // console.log('App/sseUserListsArticles %s Cache %s Old %s', i, JSON.stringify(obj1), JSON.stringify(obj2))
                     if (diffProps.length > 0) { // Article has changed
-                        console.log('sseUserListsArticles %s Diff %s - %s', i, diffProps.length, diffProps)
+                        console.log('App/sseUserListsArticles %s Diff %s - %s', i, diffProps.length, diffProps)
                         idxChange = i;
                         break;
                     };
@@ -112,7 +112,7 @@ function handleMessage(e) {
                 targetList.splice(idxChange, targetList.length - idxChange, ...newTail)
             } else {
                 userData.userListArticles[sseRetrieve.updatedListIndex] = cacheListArticles;
-                // console.log('sseUserListsArticles Update List Articles %s', userData.userListArticles.length, userData.userListArticles[sseRetrieve.updatedListIndex].length)
+                // console.log('App/sseUserListsArticles Update List Articles %s', userData.userListArticles.length, userData.userListArticles[sseRetrieve.updatedListIndex].length)
             }
             // Check if loading all lists
             if (!userData.userListsReady) {
@@ -151,7 +151,7 @@ function handleMessage(e) {
             // navStore.articleHref = "";
             // navStore.articleTabTitle = "Article";
             //
-            console.log(`sseUserViewedArticle ListIdx %s ListArticleIdx %s ViewedIdx %s`, sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, sseRetrieve.cacheViewedArticleIdx)
+            // console.log(`sseUserViewedArticle ListIdx %s ListArticleIdx %s ViewedIdx %s`, sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, sseRetrieve.cacheViewedArticleIdx)
             userData.updatingViewedArticleIdx = sseRetrieve.cacheViewedArticleIdx
             //
             // Updated User List Article with Viewed Info
@@ -161,7 +161,7 @@ function handleMessage(e) {
             // Updated Viewed Articles
             userData.viewedArticles[userData.updatingViewedArticleIdx] = sseRetrieve.cacheViewedArticle
             // Collect Viewed Article Metadata
-            // console.log('sseUserViewedArticle - Metadata 1 ', userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
+            // console.log('App/sseUserViewedArticle - Metadata 1 ', userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
             //   JSON.stringify(sseRetrieve.cacheViewedArticle.ViewedArticleMetadata))
             userData.updMetadataTypeArticleLinks(userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
                 userData.userListArticles[sseRetrieve.cacheListIdIdx][sseRetrieve.cacheListArticleIdx].TroveListArticleId,
@@ -169,7 +169,7 @@ function handleMessage(e) {
             break
         case 'sseArticlePossibleDupArticle':
             articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
-            // console.log ('sseArticlePossibleDupArticle', JSON.stringify(sseRetrieve))
+            // console.log ('App/sseArticlePossibleDupArticle', JSON.stringify(sseRetrieve))
             userData.viewedArticles[articleIdx].ViewedArticlePossibleDupArticle = sseRetrieve.cacheViewedArticlePossibleDupArticle
             break
         case 'sseReloadViewedArticle':
@@ -199,7 +199,7 @@ function handleMessage(e) {
             }
             break
         case 'sseStoryEvents':
-            console.log(`App/sseStoryEvents %s`, JSON.stringify(sseRetrieve))
+            // console.log(`App/sseStoryEvents %s`, JSON.stringify(sseRetrieve))
             userData.storyEventsForPersons = sseRetrieve.cacheStoryEvents
             break
         case 'sseServerError':

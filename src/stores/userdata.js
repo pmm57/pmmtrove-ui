@@ -185,7 +185,7 @@ export const useUserDataStore = defineStore('userData', () => {
     //
     // Reload metadataTypeByMetadata to be reactive
     function normalizeMetadataType (mt) {
-        // console.log (`usaerData/normalizeMetadataType - Type %s number %s`, mt.metadataType,  mt.arrayMetadata.length)
+        // console.log ('userDataData/normalizeMetadataType - Type %s number %s`, mt.metadataType,  mt.arrayMetadata.length)
         switch (mt.metadataType) {
             case 'Event':
                 return { 
@@ -215,9 +215,9 @@ export const useUserDataStore = defineStore('userData', () => {
         }
     }
     function reloadMetadataTypeByMetadata (metadataTypeByMetadata) {
-        // console.log (`userData/reloadMetadataTypeByMetadata %s`, JSON.stringify(metadataTypeByMetadata))
+        // console.log ('userData/reloadMetadataTypeByMetadata %s`, JSON.stringify(metadataTypeByMetadata))
         this.metadataTypeByMetadata = metadataTypeByMetadata.map(normalizeMetadataType)
-        // console.log (`userData/reloadMetadataTypeByMetadata Normalised %s`, JSON.stringify(this.metadataTypeByMetadata))
+        // console.log ('userData/reloadMetadataTypeByMetadata Normalised %s`, JSON.stringify(this.metadataTypeByMetadata))
     }
     // Whenever viewedArticles is updated update metadataTypeByMetadata to indicate Article link is enabled
     function updMetadataTypeArticleLinks(
@@ -226,7 +226,7 @@ export const useUserDataStore = defineStore('userData', () => {
         idxViewedArticle,
         viewedArticleMetadata
         ) {
-        console.log (`userData/updMetadataTypeArticleLinks - this.metadataTypeByMetadata.length:%s Article:%s, Number Metadata:%s`, this.metadataTypeByMetadata.length, viewedArticleId, viewedArticleMetadata.length)
+        // console.log ('userDataData/updMetadataTypeArticleLinks - this.metadataTypeByMetadata.length:%s Article:%s, Number Metadata:%s`, this.metadataTypeByMetadata.length, viewedArticleId, viewedArticleMetadata.length)
         // Wait until metadata is loaded
         if (!this.metadataTypeByMetadata.length) {
             setTimeout(() =>
@@ -249,10 +249,10 @@ export const useUserDataStore = defineStore('userData', () => {
                 idxViewedArticle
                 }))
                 .sort(sortMetadataTypeAndValue)
-        console.log ('userData/updMetadataTypeArticleLinks - Number Selected', selected.length)
+        // console.log ('userData/updMetadataTypeArticleLinks - Number Selected', selected.length)
 
         for (const entry of selected) {
-            console.log ('userData/updMetadataTypeArticleLinks - ', JSON.stringify(entry))
+            // console.log ('userData/updMetadataTypeArticleLinks - ', JSON.stringify(entry))
             const type = this.metadataTypeByMetadata.find(t => t.metadataType === entry.MetadataType)
             if (!type) {
                 console.log('ERROR Missing MetadataType', entry.MetadataType)
@@ -269,12 +269,12 @@ export const useUserDataStore = defineStore('userData', () => {
                 continue
             }
             // Direct reactive update — no deep cloning needed
-            // console.log (`userData/updMetadataTypeArticleLinks 1 Update - Article %s`, JSON.stringify(article))
-            // console.log (`userData/updMetadataTypeArticleLinks 2 Update - Entry %s`, JSON.stringify(entry))
+            // console.log ('userData/updMetadataTypeArticleLinks 1 Update - Article %s`, JSON.stringify(article))
+            // console.log ('userData/updMetadataTypeArticleLinks 2 Update - Entry %s`, JSON.stringify(entry))
             article.idxViewedArticle = entry.idxViewedArticle
             // Force reactivity
             value.articleListArray = [...value.articleListArray]
-            // console.log (`userData/updMetadataTypeArticleLinks 3 Update - %s - %s `, JSON.stringify(article), JSON.stringify(entry))
+            // console.log ('userData/updMetadataTypeArticleLinks 3 Update - %s - %s `, JSON.stringify(article), JSON.stringify(entry))
         }
     }
     //
