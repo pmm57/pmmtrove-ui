@@ -14,7 +14,7 @@ const serverUrl = import.meta.env.VITE_SERVER_URL
 export async function useDoFetch (calledFrom, inUrl, options) {
     const errorsStore = useErrorsArrayStore()
     const navStore = useNavBarStore()
-    const noJsonResponse = ["Ignore Articles", "Search", "Unignore Articles", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
+    const noJsonResponse = ["Search", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
     const request = new Request(serverUrl + inUrl, options);
     if (isOnRenderHost(serverUrl + inUrl)) {
         navStore.lastRenderFetchAt = String(Date.now())

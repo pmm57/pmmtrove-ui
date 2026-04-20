@@ -81,9 +81,19 @@ const showReturnedStates = ref(false);
 const showReturnedDecades = ref(false);
 const showReturnedYears = ref(false);
 const disableSearch = ref(true);
-const disablePrev = ref(false);
-const disableNext = ref(false);
+const disablePrev = computed(() => {
+  return (
+    visiblePageNbr.value < 2
+  )
+});
+const disableNext = computed(() => {
+  return (
+    visiblePageNbr.value === searchMaxPageNbr.value ||
+    visiblePageNbr.value === searchReadPageNbr.value
+  )
+})
 const disableUpdateIgnored = ref(true);
+const waitUpdateIgnored = ref(false)
 const diasbledButtonText = ref('')
 const toggleNew = ref(true);
 const toggleKnown = ref(false);
@@ -98,7 +108,8 @@ let searchAllCounts = reactive({
     nbrKnown: 0,
     nbrLessRelevant: 0,
     nbrIgnored: 0});
-let searchMaxPageNbr = 0;
+const searchMaxPageNbr = ref(0);
+const searchReadPageNbr = ref(0);
 let thisSearch = {searchId: 0,
     searchString: '',
     searchAllStates: true,
@@ -140,48 +151,6 @@ const visibleRows = computed(() => {
     })
     .filter(item => showResultRow(item.hidden, item.status));
 });
-//  Post array of Ignored Article Id's
-function updateIgnoredArticles() {
-    var items = [];
-    var action = ''
-    searchResults.value.forEach((el, index) => {
-        if (el.status == 'IgnoreArticle') {
-            // console.log ('Ignore Article ', el)
-            searchResults.value[index].status = 'Ignored';
-            action = 'add'
-        }
-        if (el.status == 'UnignoreArticle') {
-            // console.log ('Ignore Article ', el)
-            searchResults.value[index].status = 'New';
-            action = 'remove'
-        }
-        if (action.length > 0) {
-            items.push({ id: el.id, action: action });
-            action = ''
-        }
-    });
-    console.log("clicked Save Ignored action " + JSON.stringify(items));
-    const ignored = {
-        ignoreArticlesInfo: items,
-        reloadArticle: false
-    };
-    //
-    const options = {
-        method: "post",
-        mode: "cors",
-        credentials: "include", // to send HTTP only cookies
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        //make sure to serialize your JSON body
-        body: JSON.stringify(ignored)
-    };
-    useDoFetch('Ignore Articles', "/searchTrove/updateIgnored", options)
-    countSearchResults();
-    disableUpdateIgnored.value = true;
-    lastActionSaved.value = "";
-}
 //
 function onSearchToggle(event) {
   showSearchToggle.value = event.target.open
@@ -334,7 +303,7 @@ function ignoreArticleClick(doing, idxSearch) {
 //
 function getSearch() {
     visiblePageNbr.value = 0
-    searchMaxPageNbr = 0
+    searchMaxPageNbr.value = 0
     var aSearch = {
         searchId: 0,
         searchString: searchFor.value,
@@ -677,12 +646,14 @@ function waitSearch(started) {
             const results = returnData.searchResults.map(item => ({...item, hidden: false}));
             if (started){
                 searchAllCounts.nbrFound = returnData.searchTotalFound;
-                searchMaxPageNbr = Math.ceil(searchAllCounts.nbrFound / searchPageSize);
+                searchMaxPageNbr.value = Math.ceil(searchAllCounts.nbrFound / searchPageSize);
+                searchReadPageNbr.value = 1;
                 searchResults.value = [...results];
                 started = false;
                 chgVisiblePage(1)
             } else {
                 searchResults.value.push(...results);
+                ++searchReadPageNbr.value
             }
             // const shortSearchResults = searchResults.value.map(({ id, status, articleMatch }) => ({id,status,articleMatch}));
             // console.log('SearchTroveView/waitSearch Return Result = ', JSON.stringify(shortSearchResults));
@@ -717,8 +688,6 @@ function postSearch() {
     currentSearchId = thisSearch.searchId
     //
     disableSearch.value = true;
-    disablePrev.value = true;
-    disableNext.value = true;
     disableUpdateIgnored.value = true;
     showSearchToggle.value = false;
     loading.value = true;
@@ -743,17 +712,9 @@ function postSearch() {
 //
 function chgVisiblePage(by) {
     visiblePageNbr.value = Math.min(
-        searchMaxPageNbr,
+        searchMaxPageNbr.value,
         Math.max(1, visiblePageNbr.value + by)
     );
-    disablePrev.value = false;
-    if (visiblePageNbr.value == 1) {
-        disablePrev.value = true;
-    }
-    disableNext.value = false;
-    if (visiblePageNbr.value == searchMaxPageNbr) {
-        disableNext.value = true;
-    }
     countSearchResults();
     console.log (`SearchTroveView/chgVisiblePage by:%s now:%s`, by, visiblePageNbr.value)
         // Check if Next Page + 1 needs to be read
@@ -784,6 +745,53 @@ function openList(listLink) {
     console.log('SearchTroveView/openList ', listLink)
     navStore.listId = listLink;
     router.push({ name: 'userListPage' });
+}
+//  Post array of Ignored Article Id's
+async function updateIgnoredArticles() {
+    var items = [];
+    var action = ''
+    searchResults.value.forEach((el, index) => {
+        if (el.status == 'IgnoreArticle') {
+            // console.log ('Ignore Article ', el)
+            searchResults.value[index].status = 'Ignored';
+            action = 'add'
+        }
+        if (el.status == 'UnignoreArticle') {
+            // console.log ('Ignore Article ', el)
+            searchResults.value[index].status = 'New';
+            action = 'remove'
+        }
+        if (action.length > 0) {
+            items.push({ id: el.id, action: action });
+            action = ''
+        }
+    });
+    console.log("clicked Save Ignored action " + JSON.stringify(items));
+    const ignored = {
+        ignoreArticlesInfo: items,
+        reloadArticle: false
+    };
+    //
+    const options = {
+        method: "post",
+        mode: "cors",
+        credentials: "include", // to send HTTP only cookies
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        //make sure to serialize your JSON body
+        body: JSON.stringify(ignored)
+    };
+    countSearchResults();
+    disableUpdateIgnored.value = true;
+    diasbledButtonText.value = '';
+    lastActionSaved.value = "";
+    waitUpdateIgnored.value = true
+    const data = await useDoFetch('Ignore Articles', "/searchTrove/updateIgnored", options)
+    if (typeof data == 'boolean') {
+    }
+    waitUpdateIgnored.value = false
 }
 // Initialisation
 // Get passed Data
@@ -897,23 +905,23 @@ onMounted(() => {
                 <div class="d-flex justify-content-between align-items-center">
                     <div v-show="searchMaxPageNbr > 1" id="currentPage">
                         Page {{ visiblePageNbr }} of {{ searchMaxPageNbr }}
-                        <button @click.prevent="chgVisiblePage(-1)" type="button" :class="{ disabled: disablePrev }"
+                        <button @click.prevent="chgVisiblePage(-1)" type="button" :disabled="disablePrev"
                             class="btn btn-primary ms-2">Prev Page
                         </button>
-                        <button @click.prevent="chgVisiblePage(1)" type="button" :class="{ disabled: disableNext }"
+                        <button @click.prevent="chgVisiblePage(1)" type="button" :disabled="disableNext"
                             class="btn btn-primary ms-2">Next Page
                         </button>
                     </div>
                     <div id="actionButtons">
-                        <button @click.prevent="updateIgnoredArticles()" type="button" class="btn btn-primary ms-2"
-                            :class="{ disabled: disableUpdateIgnored }"> {{ diasbledButtonText }}
+                        <button v-if="diasbledButtonText.length > 0" @click.prevent="updateIgnoredArticles()" type="button" class="btn btn-primary ms-2"
+                            :class="{ disabled: disableUpdateIgnored && !waitUpdateIgnored}"> {{ diasbledButtonText }}
                         </button>
                         <button v-if="lastActionSaved.length > 0" @click.prevent="undoLastAction" type="button" class="btn btn-primary ms-2"> {{ lastActionSaved }} 
                         </button>                
                     </div>
                 </div>
                 <div id="searchResultsCounts">
-                    Page {{ visiblePageNbr }} Showing {{searchPageCounts.nbrShown}} Article Status Counts - New <b>{{ searchPageCounts.nbrNew }}</b>
+                    Page <b>{{ visiblePageNbr }}</b> Showing <b>{{searchPageCounts.nbrShown}}</b> Article Status Counts - New <b>{{ searchPageCounts.nbrNew }}</b>
                     - Known <b>{{ searchPageCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchPageCounts.nbrLessRelevant }}</b>
                     - Ignored <b>{{ searchPageCounts.nbrIgnored }}</b> 
                     - To Ignore <b>{{ searchPageCounts.nbrToIgnore }}</b>- To Unignore <b>{{ searchPageCounts.nbrToUnignore }}</b>
