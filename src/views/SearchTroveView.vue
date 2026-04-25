@@ -24,7 +24,7 @@ whenever(
     logicAnd(logicOr(i,u), notTyping),
     () => {
         if (firstVisibleRow.value) {
-            ignoreArticleClick(true, firstVisibleRow.value.idxSearch)
+            ignoreArticleClick(true, firstVisibleRow.value.id)
         }
     }
 )
@@ -33,7 +33,7 @@ whenever(
     logicAnd(logicOr(h,s), notTyping),
     () => {
         if (firstVisibleRow.value) {
-            hideRowClick(true, firstVisibleRow.value.idxSearch)
+            hideRowClick(firstVisibleRow.value.id)
         }
     }
 )
@@ -42,7 +42,7 @@ whenever(
     logicAnd(a, notTyping),
     () => {
         if (firstVisibleRow.value) {
-            addedListClick(firstVisibleRow.value.idxSearch)
+            addedListClick(firstVisibleRow.value.id)
         }
     }
 )
@@ -99,7 +99,7 @@ const toggleNew = ref(true);
 const toggleKnown = ref(false);
 const toggleRelevant = ref(false);
 const toggleIgnored = ref(false);
-const toggleHidden = ref(false);
+const toggleShowHidden = ref(false);
 let currentSearchId = 0;
 const searchPageSize = 25;
 let searchAllCounts = reactive({
@@ -116,6 +116,7 @@ let thisSearch = {searchId: 0,
     searchLimitState: '',
     searchAllYears: true,
     searchLimitDecade: '',
+    searchAllDecadeYears: true,
     searchLimitYear: ''};
 const thisSearchText = ref('')
 const visiblePageNbr = ref(0);
@@ -139,16 +140,6 @@ const visibleRows = computed(() => {
   const endIndex = startIndex + searchPageSize;
   return searchResults.value
     .slice(startIndex, endIndex)
-    .map((row, index) => {
-      const globalIndex = startIndex + index;
-      return {
-        ...row,
-        idxSearch: globalIndex,
-        dateBackground: {
-          backgroundColor: identifyDuplicate(globalIndex),
-        },
-      };
-    })
     .filter(item => showResultRow(item.hidden, item.status));
 });
 //
@@ -210,8 +201,8 @@ function checkIfAllYears() {
     showLimitToYear.value = true;
     allDecadeYears.value = true;
     limitDecade.value = "187";
-     checkLimitDecade ()
-     return
+    checkLimitDecade ()
+    return
 }
 //
 function checkLimitDecade () {
@@ -221,34 +212,55 @@ function checkLimitDecade () {
         { length: 10 },
         (_, i) => Number(`${limitDecade.value}${i}`)
     )
-    limitYear.value = limitYears.value[0]
-    console.log ("limitYears ", limitYears.value)
+    // limitYear.value = limitYears.value[0]
+    // console.log ("limitYears ", limitYears.value)
+    showLimitYear.value = false
     changeSearch()
 }
 //
-function saveAction (action, idxSearch) {
-    lastActionIdx.value = idxSearch
+function checkLimitYear () {
+    // Called when Include All Decade Years check box changes
+    if (showLimitYear.value) {
+        // Limit Years is displayed
+        // So hide it
+        showLimitYear.value = false
+        // Clear limitYear
+        limitYear.value = ''
+        changeSearch()
+    } else {
+        // Limit Years is hidden
+        // So show it
+        showLimitYear.value = true
+        // Need to select a year
+        disableSearch.value = true;
+    }
+}
+//
+function saveAction (action, articleId) {
+    lastActionIdx.value = articleId
     lastActionSaved.value = action 
 }
 function undoLastAction () {
     if (lastActionSaved.value == "Undo Last Ignore") ignoreArticleClick(false, lastActionIdx.value)
-    if (lastActionSaved.value == "Undo Last Hide") hideRowClick(false, lastActionIdx.value)
+    if (lastActionSaved.value == "Undo Last Hide") hideRowClick(lastActionIdx.value)
     lastActionSaved.value = ""
 }
-// On clicking the hide row
-function hideRowClick(doing, idxSearch) {
-    // console.log (`hideRowClick doing:%s, idx:%s`, doing, idxSearch);
-    if (doing) {
-        saveAction ("Undo Last Hide", idxSearch);
-        searchResults.value[idxSearch].hidden = true
+// On clicking the hide row icon - flip  hidden flag
+function hideRowClick(articleId) {
+    const row = searchResults.value.find(r => r.id === articleId);
+    console.log (`hideRowClick Article:%s, hidden:%s`, articleId, row.hidden);
+    if (row.hidden) { // Currently Hidden so show
+        row.hidden = false
     } else {
-        searchResults.value[idxSearch].hidden = false
+        saveAction ("Undo Last Hide", articleId);
+        row.hidden = true
     }
 }
 //
-function addedListClick(idxSearch) {
-    // console.log (`addedListClick doing:%s, idx:%s`, doing, idxSearch);
-    switch (searchResults.value[idxSearch].status) {
+function addedListClick(articleId) {
+    // console.log (`addedListClick doing:%s, idx:%s`, doing, articleId);
+    const row = searchResults.value.find(r => r.id === articleId);
+    switch (row.status) {
         case 'New':
             --searchPageCounts.nbrNew;
             break;
@@ -256,31 +268,32 @@ function addedListClick(idxSearch) {
             --searchPageCounts.nbrLessRelevant;
     }
     ++searchPageCounts.nbrKnown;
-    searchResults.value[idxSearch].status = 'Known';
+    row.status = 'Known';
 }
 // On clicking the ignore row
 // New => IgnoreArticle => Remove from TO Ignore
 //                      => OR Save => Ignored
 // Ignored => UnignoreArticle
 //
-function ignoreArticleClick(doing, idxSearch) {
-    // console.log (`ignoreArticleClick doing:%s, idx:%s`, doing, idxSearch);
-    if (doing) saveAction ("Undo Last Ignore", idxSearch)
-    switch (searchResults.value[idxSearch].status) { // Current Status
+function ignoreArticleClick(doing, articleId) {
+    // console.log (`ignoreArticleClick doing:%s, idx:%s`, doing, articleId);
+    if (doing) saveAction ("Undo Last Ignore", articleId)
+    const row = searchResults.value.find(r => r.id === articleId);
+    switch (row.status) { // Current Status
         case 'Ignored': // Is in DB IgnoredArticles List - Unignore It
-            searchResults.value[idxSearch].status = 'UnignoreArticle';
+            row.status = 'UnignoreArticle';
             ++searchPageCounts.nbrToUnignore;
             ignoreAction.value = "UnIgnore";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
         case 'UnignoreArticle': // Is in DB IgnoredArticles List Was to be Unignored - changed mind
-            searchResults.value[idxSearch].status = 'Ignored';
+            row.status = 'Ignored';
             --searchPageCounts.nbrToUnignore;
             ignoreAction.value = "UnIgnore";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
         case 'IgnoreArticle': // Was set to be Ignored - changed mind
-            searchResults.value[idxSearch].status = 'New';
+            row.status = 'New';
             ignoreAction.value = "Add to Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-down";
             --searchPageCounts.nbrToIgnore;
@@ -288,7 +301,7 @@ function ignoreArticleClick(doing, idxSearch) {
         default: // Was new - Now To be Ignored
             ignoreAction.value = "Remove from TO Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-            searchResults.value[idxSearch].status = 'IgnoreArticle';
+            row.status = 'IgnoreArticle';
             ++searchPageCounts.nbrToIgnore;
     }
     if ((searchPageCounts.nbrToIgnore > 0) || (searchPageCounts.nbrToUnignore > 0)) {
@@ -311,6 +324,7 @@ function getSearch() {
         searchLimitState: '',
         searchAllYears: allYears.value,
         searchLimitDecade: '',
+        searchAllDecadeYears: allDecadeYears.value,
         searchLimitYear: ''
     }
     if (!aSearch.searchAllStates) {
@@ -318,7 +332,7 @@ function getSearch() {
     }
     if (!aSearch.searchAllYears) {
         aSearch.searchLimitDecade = limitDecade.value;
-        aSearch.searchLimitYear = limitYear.value;
+        if (!aSearch.searchAllDecadeYears) aSearch.searchLimitYear = limitYear.value;
     }
     // Generate SearchId
     var strSearchFields = JSON.stringify(aSearch);
@@ -485,7 +499,10 @@ function countSearchResults() {
 }
 //
 function showResultRow(hidden, status) {
-    if (hidden) return true
+    if (hidden) {
+        if (toggleShowHidden.value) return true
+        return false
+    }
     // console.log ('showResult:', JSON.stringify(status))
     switch (status) {
         case 'Known':
@@ -617,8 +634,8 @@ function foundCount(which, countInfo, last) {
     return foundCountOut
 }
 //
-function identifyDuplicate(index) {
-    if (searchResults.value[index].articleMatch < 50) return "Wheat"// Article within 6 days of previous and close match
+function identifyDuplicate(articleMatch) {
+    if (articleMatch < 50) return "Wheat"// Article within 6 days of previous and close match
     return "transparent";
 }
 //
@@ -648,11 +665,22 @@ function waitSearch(started) {
                 searchAllCounts.nbrFound = returnData.searchTotalFound;
                 searchMaxPageNbr.value = Math.ceil(searchAllCounts.nbrFound / searchPageSize);
                 searchReadPageNbr.value = 1;
-                searchResults.value = [...results];
+                // searchResults.value = [...results];
+                searchResults.value = results.map((item, index) => ({
+                    ...item,
+                    rowNbr: index + 1,
+                    hidden: false,
+                }));
                 started = false;
                 chgVisiblePage(1)
             } else {
-                searchResults.value.push(...results);
+                // searchResults.value.push(...results);
+                const base = searchResults.value.length;
+                searchResults.value.push(...results.map((item, index) => ({
+                    ...item,
+                    rowNbr: base + index + 1,
+                    hidden: false,
+                })));
                 ++searchReadPageNbr.value
             }
             // const shortSearchResults = searchResults.value.map(({ id, status, articleMatch }) => ({id,status,articleMatch}));
@@ -684,7 +712,7 @@ function postSearch() {
     thisSearchText.value = ` String:${thisSearch.searchString}`
     if (!thisSearch.searchAllStates) thisSearchText.value += `, Limited to State:${thisSearch.searchLimitState}`
     if (!thisSearch.searchAllYears) thisSearchText.value += `, Limited to Decade:${thisSearch.searchLimitDecade}`
-    if (thisSearch.searchLimitYear != '') thisSearchText.value += `, Limited to Year:${thisSearch.searchLimitYear}`
+    if (!thisSearch.searchAllDecadeYears) thisSearchText.value += `, Limited to Year:${thisSearch.searchLimitYear}`
     currentSearchId = thisSearch.searchId
     //
     disableSearch.value = true;
@@ -868,7 +896,7 @@ onMounted(() => {
                     </div>
                 </div>
                 <div v-show="showLimitToYear">
-                    <input type="checkbox" class="form-check-input  form-check-inline" v-model="allDecadeYears" @change="showLimitYear = !showLimitYear"
+                    <input type="checkbox" class="form-check-input  form-check-inline" v-model="allDecadeYears" @change="checkLimitYear()"
                         id="checkboxAllDecadeYears">
                     <label class="form-check-label" for="checkboxAllDecadeYears">Include All Decade Years&nbsp;</label>
                     <!--Radio group of Years to Limit Search -->
@@ -898,6 +926,10 @@ onMounted(() => {
                     Searched for {{ thisSearchText }} 
                 </div> 
                 <div>
+                    <i v-if="searchAllCounts.nbrFound === searchAllCounts.nbrKnown + searchAllCounts.nbrIgnored"
+                    class="bi bi-check-circle-fill text-success ms-2"
+                    title="All articles reviewed"
+                    ></i>
                     Articles Found: <b>{{ searchAllCounts.nbrFound }}</b> Loaded <b>{{searchResults.length}}</b> Articles Reviewed - New <b>{{ searchAllCounts.nbrNew }}</b>
                     - Known <b>{{ searchAllCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchAllCounts.nbrLessRelevant }}</b>
                     - Ignored <b>{{ searchAllCounts.nbrIgnored }}</b>
@@ -921,6 +953,10 @@ onMounted(() => {
                     </div>
                 </div>
                 <div id="searchResultsCounts">
+                    <i v-if="searchPageCounts.nbrShown === searchPageCounts.nbrKnown + searchPageCounts.nbrIgnored"
+                    class="bi bi-check-circle-fill text-success ms-2"
+                    title="All articles reviewed"
+                    ></i>
                     Page <b>{{ visiblePageNbr }}</b> Showing <b>{{searchPageCounts.nbrShown}}</b> Article Status Counts - New <b>{{ searchPageCounts.nbrNew }}</b>
                     - Known <b>{{ searchPageCounts.nbrKnown }}</b> - Less Relevant <b>{{ searchPageCounts.nbrLessRelevant }}</b>
                     - Ignored <b>{{ searchPageCounts.nbrIgnored }}</b> 
@@ -943,7 +979,7 @@ onMounted(() => {
                     <label class="form-check-label" for="toggleIgnoredSwitch">Show Ignored Articles</label>
                 </div>
                 <div class="form-check-inline">
-                    <input type="checkbox" class="form-check-input" id="toggleHiddenSwitch" v-model="toggleHidden" @click="$event.target.blur()">
+                    <input type="checkbox" class="form-check-input" id="toggleHiddenSwitch" v-model="toggleShowHidden" @click="$event.target.blur()">
                     <label class="form-check-label" for="toggleHiddenSwitch">Show Hidden Articles</label>
                 </div>
                 <div id="returnedStates" v-show="showReturnedStates">
@@ -980,9 +1016,9 @@ onMounted(() => {
                     <tbody>
                         <tr v-for="(row, index) in visibleRows" :key="row.id">
                             <!-- Row -->
-                            {{ row.idxSearch + 1 }}
+                            {{ row.rowNbr }}
                             <!-- Date -->
-                            <td :style="row.dateBackground">
+                            <td :style="{backgroundColor: identifyDuplicate(row.articleMatch)}">
                                 {{ row.date }}
                             </td>
                             <!-- Article Id -->
@@ -1022,7 +1058,7 @@ onMounted(() => {
                                 <template v-if="index == 0">
                                     <template v-if="getIgnoreUI(index, row.status)">
                                         <EditItem
-                                        @click-item="ignoreArticleClick(true , row.idxSearch)"
+                                        @click-item="ignoreArticleClick(true , row.id)"
                                         :action="getIgnoreUI(index, row.status).action"
                                         :icon="getIgnoreUI(index, row.status).icon"
                                         />
@@ -1030,16 +1066,16 @@ onMounted(() => {
                                     </template>
                                     <template v-if="getAddListUI(index, row.status)">
                                         <EditItem
-                                            @click-item="addedListClick(row.idxSearch)"
+                                            @click-item="addedListClick(row.id)"
                                             :action="getAddListUI(index, row.status).action"
                                             :icon="getAddListUI(index, row.status).icon"
                                         />
                                         {{ getAddListUI(index, row.status).filler }}
                                     </template>
                                     <EditItem
-                                        @click-item="hideRowClick(true, row.idxSearch)"
-                                        :action="getHideUI(index, row.status).action"
-                                        :icon="getHideUI(index, row.status).icon"
+                                        @click-item="hideRowClick(row.id)"
+                                        :action="getHideUI(index, row.hidden).action"
+                                        :icon="getHideUI(index, row.hidden).icon"
                                     />
                                 </template>
                             </td>
