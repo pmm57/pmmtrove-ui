@@ -475,6 +475,12 @@ function countSearchResults() {
             }
             ++searchCountYear.value[yearIndex].nbrFound;
         }
+        // Check for Duplicate Article Id in seacrh result
+        // Shouldn't happen ??
+        const duplicated = searchResults.value.filter((r) => r.id === element.id);
+        if (duplicated.length > 1) {
+            console.log ('countSearchResults/ Dupliacted Search Results:', JSON.stringify(dupliacted))
+        }
     });
     //
     if (searchCountState.value.length > 1) {
