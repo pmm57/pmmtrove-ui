@@ -4,43 +4,40 @@ import ModalDuplicates from '@/components/ModalDuplicates.vue'
 import EditItem from '@/components/EditItem.vue'
 import ModalSearchText from '@/components/ModalSearchText.vue'
 import { useDoFetch } from '@/components/DoFetch.js';
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
 import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
-import { useErrorsArrayStore } from '@/stores/errorsarray'
-const errorsStore = useErrorsArrayStore()
 import { useToast } from 'vue-toastification'
 const toast = useToast()
-import Tooltip from 'bootstrap/js/dist/tooltip';
 
 navStore.articleHref = "/editArticle"
 navStore.articleTabTitle = "Article " + navStore.articleId
 //
-var idxList = ref(0)
+const idxList = ref(0)
 idxList.value = userData.userLists.findIndex((item) => item.TroveListId == navStore.listId);
-var idxListArticle = ref(0)
+const idxListArticle = ref(0)
 idxListArticle.value = userData.userListArticles[idxList.value].findIndex((item) => item.TroveListArticleId == navStore.articleId);
-var viewArticleText = ref('');
-var searchText = ref('');
-var searchTextCount = ref(0);
-var showModalSearchText = ref(false)
+const viewArticleText = ref('');
+const searchText = ref('');
+const searchTextCount = ref(0);
+const showModalSearchText = ref(false)
 const articleRef = ref(null);
 const troveArticleRef = ref(null);
 // Has it been viewed previously
-var idxViewed = ref(0)
+const idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
 console.log('Edit Article View  ', idxList.value, navStore.articleId, idxListArticle.value, idxViewed.value)
 // console.log(`userData.viewedArticles:%s`, userData.viewedArticles)
-var disableUpdate = ref(true)
-var showModalEntities = ref(false)
-var showModalDuplicates = ref(false)
-var showTroveText = ref(true)
-var showSelectedText = ref(true)
-var showSummaryText = ref(false)
-var editMetadata = ref(-1)
-var notifyEditError = ref('inherit')
+const disableUpdate = ref(true)
+const showModalEntities = ref(false)
+const showModalDuplicates = ref(false)
+const showTroveText = ref(true)
+const showSelectedText = ref(true)
+const showSummaryText = ref(false)
+const editMetadata = ref(-1)
+const notifyEditError = ref('inherit')
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName InitialAs N. b.9999-d.9999'
 const popoverDateMetadata = 'Enter as YYYY-MM-DD'
 const markSearch = '<mark class="search">'
@@ -51,6 +48,8 @@ const handleStart = '&#x25C0;'
 const spanHandleStart = `<span class="snip-handle snip-handle-front" draggable="true" data-handle="front">` + handleStart + `</span>`
 const handleEnd = `&#x25B6;`
 const spanHandleEnd = `<span class="snip-handle snip-handle-back" draggable="true" data-handle="back">` + handleEnd + `</span>`
+const activeScrollMode = ref(null);   // "search" | "snip"
+const activeScrollIndex = ref(1);     // 1-based
 var parsedArticleText = {}
 var cleanOriginalText = ''
 const emptySnip = { snipf: { text: '', posText: -1 }, snipb: { text: '', posText: -1 } };
@@ -59,24 +58,24 @@ var articleSnips = [];
 var articleSnipsOld = []
 var updSnip = {}
 var updSnipOld = {}
-var snipedText = ref([])
-var showToolbar = ref(false)
+const snipedText = ref([])
+const showToolbar = ref(false)
 var manageAddIgnoreButtonText = 'Ignore Article'
 var manageRemoveIgnoreButtonText = 'Remove Article from Ignore List'
-var manageIgnoreDisable = ref(false)
-var snipCancelDisabled = ref(true)
-var snipDropDisabled = ref(true)
-var snipUpdateDisabled = ref(true)
-var updSelectTextDisabled = ref(true)
-var cancelUpdTextDisabled = ref(true)
-var deleteSelectedTextDisabled = ref(true)
-var popoverForMetadata = ref('')
+const manageIgnoreDisable = ref(false)
+const snipCancelDisabled = ref(true)
+const snipDropDisabled = ref(true)
+const snipUpdateDisabled = ref(true)
+const updSelectTextDisabled = ref(true)
+const cancelUpdTextDisabled = ref(true)
+const deleteSelectedTextDisabled = ref(true)
+const popoverForMetadata = ref('')
 var savedMetadata = []
-var arrayMetadataDropdown = ref([])
+const arrayMetadataDropdown = ref([])
 //
 // Capture highlighted text in Trove Article
 // Extract Snip Front and Back Edges
-function snipHighlightedText(event) {
+function snipHighlightedText() {
 
     var selection = window.getSelection();
     if (!selection.rangeCount) return;
@@ -298,11 +297,11 @@ function loadArticleText() {
         }
         // 
         if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
-        markSearchText(userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord)
+        markSearchText(false, userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord)
     }
 }
 // Mark Search Text
-function markSearchText(searchTextIn) {
+function markSearchText(scrollFirst, searchTextIn) {
     // var doScroll = false;
     // if (searchText.value.length > 0) doScroll = true // We are changing the Search Text
     console.log(`EditArticle/markSearchText Search "%s", %s`, searchTextIn, viewArticleText.value.length)
@@ -311,12 +310,17 @@ function markSearchText(searchTextIn) {
     viewArticleText.value = viewArticleText.value.replaceAll(markSearch, "").replaceAll(markEnd, "");
     console.log('EditArticle/markSearchText Search', searchText.value, viewArticleText.value.length)
     var re = new RegExp("(" + searchText.value + ")", "gi");
-    searchTextCount = (viewArticleText.value.match(re) || []).length;
+    searchTextCount.value = (viewArticleText.value.match(re) || []).length;
     viewArticleText.value = viewArticleText.value.replace(re, function (matched) {
         // console.log("EditArticle markSearchText matched", matched)
         return markSearch + matched + markEnd
     })
     // console.log('EditArticle markSearchText Search After', viewArticleText.value.length)
+    if (scrollFirst) {
+        activeScrollMode.value = ''
+        activeScrollIndex.value = 1
+        triggerSearchScroll()
+    }
 }
 // Find where to insert Snip Handles
 function getInsertPos(snipEdge, match, text) {
@@ -408,8 +412,8 @@ function cleanInsert(snipEdge, handle, nodeInfoStart, nodeInfoEnd) {
             }
         }
     }
-    const tag1 = snipEdge == "front" ? nodeInfoStart.nodeTagEnd : nodeInfoEnd.nodeTagEnd
-    const tag2 = snipEdge == "front" ? nodeInfoStart.nodeTagStart : nodeInfoEnd.nodeTagStart
+    // const tag1 = snipEdge == "front" ? nodeInfoStart.nodeTagEnd : nodeInfoEnd.nodeTagEnd
+    // const tag2 = snipEdge == "front" ? nodeInfoStart.nodeTagStart : nodeInfoEnd.nodeTagStart
     // console.log(`EditArticle cleanInsert pos %s, %s-%s-%s`, snipEdge, tag1, handle, tag2)
     return tagStart + handle + tagEnd
 }
@@ -449,62 +453,122 @@ function updSnipedTextArray(thisSnip) {
     const selectedText = cleanOriginalText.slice(matchsFront[0].posText, matchsBack[0].posText + thisSnip.snipb.text.length)
     snipedText.value.push(selectedText)
 }
-// Scroll to Search Word in Trove Article, identify by <mark>
-function scrollTroveText(searchTerm) {
+// Scroll to Search Word in Trove Article
+function scrollTroveTextByWalker(container, span, searchTerm, searchTextCount = 1) {
+    if (!searchTerm) return;
+    // Use Range + TreeWalker to locate the text node
+    console.log(`EditArticle/scrollTroveTextByWalker scroll:${searchTerm} event:${searchTextCount}`);
+    const walker = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
+    let node;
+    let matchNumber = 0;
+    while ((node = walker.nextNode())) {
+        const text = node.nodeValue || "";
+        let startIndex = 0;
+        while (true) {
+            const index = text.indexOf(searchTerm, startIndex);
+            if (index === -1) break;
+            matchNumber += 1;
+            // index = node.nodeValue.indexOf(searchTerm);
+            if (matchNumber === searchTextCount) {
+                const range = document.createRange();
+                range.setStart(node, index);
+                range.setEnd(node, index + searchTerm.length);
+
+                const rect = range.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+
+                let offsetTop = rect.top - containerRect.top + container.scrollTop;
+                // Adjust to scroll one line above
+                const lineHeight = parseFloat(getComputedStyle(container).lineHeight) || 20;
+                offsetTop = Math.max(0, offsetTop - lineHeight);
+                container.scrollTo({
+                    top: offsetTop,
+                    left: 0,
+                    behavior: "smooth",
+                });
+                return;
+            }
+            // continue searching within same node after this match
+            startIndex = index + searchTerm.length;
+        }
+    }
+    console.log(`EditArticle/scrollTroveText Not found %s, scrolling to top`, searchTerm);
+    container.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "smooth",
+    });
+}
+//
+function scrollTroveText(searchTerm, searchTextCount = 1) {
     const container = articleRef.value; // the .card-body div
-    // Find the span that holds the article text
+    if (!container) return;
+
     const span = container.querySelector("span");
     if (!span) return;
-    // Use Range + TreeWalker to locate the text node
-    console.log("EditArticle/scrollTroveText scroll event");
-    const walker = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
-    let node, index, found = false;
-    while ((node = walker.nextNode())) {
-        index = node.nodeValue.indexOf(searchTerm);
-        if (index !== -1) {
-            const range = document.createRange();
-            range.setStart(node, index);
-            range.setEnd(node, index + searchTerm.length);
 
-            const rect = range.getBoundingClientRect();
+    console.log("EditArticle/scrollTroveText scroll event");
+
+    // 1) Prefer scrolling to <mark> hits if they exist
+    if (activeScrollMode.value == 'search') {
+        const marks = span.querySelectorAll("mark");
+        if (marks.length) {
+            // searchTextCount is 1-based, convert to 0-based index
+            const target = Math.min(Math.max(searchTextCount - 1, 0), marks.length - 1);
+            const el = marks[target];
+
+            const rect = el.getBoundingClientRect();
             const containerRect = container.getBoundingClientRect();
 
-            var offsetTop = rect.top - containerRect.top + container.scrollTop;
+            let offsetTop = rect.top - containerRect.top + container.scrollTop;
+
             // Adjust to scroll one line above
             const lineHeight = parseFloat(getComputedStyle(container).lineHeight) || 20;
             offsetTop = Math.max(0, offsetTop - lineHeight);
-            container.scrollTo({
-                top: offsetTop,
-                left: 0,
-                behavior: "smooth",
-            });
-            found = true;
-            break;
+
+            container.scrollTo({ top: offsetTop, left: 0, behavior: "smooth" });
+            return marks.length;
         }
     }
-    if (!found) {
-        console.log(`EditArticle/scrollTroveText Not found %s, scrolling to top`, searchTerm);
-        container.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: "smooth",
-        });
-    }
+    // 2) Fallback to text-node search
+    scrollTroveTextByWalker(container, span, searchTerm, searchTextCount);
+    return 0;
 }
 // 
 function triggerSnipScroll() {
-    if ((articleRef.value) && (articleSnips.length > 0)) {
-        console.log("EditArticle/triggerSnipScroll ", articleSnips[0].snipf.text);
-        // articleRef.value.scrollTop = articleRef.value.scrollHeight
-        scrollTroveText(articleSnips[0].snipf.text)
+    if (!articleRef.value) return
+    if (articleSnips.length === 0) return
+    console.log(`EditArticle/triggerSnipScroll Start Mode:${activeScrollMode.value} NbrSnips:${articleSnips.length} index:${activeScrollIndex.value}`);
+    if ((activeScrollMode.value != 'snip') || (activeScrollIndex.value === articleSnips.length)) {
+        activeScrollIndex.value = 1
+        console.log(`EditArticle/triggerSnipScroll RESET Snip Index`);
+    } else {
+        // same trigger, same term → NEXT
+        activeScrollIndex.value += 1;
+        console.log(`EditArticle/triggerSnipScroll NEXT activeScrollIndex:${activeScrollIndex.value}`);
     }
+    activeScrollMode.value = 'snip';
+    console.log(`EditArticle/triggerSnipScroll index:${activeScrollIndex.value - 1}, text:${articleSnips[activeScrollIndex.value - 1].snipf.text}`);
+    scrollTroveText(articleSnips[activeScrollIndex.value - 1].snipf.text, 1) // Always 1 as each snip is unique
 }
 //
 function triggerSearchScroll() {
-    if ((articleRef.value) && (searchText.value.length > 0)) {
-        console.log("EditArticle/triggerSearchScroll ", searchText.value);
-        // articleRef.value.scrollTop = articleRef.value.scrollHeight
-        scrollTroveText(searchText.value)
+    if (!articleRef.value) return
+    if (searchText.value.length === 0) return
+    if (activeScrollMode.value != 'search') {
+        activeScrollIndex.value = 1
+        console.log(`EditArticle/triggerSearchScroll RESET Snip Index`);
+    } else {
+        // same trigger, same term → NEXT
+        activeScrollIndex.value += 1;
+        console.log(`EditArticle/triggerSearchScroll NEXT activeScrollIndex:${activeScrollIndex.value}`);
+    }
+    activeScrollMode.value = 'search';
+    console.log(`EditArticle/triggerSearchScroll index:${activeScrollIndex.value - 1}, text:${searchText.value}`);
+    const markCount = scrollTroveText(searchText.value, activeScrollIndex.value);
+    if ((markCount > 0) && (activeScrollIndex.value > markCount)) {
+        activeScrollIndex.value = 1;
+        scrollTroveText(searchText.value, activeScrollIndex.value);
     }
 }
 // Inject handles when snip is clicked
@@ -794,7 +858,7 @@ function saveData() {
         //make sure to serialize your JSON body
         body: JSON.stringify(updatedData)
     };
-    console.log('EditArticle/SaveData ', JSON.stringify(options));
+    // console.log('EditArticle/SaveData ', JSON.stringify(options));
     useDoFetch('saveArticle', "/saveDB/updateArticle", options)
     //
     disableUpdate.value = true
@@ -809,6 +873,9 @@ watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText, 
     // Create clean Text for later
     cleanOriginalText = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
     loadArticleText();
+    activeScrollMode.value = ''
+    activeScrollIndex.value = 1
+    triggerSearchScroll();
     return
 })
 //  Set the popover hint and dropdown when Edit is started
@@ -853,10 +920,14 @@ function setupEditedFields(index) {
     }
     // Dropdown
     const metadata = userData.metadataTypeByMetadata.find((el) => el.metadataType === metadataType)
-    // console.log ('Change editMetadata ', metadata)
-    arrayMetadataDropdown.value = []
-    if (metadata) arrayMetadataDropdown.value = metadata.arrayMetadata.map((el) => el.metadataValue)
+    // console.log ('setupEditedFields Change editMetadata ', JSON.stringify(metadata))
+    arrayMetadataDropdown.value =  metadata ? metadata.arrayMetadata.map((el) => el.metadataValue) : []
     // console.log ('Change editMetadata ', arrayMetadataDropdown)
+    // Wait for DOM update, then focus on the new select field
+    nextTick(() => {
+        const thisId = `value-${index}`
+        document.getElementById(thisId)?.focus()
+    });
     return
 }
 //
@@ -949,13 +1020,13 @@ function editPersonMetadata(stringPerson) {
         if (commaParts.length == 2) { // too many commas if more than 2 parts so ignore that
             var givenNameParts = commaParts[1].split(" ");
             var yearOfBirth = '';
-            var yearOfDeath = '';
+            // var yearOfDeath = '';
             var givenNames = '';
             if (/^b.\d{4}-d.\d{4}/.test(givenNameParts[givenNameParts.length - 1])) {
                 var arrayYear = givenNameParts.pop();
                 // <!--console.log ('Validate Name has dob dod', arrayYear);-->
                 yearOfBirth = arrayYear[0];
-                yearOfDeath = arrayYear[1];
+                // yearOfDeath = arrayYear[1];
                 givenNames = givenNameParts.join(' ');
             } else {
                 if (/^b\.\d{4}/.test(givenNameParts[givenNameParts.length - 1])) {
@@ -1048,6 +1119,8 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
 articleSnipsOld = [...articleSnips]; // Preserve for Cancel Select
 console.log(`EditArticle Loaded articleSnips %s`, JSON.stringify(articleSnips))
 loadArticleText();
+activeScrollMode.value = ''
+activeScrollIndex.value = 1
 loadArticle(true)
 //
 if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
@@ -1220,6 +1293,11 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 Your Meta Data
                             </div>
                             <div class="card-body overflow-auto" style="max-height: 35vh; line-height: 100%">
+                                <!-- One datalist for the currently edited row -->
+                                <datalist id="datalist-metadataValues" v-memo="[arrayMetadataDropdown]">
+                                <option
+                                    v-for="opt in arrayMetadataDropdown" :key="opt" :value="opt"/>
+                                </datalist>
                                 <table class="table table-bordered">
                                     <thead class="mbhead">
                                         <tr class="mbrow">
@@ -1229,14 +1307,13 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr
-                                            v-for="(articleMetadata, index) in userData.viewedArticles[idxViewed].ViewedArticleMetadata">
+                                        <tr v-for="(articleMetadata, index) in userData.viewedArticles[idxViewed].ViewedArticleMetadata" :key="`${articleMetadata[0]}|${index}`">
                                             <template v-if="editMetadata > -1"> <!-- In Edit Mode-->
                                                 <template v-if="editMetadata == index"> <!-- Row to Edit -->
                                                     <td> <!-- Metadata Type -->
                                                         <select v-model="articleMetadata[0]" :id="'select-' + index"
                                                             @change="setupEditedFields(editMetadata)">
-                                                            <option v-for="option in userData.arrayMetadataTypes"
+                                                            <option v-for="option in userData.arrayMetadataTypes" :key="option"
                                                                 :value="option">{{ option }}
                                                             </option>
                                                         </select>
@@ -1244,16 +1321,11 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                                     <td class="metadataPopover"
                                                         :style="{ 'background-color': notifyEditError }">
                                                         <!-- Metadata Value -->
-                                                        <input v-model="articleMetadata[1]"
-                                                            list="datalist-metadataValues">
-                                                        <span v-if="popoverForMetadata.length > 0"
-                                                            class="tooltiptext">{{ popoverForMetadata
-                                                            }}</span>
-                                                        </input>
-                                                        <datalist id="datalist-metadataValues">
-                                                            <option v-for="option in arrayMetadataDropdown"
-                                                                :value="option"></option>
-                                                        </datalist>
+                                                        <input :id="`value-${index}`"
+                                                            v-model="articleMetadata[1]" 
+                                                           list="datalist-metadataValues"/>
+                                                            <span v-if="popoverForMetadata.length > 0"
+                                                                class="tooltiptext">{{ popoverForMetadata }}</span>
                                                     </td>
                                                     <td>
                                                         <EditItem @click-item="updateMetadata('Check', index)"
@@ -1299,12 +1371,12 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 <span>Trove Original Text</span>
                             </summary>
                             <div class="card text-center d-flex justify-content-center gap-2 p-2 flex-row">
-                                <button @click.prevent="triggerSnipScroll" class="btn btn-primary"
+                                <button @click.prevent='triggerSnipScroll' class="btn btn-primary"
                                     :disabled="articleSnips.length == 0">
                                     Scroll Snip
                                 </button>
-                                <button @click.prevent="triggerSearchScroll" class="btn btn-primary">
-                                    Search
+                                <button @click.prevent='triggerSearchScroll' class="btn btn-primary">
+                                    Scroll Search
                                 </button>
                                 <span class="d-flex align-items-center">
                                     '{{ searchText }}' Occurs {{ searchTextCount }}

@@ -17,7 +17,7 @@ const searchText = ref(props.inSearchText)
 // Handler to emit both events
 function updateAndClose() {
     // console.log(`EditArticle/ModalSearchText Out %s`, searchText.value)
-    emit('chgSearch', searchText.value)
+    emit('chgSearch', true, searchText.value)
     emit('close')
 }
 </script>
