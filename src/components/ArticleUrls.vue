@@ -39,7 +39,7 @@ articleUrls = props.articleListArray.map((el) => {
     }
 });
 articleUrls.sort(compareFn);
-console.log("ArticleUrls/Article Urls -2 - ", JSON.stringify(articleUrls));
+// console.log("ArticleUrls/Article Urls -2 - ", JSON.stringify(articleUrls));
 </script>
 //
 <template>

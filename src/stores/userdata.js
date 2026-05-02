@@ -215,6 +215,7 @@ export const useUserDataStore = defineStore('userData', () => {
         }
     }
     function reloadMetadataTypeByMetadata (metadataTypeByMetadata) {
+        console.log (`userData/reloadMetadataTypeByMetadata length:${metadataTypeByMetadata.length}`)
         // console.log ('userData/reloadMetadataTypeByMetadata %s`, JSON.stringify(metadataTypeByMetadata))
         this.metadataTypeByMetadata = metadataTypeByMetadata.map(normalizeMetadataType)
         // console.log ('userData/reloadMetadataTypeByMetadata Normalised %s`, JSON.stringify(this.metadataTypeByMetadata))
