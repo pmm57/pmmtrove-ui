@@ -1,21 +1,36 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
 import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
-import { useErrorsArrayStore } from '@/stores/errorsarray';
-const errorsStore = useErrorsArrayStore();
 
 navStore.listHref = "/userListPage";
 navStore.listTabTitle = "List " + navStore.listId;
+const loadingVisible = ref(true)
 var articleLink = ''
 //
 var idxList = userData.userLists.findIndex((item) => item.TroveListId == navStore.listId);
 if (userData.userLists[idxList].TroveListLinkedPerson) console.log('Linked Person ', userData.userLists[idxList].TroveListLinkedPerson)
+watch(
+    [
+        () => userData.userLists?.[idxList]?.TroveListItemCount ?? 0,
+        () => userData.userListArticles?.[idxList]?.[
+                (userData.userLists?.[idxList]?.TroveListItemCount ?? 0) - 1
+            ]?.TroveListArticleMinedStatus ?? 0
+    ],
+    ([expected, lastLoadedStatus]) => {
+        console.log (`UserListView/watch expected:${expected} lastLoadedStatus:${lastLoadedStatus}`)
+        if (expected > 0 && lastLoadedStatus > 0) {
+            loadingVisible.value = false
+            console.log (`UserListView/watch visible:${loadingVisible.value}`)
+        }
+    },
+    { immediate: true }
+)
 //
 function linkArticle(article) {
     articleLink = article.TroveListArticleId
@@ -55,6 +70,14 @@ function statusColour(status) {
 //
 async function loadListArticles(firstLoad) {
     console.log('UserListView ', navStore.listId, firstLoad);
+    const expected = userData.userLists?.[idxList]?.TroveListItemCount
+    if (firstLoad === 'false' &&
+        userData.userListArticles &&
+        userData.userListArticles[idxList] &&
+        userData.userListArticles[idxList][expected - 1]
+        ) {userData.userListArticles[idxList][expected - 1].TroveListArticleMinedStatus = 0
+    }
+    if (userData.userListArticles?.[idxList][expected - 1]?.TroveListArticleMinedStatus == 0) loadingVisible.value = true
     userData.userReloadList = navStore.listId;
     const url = "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
     const options = {
@@ -125,22 +148,25 @@ loadListArticles('true')
     <div class="card">
         <div class="card-body">
             <div class="card">
-                - Linked Articles : {{ userData.userLists[idxList].TroveListItemCount }}
+                Linked Articles : {{ userData.userLists[idxList].TroveListItemCount }}
                 <span v-if="userData.userLists[idxList].TroveListDescription.length > 1">
                     - Description : {{ userData.userLists[idxList].TroveListDescription }}
                 </span>
                 - Updated : {{ userData.userLists[idxList].TroveListUpdatedText }}
                 <span v-if="userData.userLists[idxList].TroveListLinkedPerson.length > 0">
-                    - Linked Person :
+                    Linked Person :
                     <a href="#" @click.prevent="openPersonList(userData.userLists[idxList].TroveListLinkedPerson)">
                         {{ userData.userLists[idxList].TroveListLinkedPerson }}
                     </a>
                 </span>
                 <span v-else>
-                    - Link a
+                    Link a
                     <a href="#" @click.prevent="openPersonList('')">
                         Person
                     </a>
+                </span>
+                <span v-if="loadingVisible">
+                    <b>Loading this List's {{ userData.userLists[idxList].TroveListItemCount }} Articles</b>
                 </span>
             </div>
             <div class=" row">

@@ -6,7 +6,7 @@ export function useSavePersonData(caller, currentDetails, newDetails) {
         'oldPersonData': currentDetails,
         'updPersonData': newDetails
     };
-    console.log('useSavePersonData Sent to Server', JSON.stringify(updMetaData));
+    // console.log('useSavePersonData Sent to Server', JSON.stringify(updMetaData));
     // console.log (updatedData);
     const options = {
         method: "post",

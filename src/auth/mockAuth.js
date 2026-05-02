@@ -22,9 +22,9 @@ export async function loadMockUsers() {
         console.log(`mockAuth/loadMockUsers Load Failed:%s`, JSON.stringify(data))
         return
     }
-    console.log(`mockAuth/loadMockUsers Load Success:%s`, JSON.stringify(data))
+    // console.log(`mockAuth/loadMockUsers Load Success:%s`, JSON.stringify(data))
     availableUsers.value = [...data]
-    console.log(`mockAuth/loadMockUsers availableUsers:%s`, JSON.stringify(availableUsers.value))
+    // console.log(`mockAuth/loadMockUsers availableUsers:%s`, JSON.stringify(availableUsers.value))
 }
 
 export function selectMockUser(name) {

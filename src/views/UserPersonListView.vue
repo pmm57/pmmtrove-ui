@@ -73,6 +73,10 @@ let updatePerson = reactive({
 // };
 console.log('Passed Person: ', JSON.stringify(navStore.savedPerson));
 const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
+if (idxMetadataPerson < 0){
+    errorsStore.arrayErrors.push({ msg: `Internal memory error for Metadata Type Person`, param: '' });
+    console.log("Internal memory error for Metadata Type Person");
+}
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999';
 popoverForMetadata.value = popoverPersonMetadata;
 //
@@ -741,7 +745,7 @@ initScreen('');
             <div class="row">
                 <div class="card col-6 pre-scrollable" style="max-height: 75vh">
                     <div class="card border-0 overflow-auto">
-                        <a v-for="(metadataValue, idxValue) in userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata"
+                        <a v-for="(metadataValue, idxValue) in userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata" :key="idxValue"
                             @click.prevent="loadPerson(idxValue, -1)" href="#">
                             {{ metadataValue.metadataValue }} {{ displayPersonInfo(metadataValue) }}
                         </a>
@@ -759,9 +763,8 @@ initScreen('');
                             <form>
                                 <div class="form-group">
                                     <label for="inputName">Enter a Name</label>
-                                    <input v-model="updatePerson.chgName" id="inputName" style="width: 400px;">
+                                    <input v-model="updatePerson.chgName" id="inputName" style="width: 400px;"/>
                                     <span class="tooltiptext">{{ popoverForMetadata }}</span>
-                                    </input>
                                 </div>
                             </form>
                         </div>
@@ -862,8 +865,7 @@ initScreen('');
                                 <form>
                                     <div class="form-group">
                                         <label for="inputRefInfo">{{ buttonRefInfo }}: </label>
-                                        <input v-model="updatePerson.chgRefInfo" id="inputRefInfo">
-                                        </input>
+                                        <input v-model="updatePerson.chgRefInfo" id="inputRefInfo"/>
                                     </div>
                                 </form>
                             </div>
@@ -898,7 +900,7 @@ initScreen('');
                                         :arrayRelated="updatePerson.chgRelated" :enableDel="true"
                                         @del-relative="(index) => delRelativeClick(index)"
                                         @load-person="(idxPerson) => loadPerson(idxPerson, -1)" />
-                                    <div v-show="partners.length > 0" v-for="(partner, index) in partners">
+                                    <div v-show="partners.length > 0" v-for="(partner, index) in partners" :key="index">
                                         <div><b>Partner - {{ partner.readName }}</b></div>
                                         <RelatedTable :personName="partner.readName"
                                             :arrayRelated="partner.arrayRelated" :enableDel="false"
