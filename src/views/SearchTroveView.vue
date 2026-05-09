@@ -24,7 +24,7 @@ whenever(
     logicAnd(logicOr(i,u), notTyping),
     () => {
         if (firstVisibleRow.value) {
-            ignoreArticleClick(true, firstVisibleRow.value.id)
+            ignoreArticleClick(true, firstVisibleRow.value.rowNbr)
         }
     }
 )
@@ -33,7 +33,7 @@ whenever(
     logicAnd(logicOr(h,s), notTyping),
     () => {
         if (firstVisibleRow.value) {
-            hideRowClick(firstVisibleRow.value.id)
+            hideRowClick(firstVisibleRow.value.rowNbr)
         }
     }
 )
@@ -42,7 +42,7 @@ whenever(
     logicAnd(a, notTyping),
     () => {
         if (firstVisibleRow.value) {
-            addedListClick(firstVisibleRow.value.id)
+            addedListClick(firstVisibleRow.value.rowNbr)
         }
     }
 )
@@ -65,7 +65,7 @@ const limitStates = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 const allStates = ref(true);
 const limitState = ref("");
 const allYears = ref(true);
-const limitDecades = ["1800-1809", "1810-1819", "1820-1829", "1830-1839", "1840-1849", "1850-1859", "1860-1869", "1870-1879", "1880-1889", "1890-1899", "1900-1909", "1900-1909", "1920-1929", "1930-1939", "1940-1949", "1950-1959", "1960-1969", "1970-1979"];
+const limitDecades = ["1800-1809", "1810-1819", "1820-1829", "1830-1839", "1840-1849", "1850-1859", "1860-1869", "1870-1879", "1880-1889", "1890-1899", "1900-1909", "1910-1919", "1920-1929", "1930-1939", "1940-1949", "1950-1959", "1960-1969", "1970-1979"];
 const showLimitToDecade = ref(false);
 const limitDecade = ref("");
 const showLimitToYear = ref(false);
@@ -213,7 +213,7 @@ function checkLimitDecade () {
         (_, i) => Number(`${limitDecade.value}${i}`)
     )
     // limitYear.value = limitYears.value[0]
-    // console.log ("limitYears ", limitYears.value)
+    console.log ("limitYears ", limitYears.value)
     showLimitYear.value = false
     changeSearch()
 }
@@ -246,21 +246,19 @@ function undoLastAction () {
     lastActionSaved.value = ""
 }
 // On clicking the hide row icon - flip  hidden flag
-function hideRowClick(articleId) {
-    const row = searchResults.value.find(r => r.id === articleId);
-    console.log (`hideRowClick Article:%s, hidden:%s`, articleId, row.hidden);
-    if (row.hidden) { // Currently Hidden so show
-        row.hidden = false
+function hideRowClick(rowNbr) {
+    console.log (`hideRowClick Row Nbr:%s, hidden:%s`, rowNbr, searchResults.value[rowNbr - 1].hidden);
+    if (searchResults.value[rowNbr - 1].hidden) { // Currently Hidden so show
+        searchResults.value[rowNbr - 1].hidden = false
     } else {
-        saveAction ("Undo Last Hide", articleId);
-        row.hidden = true
+        saveAction ("Undo Last Hide", rowNbr);
+        searchResults.value[rowNbr - 1].hidden = true
     }
 }
 //
-function addedListClick(articleId) {
-    // console.log (`addedListClick doing:%s, idx:%s`, doing, articleId);
-    const row = searchResults.value.find(r => r.id === articleId);
-    switch (row.status) {
+function addedListClick(rowNbr) {
+    // console.log (`addedListClick doing:%s, idx:%s`, doing, rowNbr);
+    switch (searchResults.value[rowNbr - 1].status) {
         case 'New':
             --searchPageCounts.nbrNew;
             break;
@@ -268,32 +266,31 @@ function addedListClick(articleId) {
             --searchPageCounts.nbrLessRelevant;
     }
     ++searchPageCounts.nbrKnown;
-    row.status = 'Known';
+    searchResults.value[rowNbr - 1].status = 'Known';
 }
 // On clicking the ignore row
 // New => IgnoreArticle => Remove from TO Ignore
 //                      => OR Save => Ignored
 // Ignored => UnignoreArticle
 //
-function ignoreArticleClick(doing, articleId) {
-    // console.log (`ignoreArticleClick doing:%s, idx:%s`, doing, articleId);
-    if (doing) saveAction ("Undo Last Ignore", articleId)
-    const row = searchResults.value.find(r => r.id === articleId);
-    switch (row.status) { // Current Status
+function ignoreArticleClick(doing, rowNbr) {
+    console.log (`ignoreArticleClick doing:%s, idx:%s, row:%s`, doing, rowNbr, JSON.stringify(searchResults.value[rowNbr - 1]));
+    if (doing) saveAction ("Undo Last Ignore", rowNbr)
+    switch (searchResults.value[rowNbr - 1].status) { // Current Status
         case 'Ignored': // Is in DB IgnoredArticles List - Unignore It
-            row.status = 'UnignoreArticle';
+            searchResults.value[rowNbr - 1].status = 'UnignoreArticle';
             ++searchPageCounts.nbrToUnignore;
             ignoreAction.value = "UnIgnore";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
         case 'UnignoreArticle': // Is in DB IgnoredArticles List Was to be Unignored - changed mind
-            row.status = 'Ignored';
+            searchResults.value[rowNbr - 1].status = 'Ignored';
             --searchPageCounts.nbrToUnignore;
             ignoreAction.value = "UnIgnore";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
         case 'IgnoreArticle': // Was set to be Ignored - changed mind
-            row.status = 'New';
+            searchResults.value[rowNbr - 1].status = 'New';
             ignoreAction.value = "Add to Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-down";
             --searchPageCounts.nbrToIgnore;
@@ -301,7 +298,7 @@ function ignoreArticleClick(doing, articleId) {
         default: // Was new - Now To be Ignored
             ignoreAction.value = "Remove from TO Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-            row.status = 'IgnoreArticle';
+            searchResults.value[rowNbr - 1].status = 'IgnoreArticle';
             ++searchPageCounts.nbrToIgnore;
     }
     if ((searchPageCounts.nbrToIgnore > 0) || (searchPageCounts.nbrToUnignore > 0)) {
@@ -475,11 +472,11 @@ function countSearchResults() {
             }
             ++searchCountYear.value[yearIndex].nbrFound;
         }
-        // Check for Duplicate Article Id in seacrh result
+        // Check for Duplicate Article Id in search result
         // Shouldn't happen ??
         const duplicated = searchResults.value.filter((r) => r.id === element.id);
         if (duplicated.length > 1) {
-            console.log ('countSearchResults/ Dupliacted Search Results:', JSON.stringify(dupliacted))
+            console.log ('countSearchResults/ Duplicated Search Results:', JSON.stringify(duplicated))
         }
     });
     //
@@ -1064,7 +1061,7 @@ onMounted(() => {
                                 <template v-if="index == 0">
                                     <template v-if="getIgnoreUI(index, row.status)">
                                         <EditItem
-                                        @click-item="ignoreArticleClick(true , row.id)"
+                                        @click-item="ignoreArticleClick(true , row.rowNbr)"
                                         :action="getIgnoreUI(index, row.status).action"
                                         :icon="getIgnoreUI(index, row.status).icon"
                                         />
@@ -1072,14 +1069,14 @@ onMounted(() => {
                                     </template>
                                     <template v-if="getAddListUI(index, row.status)">
                                         <EditItem
-                                            @click-item="addedListClick(row.id)"
+                                            @click-item="addedListClick(row.rowNbr)"
                                             :action="getAddListUI(index, row.status).action"
                                             :icon="getAddListUI(index, row.status).icon"
                                         />
                                         {{ getAddListUI(index, row.status).filler }}
                                     </template>
                                     <EditItem
-                                        @click-item="hideRowClick(row.id)"
+                                        @click-item="hideRowClick(row.rowNbr)"
                                         :action="getHideUI(index, row.hidden).action"
                                         :icon="getHideUI(index, row.hidden).icon"
                                     />
