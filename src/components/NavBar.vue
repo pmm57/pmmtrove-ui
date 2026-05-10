@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { resetServer } from '@/components/ResetUser.js';
@@ -18,6 +18,7 @@ const isAuthenticated = ref(false)
 // --------------------
 // Timeout config
 // --------------------
+const baseTitle = document.title
 const serverUrl = import.meta.env.VITE_SERVER_URL
 const WARN_AFTER_MS = 10 * 60 * 1000
 const RENDER_SPINDOWN_MS = 15 * 60 * 1000
@@ -44,6 +45,16 @@ const showTimeoutBanner = computed(() => {
     if (!isRenderBackendBase()) return false
     return idleMs.value >= WARN_AFTER_MS
 })
+watch(
+  [showTimeoutBanner, minutesToSpinDown],
+  ([show, mins]) => {
+    document.title = show
+      ? `${mins}m - ${baseTitle}`
+      : baseTitle
+  },
+  { immediate: true }
+)
+
 // --------------------
 // Manual keep-alive
 // --------------------
