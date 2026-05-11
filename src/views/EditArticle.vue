@@ -133,7 +133,7 @@ function getSnipFrontBack(inSnip, selectedText) {
         toast.error('Snip to be longer then 20, pls redo')
         return false
     }
-    const clean = cleanUpText(selectedText)
+    const clean = ocrHygieneCore(selectedText)
     const selTextWords = clean.split(' ')
     const allText = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText
     var snipf = inSnip.snipf
@@ -228,29 +228,24 @@ function regxMatchWords(matchWords) {
     // console.log('regxMatchWords pattern %s', pattern)
     return new RegExp(pattern, 'g');
 }
-// Standardise the text
-function cleanUpText(inText) {
-    inText = inText.replace(/—/g, ' ')
-    inText = inText.replace(/^—+|—+$/g, '') // remove leading or trailing -
-    inText = inText.replace(/-\n/g, " ");
-    // inText = inText.replace(/- /g, "");
-    inText = inText.replace(/\n/g, " ");
-    inText = inText.replace(/\u25C0/g, "");
-    inText = inText.replace(/\u25B6/g, "");
-    inText = inText.replace(/(\S)—(\S)/g, '$1 — $2')  // no spaces on either side
-        .replace(/(\S)—/g, '$1 —')         // missing space before
-        .replace(/—(\S)/g, '— $1');         // missing space after
-
-    // Strip HTML
-    const temp = document.createElement("div");
-    temp.innerHTML = inText;
-    let clean = temp.textContent || temp.innerText || "";
-
-    // Normalize whitespace and strip invisible characters
-    clean = clean.replace(/[\u200B-\u200D\uFEFF\u00AD\u202A-\u202E]/g, '');
-    clean = clean.replace(/\s+/g, ' ').trim();
-
-    return clean;
+// Also exists in Backend
+function ocrHygieneCore(text) {
+  return text
+    // hyphenated line breaks
+    .replace(/-\s*\n\s*/g, " ")
+    // normalize line breaks
+    .replace(/\n+/g, " ")
+    // OCR scan markers
+    .replace(/\u25C0|\u25B6/g, "")
+    // em-dash normalization
+    .replace(/(\S)—(\S)/g, "$1 — $2")
+    .replace(/(\S)—/g, "$1 —")
+    .replace(/—(\S)/g, "— $1")
+    // strip bidi, zero-width, soft hyphen
+    .replace(/[\u200B-\u200D\uFEFF\u00AD\u202A-\u202E]/g, "")
+    // normalize whitespace
+    .replace(/\s+/g, " ")
+    .trim();
 }
 // Ensure snips are unique returns posText
 //
@@ -324,7 +319,7 @@ function markSearchText(scrollFirst, searchTextIn) {
 }
 // Find where to insert Snip Handles
 function getInsertPos(snipEdge, match, text) {
-    const cleanMatch = cleanUpText(match)
+    const cleanMatch = ocrHygieneCore(match)
     const matchWords = cleanMatch.split(' ')
     const regex = regxMatchWords(matchWords)
     var pos = text.search(regex)
@@ -366,7 +361,7 @@ function findNodeInfo(snipEdge, match) {
     const walker = document.createTreeWalker(parsedArticleText, NodeFilter.SHOW_TEXT, null)
     while (walker.nextNode()) {
         var node = walker.currentNode
-        var text = cleanUpText(node.outerHTML || node.textContent || '')
+        var text = ocrHygieneCore(node.outerHTML || node.textContent || '')
         const nodeText = text.replaceAll(" ", "")
         const matchStrLen = nodeText.length < matchStr.length ? matchStr.slice(0, nodeText.length - 1) : matchStr
         const edgeMatch = snipEdge == 'front' ? nodeText.startsWith(matchStrLen) : nodeText.endsWith(matchStrLen)
@@ -436,14 +431,14 @@ function slidePos(slideBy, slideFor, checkPtr, chunk) {
 }
 // Snip the Clean Text to display
 function updSnipedTextArray(thisSnip) {
-    var selTextWords = cleanUpText(thisSnip.snipf.text).split(" ")
+    var selTextWords = ocrHygieneCore(thisSnip.snipf.text).split(" ")
     const matchsFront = matchWordArray(selTextWords, cleanOriginalText)
     if (matchsFront.length != 1) {
         console.log(`EditArticle updSnipedTextArray Front Snip Not Found "%s" `, selTextWords)
         toast.error('Snip Front not unique to enable snip, pls redo')
         return false
     }
-    selTextWords = cleanUpText(thisSnip.snipb.text).split(" ")
+    selTextWords = ocrHygieneCore(thisSnip.snipb.text).split(" ")
     const matchsBack = matchWordArray(selTextWords, cleanOriginalText)
     if (matchsBack.length != 1) {
         console.log(`EditArticle updSnipedTextArray Back Snip Not Found "%s" `, selTextWords)
@@ -646,7 +641,7 @@ function handleDrop(event) {
 
     if (!range) return null
 
-    // var cleanOriginalText = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
+    // var cleanOriginalText = ocrHygieneCore(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
     const preCaretRange = range.cloneRange()
     preCaretRange.selectNodeContents(event.currentTarget)
     const articleText = preCaretRange.toString() // The full Article Text
@@ -667,7 +662,7 @@ function handleDrop(event) {
         // Get new Front
         while (offset > 0 && /\w/.test(articleText[offset])) offset--;
         // Get Old back in this text
-        var selTextWords = cleanUpText(tempSnip.snipb.text).split(" ")
+        var selTextWords = ocrHygieneCore(tempSnip.snipb.text).split(" ")
         const matchsBack = matchWordArray(selTextWords, articleText)
         if (matchsBack.length != 1) {
             console.log(`EditArticle handleDrop Old Back Snip Not Found "%s" `, tempSnip.snipb.text)
@@ -678,7 +673,7 @@ function handleDrop(event) {
         tempSnip.snipf.posText = -1
     } else {
         // Get Old Front in this text
-        var selTextWords = cleanUpText(tempSnip.snipf.text).split(" ")
+        var selTextWords = ocrHygieneCore(tempSnip.snipf.text).split(" ")
         const matchsFront = matchWordArray(selTextWords, articleText)
         if (matchsFront.length != 1) {
             console.log(`EditArticle handleDrop Old Front Snip Not Found "%s" `, tempSnip.snipf.text)
@@ -871,7 +866,7 @@ function changeMinedStatus(newMinedStatus) {
 //  Set the Article Original Text
 watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText, () => {
     // Create clean Text for later
-    cleanOriginalText = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
+    cleanOriginalText = ocrHygieneCore(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
     loadArticleText();
     activeScrollMode.value = ''
     activeScrollIndex.value = 1
@@ -1091,7 +1086,7 @@ function parseHTMLFragment(htmlString) {
     return doc.body // detached DOM tree
 }
 // Create clean Text for later
-cleanOriginalText = cleanUpText(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
+cleanOriginalText = ocrHygieneCore(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
 // console.log(`EditArticle loadArticleText Snips Front %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
 if (userData.viewedArticles[idxViewed.value].ViewedArticleSnips.length > 0) {
     console.log(`EditArticle Load %s`, userData.viewedArticles[idxViewed.value].ViewedArticleSnips)
