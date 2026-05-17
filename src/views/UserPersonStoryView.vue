@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed, reactive } from 'vue';
-import { useDoFetch } from '@/components/DoFetch.js';
+// import { useDoFetch } from '@/components/DoFetch.js';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useUserDataStore } from '@/stores/userdata';
@@ -9,6 +9,8 @@ import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
 import { useSavePersonData } from '@/components/SavePersonData.js';
 import EditItem from '@/components/EditItem.vue'
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 
 const storyEvents = computed({
     get: () => userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx],
@@ -134,6 +136,9 @@ function getArticleStory(event, viewedArticle) {
         case 'self-cw':
             relationType = 'Partner'
             break
+        case 'self-s':
+            relationType = 'Sibling'
+            break
         case 'self-c':
             relationType = 'Child'
             break
@@ -153,7 +158,7 @@ function getArticleStory(event, viewedArticle) {
             relationType = 'Partner Grandchild'
             break
     }
-    story += '\n<u>From</u> "' + event.relPerson + '" ( ' + relationType + ' )'
+    story += '<br><u>From</u> ' +  '( ' + relationType + ' ) "' + event.relPerson + '"'
     return story
 }
 // Idnitfy if a Primary Event
@@ -266,73 +271,301 @@ watch(
     { deep: false } // ✅ array reference changes only (immutable-friendly)
 )
 //
-function openPdfTab(html) {
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+function safePdfFileName(name) {
+    // Windows-illegal chars: \ / : * ? " < > |
+    // Also trim + collapse whitespace
+    const cleaned = (name ?? "")
+        .toString()
+        .trim()
+        .replace(/[\\/:*?"<>|]/g, "")   // remove illegal filename chars
+        .replace(/\s+/g, " ");          // collapse whitespace
+    // Fallback if empty after cleaning
+    return cleaned.length ? cleaned : "story";
 }
 //
-function printStory() {
-    let html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>PDF Preview</title>
-        <meta charset="utf-8" />
-        <style>
-        @page {
-          size: A4 landscape;
-          margin: 20mm;
-        }
-
-        body {
-          font-family: Arial, sans-serif;
-          font-size: 12pt;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        th, td {
-          padding: 4px 6px;
-          vertical-align: top;
-        }
-
-        .text-center { text-align: center; }
-        .text-nowrap { white-space: nowrap; }
-        .preserve { white-space: pre-wrap; 
-        </style>
-      </head>
-      <body>`
-    html += `<h1>` + navStore.savedPerson.readName + `</h1>`
-    if (navStore.savedPerson.readRefInfo.length > 0) html += `<h3> Reference: ` + navStore.savedPerson.readRefInfo + `</h3>`
-    html += `<table>
-                <thead>
-                    <tr>
-                        <th class="text-center">Date</th>
-                        <th class="text-center">Age</th>
-                        <th class="text-center">Location</th>
-                        <th class="text-center">Trove Link</th>
-                        <th class="text-center">Event</th>
-                    </tr>
-                </thead>
-                <tbody>`
-    for (const article of filteredEvents.value) {
-        html += `<tr><td class="text-nowrap">` + article.articleEventDate + `</td>`
-        html += `<td class="text-center">` + article.age + `</td>`
-        html += `<td class="text-nowrap">` + article.eventLocation + `</td>`
-        html += `<td class="text-center"><a href="` + article.articleViewUrl + `" target="_blank">Link</a></td>`
-        html += `<td class="preserve" style="border-bottom: .5px solid;">` + article.story + `</td>`
-    }
-    html += `<script>
-          window.onload = () => window.print();
-        <\/script>`
-    html += `</body>
-    </html>
-  `;
-    openPdfTab(html);
+/**
+ * Parse story HTML for:
+ * - <br> -> \n
+ * - <u>...</u> -> underline ranges
+ * Returns: { text: string, ranges: Array<{start:number, end:number}> }
+ */
+function parseStoryHtml(html) {
+	const s = (html ?? "").toString();
+	// Normalize line breaks first
+	const normalized = s.replace(/<br\s*\/?>/gi, "\n");
+	let out = "";
+	const ranges = [];
+	let i = 0;
+	while (i < normalized.length) {
+		const uOpen = normalized.toLowerCase().indexOf("<u>", i);
+		if (uOpen === -1) {
+			out += stripOtherTags(normalized.slice(i));
+			break;
+		}
+		// text before <u>
+		out += stripOtherTags(normalized.slice(i, uOpen));
+		const uClose = normalized.toLowerCase().indexOf("</u>", uOpen);
+		if (uClose === -1) {
+			// No closing tag; treat remainder as normal text
+			out += stripOtherTags(normalized.slice(uOpen));
+			break;
+		}
+		// Inside <u> ... </u>
+		const innerRaw = normalized.slice(uOpen + 3, uClose);
+		const innerText = stripOtherTags(innerRaw);
+		const start = out.length;
+		out += innerText;
+		const end = out.length;
+		if (end > start) ranges.push({ start, end });
+		i = uClose + 4;
+	}
+	return { text: out, ranges };
+}
+//
+/** Strip any tags EXCEPT we've already handled <u> and <br> */
+function stripOtherTags(html) {
+	return html.replace(/<[^>]+>/g, "");
+}
+//
+/** Draw underline segments inside a given line */
+function drawUnderlinesForLine(doc, lineText, lineX, baselineY, lineStartIndex, underlineRanges) {
+	if (!underlineRanges?.length || !lineText) return;
+	const lineEndIndex = lineStartIndex + lineText.length;
+	for (const r of underlineRanges) {
+		const segStart = Math.max(r.start, lineStartIndex);
+		const segEnd = Math.min(r.end, lineEndIndex);
+		if (segEnd <= segStart) continue;
+		const localStart = segStart - lineStartIndex;
+		const localEnd = segEnd - lineStartIndex;
+		const prefix = lineText.slice(0, localStart);
+		const segment = lineText.slice(localStart, localEnd);
+		const prefixW = doc.getTextWidth(prefix);
+		const segW = doc.getTextWidth(segment);
+		// Underline slightly below baseline
+		const underlineY = baselineY + 1.5;
+		doc.line(lineX + prefixW, underlineY, lineX + prefixW + segW, underlineY);
+	}
+}
+//
+function svgToPngBase64(svgUrl) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function () {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            const base64 = canvas.toDataURL("image/png"); // PNG BASE64
+            resolve(base64);
+        };
+        img.src = svgUrl;
+    });
+}
+//
+/**
+ * createPdf()
+ * mode: "preview" -> opens new tab
+ *       "download" -> downloads with filename
+ *
+ * Returns jsPDF doc (so caller can do extra things if needed)
+ */
+async function createPdf(mode) {
+	const personName = navStore.savedPerson.readName ?? "story";
+	const fileName = `${safePdfFileName(personName)}.pdf`;
+	// Pre-parse stories so we can reference underline ranges per row
+    // console.log (`createPDF story:${JSON.stringify(filteredEvents.value.map(ev => (ev.story)))}`)
+	const parsedStories = filteredEvents.value.map(ev => parseStoryHtml(ev.story));
+	const doc = new jsPDF({
+		orientation: "landscape",
+		unit: "pt",
+		format: "a4",
+	});
+	// Header
+	doc.setFontSize(16);
+	doc.text(personName, 40, 40);
+	let y = 60;
+	if (navStore.savedPerson.readRefInfo?.length) {
+		doc.setFontSize(11);
+		doc.text(`Reference: ${navStore.savedPerson.readRefInfo}`, 40, y);
+		y += 18;
+	}
+	// Build body with plain text story (tags removed)
+	const bodyRows = filteredEvents.value.map((ev, idx) => [
+		ev.articleEventDate ?? "",
+		String(ev.age ?? ""),
+		ev.eventLocation ?? "",
+		"Link",                 // will be cleared so we only draw the clickable link once
+		parsedStories[idx].text // plain text so layout/wrapping works
+	]);
+    // Calculate Column Widths
+    const fontSize = 9;
+    doc.setFontSize(fontSize);
+    // --- helper: estimate width of text in pt ---
+    const getWidth = (text) => doc.getTextWidth(text || "");
+    // Date ≈ 10 chars
+    const dateWidth = Math.max(getWidth("YYYY-MM-DD"), ...filteredEvents.value.map(r => getWidth(r.articleEventDate))) + 12; // padding
+    // Age ≈ 6 chars
+    const ageWidth = getWidth("Age: 99") + 10;
+    // Location: dynamic (based on content)
+    const locationWidth = Math.min(
+        200, // cap so it doesn't explode
+        Math.max(
+            80,
+            ...filteredEvents.value.map(r => getWidth(r.eventLocation))
+        ) + 20
+    );
+    // Link
+    const linkWidth = getWidth("Trove") + 10;
+    // Event
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = { left: 20, right: 20 }
+    const tableWidth = pageWidth - margin.left - margin.right;
+    const usedWidth = dateWidth + ageWidth + locationWidth + linkWidth;
+    const eventWidth = Math.max(200, tableWidth - usedWidth);
+    // console.log(`createPdf pageWidth:${pageWidth}, tableWidth${tableWidth}, usedWidth:${usedWidth}, eventWidth:${eventWidth}`);
+    // Footer
+    const imgH = 12;
+    const clearSpace = imgH * 0.3;
+    const footerTotal = Math.ceil(
+            imgH +        // logo
+            clearSpace +  // space ABOVE logo
+            6             // safety buffer
+        );
+    const troveImg = await svgToPngBase64("https://assets.nla.gov.au/logos/trove/trove-colour.svg");
+    //
+	autoTable(doc, {
+		startY: y,
+        margin: {
+                ...margin,
+                bottom: footerTotal
+            },
+        useCss: false,          //  force manual control
+        tableWidth: "wrap",     //  stop auto stretching
+		head: [["Date", "Age", "Location", "Trove", "Event"]],
+		body: bodyRows,
+        rowPageBreak: 'avoid',   // prevent split rows
+        pageBreak: 'auto',
+		styles: {
+            fontSize: 9,
+            cellPadding: 4,
+            valign: "top",
+            overflow: "linebreak",
+		},
+		columnStyles: {
+            0: { cellWidth: dateWidth, halign: "center" }, // ✅ centered Date column
+            1: { cellWidth: ageWidth, halign: "center" },  // Age
+            2: { cellWidth: locationWidth },               // dynamic Location
+            3: { cellWidth: linkWidth, halign: "center", valign: "top" }, // Link
+            4: { cellWidth: eventWidth },                  // remaining space
+		},
+		// AutoTable supports modifying data.cell.text in didParseCell [1](https://medium.com/@natanael280198/generate-pdf-url-from-blob-in-react-application-f23cef6dd6c6)[2](https://github.com/diegomura/react-pdf/issues/2744)
+        didParseCell: (data) => {
+            // center header only for Date column
+            if (data.section === "head" && data.column.index === 0) {
+                data.cell.styles.halign = "center";
+            }
+            // Link column (prevent "Link Link")
+            if (data.section === "body" && data.column.index === 3) {
+                data.cell.text = [""];
+            }
+            // Story/Event column (FIXED wrapping)
+            if (data.section === "body" && data.column.index === 4) {
+                const rowIndex = data.row.index;
+                const storyText = parsedStories[rowIndex]?.text ?? "";
+                const fontSize = data.cell.styles.fontSize || 9;
+                doc.setFontSize(fontSize);
+                const padL = data.cell.padding("left");
+                const padR = data.cell.padding("right");
+                //  SAFE WIDTH (prevents one-word-per-line bug)
+                let available = eventWidth - padL - padR;
+                // console.log(`createPdf available:${available} data.cell.width:${data.cell.width}`);
+                if (!available || available < 80) {
+                    available = 300;
+                }
+                // Use jsPDF native wrapping (stable)
+                const lines = doc.splitTextToSize(storyText, available);
+                data.cell.text = lines;
+                // Simple position tracking for underline
+                let cursor = 0;
+                data.cell._wrappedMeta = lines.map(line => {
+                const idx = storyText.indexOf(line, cursor);
+                const start = idx === -1 ? cursor : idx;
+                cursor = start + line.length;
+                return { text: line, start };
+                });
+            }
+        },
+		// Draw clickable link + underline segments after the cell is drawn
+		didDrawCell: (data) => {
+			// Clickable Link column: draw only once
+			if (data.section === "body" && data.column.index === 3) {
+				const row = filteredEvents.value[data.row.index];
+				const url = row?.articleViewUrl;
+				if (!url) return;
+                const padL = data.cell.padding("left");
+                const padT = data.cell.padding("top");
+                const fontSize = data.cell.styles.fontSize || 9;
+                const x = data.cell.x + padL;               // left edge inside cell
+                const y = data.cell.y + padT + fontSize;   //  TOP aligned baseline
+				doc.setTextColor(0, 0, 255);
+				doc.textWithLink("Link", x,	y, { url });
+				doc.setTextColor(0, 0, 0);
+			}
+			// Underline within story column
+			if (data.section === "body" && data.column.index === 4) {
+				const rowIndex = data.row.index;
+				const ranges = parsedStories[rowIndex]?.ranges ?? [];
+				if (!ranges.length) return;
+				const wrapped = data.cell._wrappedMeta || [];
+				if (!wrapped.length) return;
+				// Match AutoTable text placement: left padding + top padding + line height steps
+				const padL = data.cell.padding("left");
+				const padT = data.cell.padding("top");
+				const x = data.cell.x + padL;
+				const fontSize = data.cell.styles.fontSize || 9;
+				doc.setFontSize(fontSize);
+				// Approx line height used by jsPDF (factor ~1.15 default)
+				const lineHeight = fontSize * 1.15;
+				// AutoTable draws the first line near (y + padT + fontSize)
+				let baselineY = data.cell.y + padT + fontSize;
+				// Underline style
+				doc.setDrawColor(0, 0, 0);
+				doc.setLineWidth(0.6);
+				for (let i = 0; i < wrapped.length; i++) {
+					const line = wrapped[i];
+					drawUnderlinesForLine(doc, line.text, x, baselineY, line.start, ranges);
+					baselineY += lineHeight;
+				}
+			}
+		},
+        // FOOTER (runs on every page that has this table)
+        didDrawPage: (data) => {
+            const pageHeight = doc.internal.pageSize.getHeight();
+            // Logo size in PDF units (pt, since your doc is pt)
+            const imgW = 45;
+            const imgH = 12;
+            // Use the same margins autoTable is using
+            const clearSpace = imgH * 0.3;
+            const x = data.settings.margin.left;
+            const y =
+                pageHeight -
+                data.settings.margin.bottom + // start at margin edge
+                clearSpace; 
+            doc.addImage(troveImg, "PNG", x, y, imgW, imgH);
+        },
+	});
+	// Output mode
+    console.log(`createPdf mode:${mode}`);
+	if (mode === "preview") {
+		// Open in new tab using blob URL 
+		window.open(doc.output("bloburl"), "_blank");
+	} else if (mode === "download") {
+        console.log(`createPdf mode:download`);
+		// Download with a real filename 
+		doc.save(fileName);
+	}
 }
 //
 </script>
@@ -381,8 +614,14 @@ function printStory() {
                 </div>
                 <div class="col">
                     <div class="card">
-                        <button @click.prevent="printStory()" class="btn btn-primary">PDF
+                        <button @click.prevent='createPdf("preview")' class="btn btn-primary">Preview PDF
                             Story</button>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card">
+                        <button @click.prevent='createPdf("download")' class="btn btn-primary">Download PDF
+                            </button>
                     </div>
                 </div>
             </div>
@@ -428,7 +667,7 @@ function printStory() {
                                 {{ article.articleId }}
                             </a>
                         </td>
-                        <td class="text-center"><a :href="article.ViewedArticleViewUrl" target="_blank">Link</a></td>
+                        <td class="text-center"><a :href="article.articleViewUrl" target="_blank">Link</a></td>
                         <td v-html="article.story" class="preserve" style="border-bottom: .5px solid;"></td>
                     </tr>
                 </tbody>
@@ -476,12 +715,15 @@ function printStory() {
     transition: all 0.1s ease;
 }
 
-
 .push-btn.active {
     background-color: #b6f7b6;
     /* light green */
     color: #000;
     box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.6);
     transform: translateY(2px);
+}
+
+td {
+  vertical-align: top;
 }
 </style>
