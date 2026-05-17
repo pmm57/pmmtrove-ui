@@ -16,6 +16,8 @@
     "@vueuse/core": "^14.2.1",
     "@vueuse/math": "^14.2.1",
     "bootstrap": "^5.3.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0",
