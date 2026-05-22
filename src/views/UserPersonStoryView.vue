@@ -1,6 +1,5 @@
 <script setup>
-import { ref, watch, computed, reactive } from 'vue';
-// import { useDoFetch } from '@/components/DoFetch.js';
+import { ref, watch, computed, reactive, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useUserDataStore } from '@/stores/userdata';
@@ -94,6 +93,7 @@ function reloadStory() {
 function updateViewedArticleTrigger(updatingIdx) {
     console.log(`UserPersonStoryView/updateViewedArticleTrigger Watch Trigger `, updatingIdx);
     const viewedArticle = userData.viewedArticles[updatingIdx]
+    // console.log(`UserPersonStoryView/updateViewedArticleTrigger viewedArticle `, JSON.stringify(viewedArticle));
     const eventIdx = storyEvents.value.findIndex((el) => el.articleId == viewedArticle.ViewedArticleId)
     if (eventIdx == -1) return
     updateEventFromViewedArticle(storyEvents.value[eventIdx], viewedArticle)
@@ -105,7 +105,7 @@ function updateEventFromViewedArticle(event, viewedArticle) {
     event.age = personDob == 0 ? '-' : Number(event.articleEventDate.slice(0, 4)) - personDob
     event.isPrimary = getArticleEventIsPrimary(event, viewedArticle)
     event.eventLocation = getArticleLocation(viewedArticle)
-    event.articleViewUrl = viewedArticle.ViewedArticleViewUrl
+    event.articleViewUrl = getTroveUrlWithText (event, viewedArticle)
     // console.log('UserPersonStoryView/updateEventFromViewedArticle ', JSON.stringify(event));
 }
 // Get best Article Story
@@ -184,6 +184,16 @@ function getArticleLocation(viewedArticle) {
     }
     return ''
 }
+// 
+function getTroveUrlWithText (event, viewedArticle) {
+    // const url = `${viewedArticle.ViewedArticleViewUrl}#:~:text=${event.relPerson?.trim().split(",")[0]}`
+    const searchText = viewedArticle?.ViewedArticleSnips ? JSON.parse(viewedArticle.ViewedArticleSnips)[0]?.snipf : event.relPerson?.trim().split(",")[0]
+    console.log (`getTroveUrlWithText searchText:"${searchText}"`)
+    const url = `${viewedArticle.ViewedArticleViewUrl}#:~:text=${encodeURIComponent(searchText)}`
+    console.log (`getTroveUrlWithText url:${url}`)
+    return url
+}
+//
 function updateInclude(action, index) {
     const storyIdx = storyEvents.value.findIndex(e => e.articleId == filteredEvents.value[index].articleId)
     console.log(`UserPersonStory/updateInclude index %s Filtered Line %s`, storyIdx, JSON.stringify(filteredEvents.value[index]))
@@ -264,11 +274,11 @@ function setShowWhat(btnIdx) {
 }
 //
 watch(
-    () => useUserDataStore().updatingViewedArticleIdx,
-    (updatingIdx) => {
-        updateViewedArticleTrigger(updatingIdx)
-    },
-    { deep: false } // ✅ array reference changes only (immutable-friendly)
+    () => userData.updatingViewedArticleIdx,
+    async (idx) => {
+        await nextTick()
+        updateViewedArticleTrigger(idx)
+    }
 )
 //
 function safePdfFileName(name) {
@@ -667,7 +677,7 @@ async function createPdf(mode) {
                                 {{ article.articleId }}
                             </a>
                         </td>
-                        <td class="text-center"><a :href="article.articleViewUrl" target="_blank">Link</a></td>
+                        <td class="text-center"><a :href="article.articleViewUrl" target="_blank" rel="noopener noreferrer">Link</a></td>
                         <td v-html="article.story" class="preserve" style="border-bottom: .5px solid;"></td>
                     </tr>
                 </tbody>
