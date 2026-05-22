@@ -1,6 +1,6 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
-import { watch, reactive } from 'vue'
+import { watch, reactive, ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import NavBar from '@/components/NavBar.vue'
@@ -12,6 +12,12 @@ import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
 import { getObjDiff } from '@/components/CompareObject.js';
 var eventSourceUserCache = null
+const navRef = ref(null)
+const navHeight = ref(0)
+const updateHeight = () => {
+  navHeight.value = navRef.value?.$el.offsetHeight || 0
+}
+
 //
 // This code handles the following SSE events from the server
 //    sseUserLists - Sent by Init User on initial login and relogin
@@ -51,6 +57,7 @@ function handleMessage(e) {
             userData.updateAllLists(sseRetrieve.cacheUserLists)
             if (sseRetrieve.cacheViewedArticles.length > 0) {
                 userData.viewedArticles = sseRetrieve.cacheViewedArticles // Only has data on Reload
+                console.log('App/sseUserLists - Viewed Articles Length', userData.viewedArticles.length)
                 // console.log('App/sseUserLists - Viewed Articles ', JSON.stringify(sseRetrieve.cacheViewedArticles))
             }
             if (sseRetrieve.request == 'Reload') userData.userListsReady = true
@@ -152,14 +159,13 @@ function handleMessage(e) {
             // navStore.articleTabTitle = "Article";
             //
             // console.log(`sseUserViewedArticle ListIdx %s ListArticleIdx %s ViewedIdx %s`, sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, sseRetrieve.cacheViewedArticleIdx)
-            userData.updatingViewedArticleIdx = sseRetrieve.cacheViewedArticleIdx
             //
             // Updated User List Article with Viewed Info
-            updListArticle(sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, userData.updatingViewedArticleIdx,
+            updListArticle(sseRetrieve.cacheListIdIdx, sseRetrieve.cacheListArticleIdx, sseRetrieve.cacheViewedArticleIdx,
                 sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatus, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatusText)
-            //
             // Updated Viewed Articles
-            userData.viewedArticles[userData.updatingViewedArticleIdx] = sseRetrieve.cacheViewedArticle
+            userData.viewedArticles[sseRetrieve.cacheViewedArticleIdx] = sseRetrieve.cacheViewedArticle
+            userData.updatingViewedArticleIdx = sseRetrieve.cacheViewedArticleIdx
             // Collect Viewed Article Metadata
             // console.log('App/sseUserViewedArticle - Metadata 1 ', userData.userLists[sseRetrieve.cacheListIdIdx].TroveListId,
             //   JSON.stringify(sseRetrieve.cacheViewedArticle.ViewedArticleMetadata))
@@ -203,7 +209,7 @@ function handleMessage(e) {
             userData.storyEventsForPersons = sseRetrieve.cacheStoryEvents
             break
         case 'sseServerError':
-            errorsStore.arrayErrors.push({ msg: sseRetrieve.errorResponse.statusText, param: sseRetrieve.errorResponse });
+            errorsStore.arrayErrors.push({ msg: sseRetrieve.errorResponse.statusText, param: JSON.stringify(sseRetrieve.errorResponse) });
             break
         default:
             console.log('App.vue SSE tiggered unknown action: ', sseRetrieve.event);
@@ -267,6 +273,15 @@ watch(
         setupUserSse()
     }
 )
+
+onMounted(async () => {
+  await nextTick()
+  updateHeight()
+
+  // optional: update if window resizes
+  window.addEventListener('resize', updateHeight)
+})
+
 //
 // Verify that the server is available
 //
@@ -296,9 +311,9 @@ verifyServerUp()
 
 <template>
     <main>
-        <NavBar />
+        <NavBar  ref="navRef"/>
         <div id="positionModals"></div>
-        <div class="container-fluid">
+        <div class="container-fluid  app-content">
             <div class="row justify-content-center">
                     <RouterView />
             </div>
@@ -406,4 +421,9 @@ verifyServerUp()
 :global(.snip-toolbar button:active) {
     background-color: #004578;
 }
+
+.app-content {
+  padding-top: 66px; /* common navbar height ~56px; use 60 to be safe */
+}
+
 </style>

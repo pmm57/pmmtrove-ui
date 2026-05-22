@@ -113,7 +113,7 @@ const logoutUser = () => {
 
 </script>
 <template>
-    <div class="navbar navbar-expand-sm bg-light d-flex">
+    <div class="navbar navbar-expand-sm bg-light d-flex fixed-top app-navbar">
         <RouterLink to="/" class="navbar-brand d-flex align-items-center">
             <img
                 src="https://assets.nla.gov.au/logos/trove/trove-colour.svg"
@@ -200,4 +200,8 @@ const logoutUser = () => {
   max-height: 40px; /* Bootstrap navbar default */
   width: auto;
 }
+.app-navbar {
+  z-index: 1030; /* keep above page content */
+}
+
 </style>
