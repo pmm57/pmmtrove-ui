@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, watch, onMounted } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import ArticleUrls from '@/components/ArticleUrls.vue'
 import { useDoFetch } from '@/components/DoFetch.js';
 import { useErrorsArrayStore } from '@/stores/errorsarray'
@@ -113,42 +113,38 @@ async function getArticleLinks(idxType, idxMetadataValue) {
             'Content-Type': 'application/json'
         }
     };
-    const request = new Request(url, options);
-    const fetchPromise = fetch(request);
-    const response = await fetchPromise
-        .catch(error => {
-            errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
-            console.log('UserMetadataListView: Error in event handler:', error);
-            return
-        });
+    const data = await useDoFetch('metadatarticleLinks', url, options);
+    // const request = new Request(url, options);
+    // const fetchPromise = fetch(request);
+    // const response = await fetchPromise
+    //     .catch(error => {
+    //         errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
+    //         console.log('UserMetadataListView: Error in event handler:', error);
+    //         return
+    //     });
     // console.log (response);
     // iterate over all headers
     // for (let [key, value] of response.headers) {
     // console.log(`${key} = ${value}`);
     // }
-    if (response.status == 200) {
-        const data = await response.json();
+    // if (response.status == 200) {
+    if (typeof data != 'boolean'){
+        // const data = await response.json();
         console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(data))
         // Update Dup-licate and Ignored modifier
         if (data.linkedArticleUrls.arrayArticleUrls.length > 0) {
             userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray = data.linkedArticleUrls.arrayArticleUrls
             console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue]))
-            // data.linkedArticleUrls.forEach((el) => {
-            //     el.articleArray.forEach((a, index) => {
-            //         if (a.includes(":")) {
-            //             userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray[index].troveArticleId = el
-            //         }
-            //     })
-            // })
-        }
-    } else {
-        console.log('UserMetadataListView ', response)
-        if (response.hasOwnProperty('errors')) {
-            errorsStore.arrayErrors = response.errors
-        } else {
-            errorsStore.arrayErrors.push({ msg: response.statusText, param: response.status });
         }
     }
+    // } else {
+    //     console.log('UserMetadataListView ', response)
+    //     if (response.hasOwnProperty('errors')) {
+    //         errorsStore.arrayErrors = response.errors
+    //     } else {
+    //         errorsStore.arrayErrors.push({ msg: response.statusText, param: response.status });
+    //     }
+    // }
 }
 //
 function flipStoryPrimaryEvent(idxValue) {

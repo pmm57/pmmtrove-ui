@@ -22,9 +22,9 @@ export async function useDoFetch (calledFrom, inUrl, options) {
     const fetchPromise = fetch(request);
     const response = await fetchPromise
         .catch (error => {
-            errorsStore.arrayErrors.push({msg : 'Server not available', param : ''});
+            errorsStore.arrayErrors.push({status: 999, msg : 'Server not available', param : ''});
             console.log('useDoFetch ' + calledFrom + ' : Error in event handler::', error);
-            return
+            return false
         });
     // console.log(calledFrom + ": response =", response);
     // iterate over all headers
@@ -40,7 +40,7 @@ export async function useDoFetch (calledFrom, inUrl, options) {
             return data
         }
     } else {
-        errorsStore.arrayErrors.push({msg: response.statusText, param: 'Called from:' + calledFrom + ' - With url:' + response.url});
+        errorsStore.arrayErrors.push({status: response.status,msg: response.statusText, param: 'Called from:' + calledFrom + ' - With url:' + response.url});
     }
     return false        
 }  
