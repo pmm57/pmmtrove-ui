@@ -246,14 +246,6 @@ function resetTroveUser() {
 }
 
 console.log(`HomeView Started`)
-// if (isAuthenticated.value.value && !userData.verifiedTroveUserName) {
-//     console.log(`HomeView Start call getUserTroveIds`)
-//     getUserTroveIds(user.value.value?.nickname)
-// } else {
-//     // Coming back from another tab
-//     console.log(`HomeView Tabbed`)
-//     authUserWithTroveId.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
-// }
 </script>
 
 <template>

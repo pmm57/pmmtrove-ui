@@ -1,6 +1,6 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
-import { watch, reactive, ref, onMounted, nextTick } from 'vue'
+import { watch, reactive, ref, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import NavBar from '@/components/NavBar.vue'
@@ -17,7 +17,8 @@ const navHeight = ref(0)
 const updateHeight = () => {
   navHeight.value = navRef.value?.$el.offsetHeight || 0
 }
-
+const backendReady = ref(false);
+const loadingMessage = ref("Starting...");
 //
 // This code handles the following SSE events from the server
 //    sseUserLists - Sent by Init User on initial login and relogin
@@ -273,15 +274,6 @@ watch(
         setupUserSse()
     }
 )
-
-onMounted(async () => {
-  await nextTick()
-  updateHeight()
-
-  // optional: update if window resizes
-  window.addEventListener('resize', updateHeight)
-})
-
 //
 // Verify that the server is available
 //
@@ -297,16 +289,82 @@ async function verifyServerUp() {
         }
     };
     const data = await useDoFetch('verifyServerUp', "/check", options);
-    if (typeof data == 'boolean') {
-        errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
-        console.log('verifyServerUp: Error in Fetch verifyServerUp');
-        return
+    if (typeof data == 'boolean') {  
+        // errorsStore.arrayErrors is an array of objects with msg and param
+        // if get boolean then error is in errorsStore.arrayErrors
+        const msg = errorsStore.arrayErrors.length > 0 ? errorsStore.arrayErrors[errorsStore.arrayErrors.length - 1].msg : 'Unknown error';
+        console.log(`verifyServerUp:%s`, JSON.stringify(errorsStore.arrayErrors));
+        return { ready: false,
+            startupStatus: msg,
+            auraStatus: 'unknown',
+            errors: data.startupErrors
+        };
     }
     userData.arrayMinedStatus = data.arrayMinedStatus
     userData.arrayMetadataTypes = data.arrayMetadataTypes
+    return {
+        ready: data.response === "OK",
+        startupStatus: data.startupStatus,
+        auraStatus: data.auraStatus,
+        errors: data.startupErrors
+    };
+
 }
 //
-verifyServerUp()
+function updateLoadingMessage(status) {
+    if (status?.auraStatus === "resuming") {
+        loadingMessage.value = "Warming up database...";
+    } else if (status?.startupStatus === "Starting") {
+        loadingMessage.value = "Starting backend...";
+    } else if (status?.startupStatus === "Failed") {
+        loadingMessage.value = "Startup failed";
+    } else {
+        loadingMessage.value = "Preparing service...";
+    }
+}
+//
+async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
+    const start = Date.now();
+    let delay = 2000;
+    while (true) {
+        if (Date.now() - start > timeoutMs) {
+            throw new Error("Backend startup timeout");
+        }
+        try {
+            const status = await verifyServerUp();
+            if (status.ready) {
+                return status;
+            }
+            updateLoadingMessage(status);
+        } catch (error) {
+            console.error(`App/waitForBackend Error checking backend status:%s`, error);
+            updateLoadingMessage({ startupStatus: "Starting" });
+        }
+        loadingMessage.value += '.';
+        await new Promise(r => setTimeout(r, delay));
+        delay = Math.min(delay + 1000, 8000);
+    }
+}
+//
+onMounted(async () => {
+    await nextTick()
+    updateHeight()
+    // optional: update if window resizes
+    window.addEventListener('resize', updateHeight)
+    try {
+        // wait for backend readiness
+        await waitForBackend();
+        backendReady.value = true;
+    } catch (err) {
+        console.error("Startup failed:", err);
+        loadingMessage.value = "Startup failed";
+    }
+})
+//
+onUnmounted(() => {
+    window.removeEventListener('resize', updateHeight);
+});
+
 </script>
 
 <template>
@@ -314,7 +372,10 @@ verifyServerUp()
         <NavBar  ref="navRef"/>
         <div id="positionModals"></div>
         <div class="container-fluid  app-content">
-            <div class="row justify-content-center">
+            <div v-if="!backendReady">
+                <p>{{ loadingMessage }}</p>
+            </div>
+            <div v-else class="row justify-content-center">
                     <RouterView />
             </div>
         </div>
