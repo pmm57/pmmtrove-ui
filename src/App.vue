@@ -372,7 +372,7 @@ onUnmounted(() => {
         <NavBar  ref="navRef"/>
         <div id="positionModals"></div>
         <div class="container-fluid  app-content">
-            <div v-if="!backendReady">
+            <div v-if="!backendReady" class="row justify-content-center">
                 <p>{{ loadingMessage }}</p>
             </div>
             <div v-else class="row justify-content-center">
