@@ -326,6 +326,7 @@ function updateLoadingMessage(status) {
 async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
     const start = Date.now();
     let delay = 2000;
+    var previousStatus = null;
     while (true) {
         if (Date.now() - start > timeoutMs) {
             throw new Error("Backend startup timeout");
@@ -335,7 +336,11 @@ async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
             if (status.ready) {
                 return status;
             }
-            updateLoadingMessage(status);
+            if (JSON.stringify(status) !== JSON.stringify(previousStatus)) {
+                updateLoadingMessage(status);
+                console.log(`App/waitForBackend Status: %s`, JSON.stringify(status));
+                previousStatus = status;
+            }
         } catch (error) {
             console.error(`App/waitForBackend Error checking backend status:%s`, error);
             updateLoadingMessage({ startupStatus: "Starting" });
@@ -372,8 +377,8 @@ onUnmounted(() => {
         <NavBar  ref="navRef"/>
         <div id="positionModals"></div>
         <div class="container-fluid  app-content">
-            <div v-if="!backendReady" class="row justify-content-center">
-                <p>{{ loadingMessage }}</p>
+            <div v-if="!backendReady" class="center-box">
+                <h3>{{ loadingMessage }}</h3>
             </div>
             <div v-else class="row justify-content-center">
                     <RouterView />
@@ -485,6 +490,21 @@ onUnmounted(() => {
 
 .app-content {
   padding-top: 66px; /* common navbar height ~56px; use 60 to be safe */
+}
+
+.center-box {
+    width: fit-content;
+    margin: 20px auto;   /* top spacing + horizontal center */
+
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 14px;
+
+    text-align: center;
+}
+
+.center-box h3 {
+    margin: 0;
 }
 
 </style>

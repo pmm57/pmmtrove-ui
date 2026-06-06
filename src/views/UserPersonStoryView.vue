@@ -25,21 +25,26 @@ console.log(`storyShowWhat %s startIncludes %s`, navStore.savedPerson.storyShowW
 const filteredEvents = computed(() =>
     storyEvents.value.filter(a => {
         const showWhat = storyShowWhat.value
-        if (showWhat.includes('ALL')) return true
-        if (showWhat.includes('INC')) return a.include
-        if (showWhat.includes('PRM')) return a.isPrimary
-    }
-    )
+        switch (showWhat) {
+            case 'ALL': return true
+            case 'PRM': return a.isPrimary
+            case 'INC': return a.include
+            case 'EXC': return !a.include
+            default: return false
+            }
+    })
 )
 const showWhat = reactive([
     { label: 'All', active: false },
     { label: 'Primary', active: false },
-    { label: 'Included', active: false }
+    { label: 'Included', active: false },
+    { label: 'Excluded', active: false }
 ])
 const inShowWhat = navStore.savedPerson.storyShowWhat
 if (inShowWhat.includes('ALL')) showWhat[0].active = true
-if (inShowWhat.includes('INC')) showWhat[2].active = true
 if (inShowWhat.includes('PRM')) showWhat[1].active = true
+if (inShowWhat.includes('INC')) showWhat[2].active = true
+if (inShowWhat.includes('EXC')) showWhat[3].active = true
 
 //
 console.log('UserPersonStoryView Person', JSON.stringify(navStore.savedPerson));
@@ -230,31 +235,42 @@ function openArticle(articleLink) {
 }
 //
 function setShowWhat(btnIdx) {
-    console.log(`UserPersonStory/setShowWhat %s`, btnIdx, JSON.stringify(showWhat[btnIdx]))
+    // console.log(`UserPersonStory/setShowWhat %s`, btnIdx, JSON.stringify(showWhat[btnIdx]))
     switch (btnIdx) {
-        case 0: // Show All
-            showWhat[0].active = !showWhat[0].active
-            if (showWhat[0].active) { //Flipped True
-                showWhat[1].active = false
-                showWhat[2].active = false
-            }
+        case 0: // Show All - Not FLiapable
+            showWhat[0].active = true
+            showWhat[1].active = false
+            showWhat[2].active = false
+            showWhat[3].active = false
             break
         case 1: // Show All isPrimary
             showWhat[1].active = !showWhat[1].active
             if (showWhat[1].active) { //Flipped True
                 showWhat[0].active = false
                 showWhat[2].active = false
+                showWhat[3].active = false
             } else {
-                if (!showWhat[2].active) showWhat[0].active = true
+                showWhat[0].active = true
             }
             break
-        case 2: // Included / Excluded - Overides isPrimary
+        case 2: // Included  - Overides isPrimary
             showWhat[2].active = !showWhat[2].active
             if (showWhat[2].active) { //Flipped True
                 showWhat[0].active = false
                 showWhat[1].active = false
+                showWhat[3].active = false
             } else {
-                if (!showWhat[1].active) showWhat[0].active = true
+                showWhat[0].active = true
+            }
+            break
+        case 3: // Excluded - Overides isPrimary
+            showWhat[3].active = !showWhat[3].active
+            if (showWhat[3].active) { //Flipped True
+                showWhat[0].active = false
+                showWhat[1].active = false
+                showWhat[2].active = false
+            } else {
+                showWhat[0].active = true
             }
             break
         default:
@@ -263,6 +279,7 @@ function setShowWhat(btnIdx) {
     if (showWhat[0].active) storyShowWhat.value = 'ALL'
     if (showWhat[1].active) storyShowWhat.value = 'PRM'
     if (showWhat[2].active) storyShowWhat.value = 'INC'
+    if (showWhat[3].active) storyShowWhat.value = 'EXC'
     if (storyShowWhat.value == navStore.savedPerson.storyShowWhat) {
         chgWhat = false
         if (!chgInclude) updatesEnabled.value = false
@@ -270,7 +287,7 @@ function setShowWhat(btnIdx) {
         chgWhat = true
         updatesEnabled.value = true
     }
-    console.log(`UserPersonStory/setShowWhat showWhat %s - %s`, JSON.stringify(showWhat), storyShowWhat.value)
+    // console.log(`UserPersonStory/setShowWhat showWhat %s - %s`, JSON.stringify(showWhat), storyShowWhat.value)
 }
 //
 watch(
