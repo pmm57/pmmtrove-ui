@@ -300,7 +300,7 @@ console.log(`HomeView Started`)
                     </p>
                     <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
                         {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
-                    <p v-if="userData.loadedIndex > -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
+                    <p v-if="(userData?.loadedIndex ?? -1)> -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
                     <div v-if="loadingTroveUseData">
                         <p>{{ loadingMsg }}</p>
                     </div>
@@ -314,7 +314,7 @@ console.log(`HomeView Started`)
                     </div>
                 </div>
                 <div v-else class="card text-center">
-                    <p v-if="'troveUserId' in userData.troveDetails">
+                    <p v-if="userData?.troveDetails?.troveUserId">
                         Change {{ userData?.troveDetails?.troveUserId }} to Manage Another
                     </p>
                     <p v-else>Select a Trove User Id to Manage</p>
