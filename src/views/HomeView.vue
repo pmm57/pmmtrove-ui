@@ -88,8 +88,16 @@ const isAuthenticated = auth.isAuthenticated
 const loginWithRedirect = auth.loginWithRedirect
 
 watch(user, async (u) => {
-    console.log("HomeView trigger user watch:", u)
-    if (u && !userData.verifiedTroveUserName) {
+    console.log(`HomeView WATCH user:%s, userData:%s`, JSON.stringify(u), JSON.stringify(userData))
+    if (!u) {
+        console.log("HomeView WATCH userSkipping: no user yet")
+        return
+    }
+    if (!userData) {
+        console.log("HomeView WATCH userSkipping: no userData yet")
+        return
+    }
+    if (!userData.verifiedTroveUserName) {
         await getUserTroveIds(u.nickname)
     }
 }, { immediate: true })
