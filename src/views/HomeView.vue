@@ -289,7 +289,7 @@ console.log(`HomeView Started`)
             <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
         </template>
     </div>
-    <div v-else-if="isAuthenticated && !userData.verifiedTroveUserName" class="card col-sm-4 text-center">
+    <div v-else-if="isAuthenticated && userData && !userData.verifiedTroveUserName" class="card col-sm-4 text-center">
         <p v-if="'troveUserId' in userData.troveDetails">
             Change {{ userData.troveDetails.troveUserId }} to Manage Another
         </p>
@@ -319,7 +319,7 @@ console.log(`HomeView Started`)
                 Your Trove Lists</button>
         </div>
     </div>
-    <div v-if="userData.userListsReady && (authUserWithTroveId.length > 1) && userData.verifiedTroveUserName"
+    <div v-if="userData && userData.userListsReady && (authUserWithTroveId.length > 1) && userData.verifiedTroveUserName"
         class="card col-sm-4 text-center">
         <button @click.prevent="userData.verifiedTroveUserName = false" class="btn btn-primary">Change
             User</button>
