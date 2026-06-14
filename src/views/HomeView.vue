@@ -87,6 +87,7 @@ const error = auth.error
 const isAuthenticated = auth.isAuthenticated
 const loginWithRedirect = auth.loginWithRedirect
 
+console.log(`HomeView Start isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value, userData.verifiedTroveUserName, JSON.stringify(user.value))
 watch(user, async (u) => {
     console.log(`HomeView WATCH user:%s, userData:%s`, JSON.stringify(u), JSON.stringify(userData))
     if (!u) {
