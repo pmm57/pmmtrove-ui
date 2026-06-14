@@ -2,9 +2,9 @@ import { ref } from 'vue'
 import { useDoFetch } from '@/components/DoFetch.js';
 
 export const isLoading = ref(false)   // mockAuth never loads asynchronously
-export const error = ref([])        // no errors by default
+export const error = ref(null)        // no errors by default
 export const isAuthenticated = ref(false)
-export const user = ref({})
+export const user = ref(null)
 export const availableUsers = ref([])
 
 export async function loadMockUsers() {
@@ -42,4 +42,5 @@ export function loginWithRedirect() {
 export function logout() {
     isAuthenticated.value = false
     user.value = null
+    error.value = null
 }
