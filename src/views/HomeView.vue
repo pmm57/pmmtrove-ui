@@ -55,31 +55,6 @@ const loadingTroveUseData = ref(false) // Shows / Hides loadingMsg
 var inUserId = ''
 var intervalLoading = null
 const verifyChgPrompt = 'Verify Changed User'
-//
-// const isLoading = ref(false)
-// const isAuthenticated = ref(false)
-// const error = ref([])
-// const loginWithRedirect = ref(null)
-// const user = ref(null)
-
-// onMounted(async () => {
-//     const auth = await useAuth()
-//     isAuthenticated.value = auth.isAuthenticated
-//     error.value = auth.error
-//     loginWithRedirect.value = auth.loginWithRedirect
-//     user.value = auth.user
-
-//     console.log(`HomeView Start onMounted isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value.value, userData.verifiedTroveUserName, JSON.stringify(user.value.value))
-//     watch(() => user.value.value, async (u) => {
-//         console.log("HomeView trigger user watch:", u)
-//         if (u && !userData.verifiedTroveUserName) {
-//             await getUserTroveIds(user.value?.nickname)
-//         }
-//     })
-//     watch(error, (err) => {
-//         if (err) console.error("HomeView Auth0 error:", err)
-//     })
-// })
 
 const auth = useAuth()
 const user = auth.user
@@ -87,9 +62,9 @@ const error = auth.error
 const isAuthenticated = auth.isAuthenticated
 const loginWithRedirect = auth.loginWithRedirect
 
-console.log(`HomeView Start isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value, userData.verifiedTroveUserName, JSON.stringify(user.value))
+console.log(`HomeView Start isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value, userData.verifiedTroveUserName, user?.value)
 watch(user, async (u) => {
-    console.log(`HomeView WATCH user:%s, userData:%s`, JSON.stringify(u), JSON.stringify(userData))
+    console.log(`HomeView WATCH user:%s, userData:%s`, u, userData?.verifiedTroveUserName)
     if (!u) {
         console.log("HomeView WATCH userSkipping: no user yet")
         return
@@ -107,9 +82,9 @@ watch(error, (err) => {
     if (err) console.error("HomeView Auth0 error:", err)
 }, { immediate: true })
 
-const login = () => loginWithRedirect.value()
+const login = () => loginWithRedirect()
 const signup = () =>
-    loginWithRedirect.value({
+    loginWithRedirect({
         authorizationParams: { screen_hint: 'signup' }
     })
 
@@ -191,10 +166,10 @@ async function getUserTroveIds(authUserName) {
         userData.authUserTroveIds = [...data]
         userData.verifiedAuthUserName = true
         navBarStore.disableManage = false
-        console.log(`HomeView/getUserTroveIds Returned userData.authUserTroveIds: %s `, JSON.stringify(userData.authUserTroveIds))
+        console.log(`HomeView/getUserTroveIds Returned userData.authUserTroveIds: %s `, userData?.authUserTroveIds)
         // How many Trove User ID's are linked to this AuthUser
         authUserWithTroveId.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
-        console.log(`HomeView/getUserTroveIds Returned authUserWithTroveId: %s `, JSON.stringify(authUserWithTroveId.value))
+        console.log(`HomeView/getUserTroveIds Returned authUserWithTroveId: %s `, authUserWithTroveId?.value)
         switch (authUserWithTroveId.value.length) {
             case 0: // Ask User to link one in Manage
                 userData.authUserTroveIds[0].troveUserId = ''
