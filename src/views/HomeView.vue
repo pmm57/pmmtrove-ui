@@ -291,11 +291,11 @@ console.log(`HomeView Started`)
                     <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
                 </template>
             </div>
-            <div v-else class="centered-container">
+            <div v-else>
                 <div v-if="userData?.verifiedTroveUserName" class="card text-center">
-                    <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
+                    <p>This is a Trove Data Miner for user {{ userData?.troveDetails?.troveUserId }}</p>
                     <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.
-                        <br v-if="userData?.userDuplicateListIds?.length > 0">There is {{ userData.userDuplicateListIds.length }}
+                        <br v-if="userData?.userDuplicateListIds?.length > 0">There is {{ userData?.userDuplicateListIds?.length ?? 0 }}
                         Duplicate List/s that will not be Loaded.
                     </p>
                     <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
@@ -308,26 +308,26 @@ console.log(`HomeView Started`)
                         <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
                             Your Trove Lists</button>
                     </div>
-                    <div v-if="userData.userListsReady && (authUserWithTroveId?.length > 1)">
+                    <div v-if="userData?.userListsReady && (authUserWithTroveId?.length > 1)">
                         <button @click.prevent="userData.verifiedTroveUserName = false" class="btn btn-primary">Change
                             User</button>
                     </div>
                 </div>
                 <div v-else class="card text-center">
                     <p v-if="'troveUserId' in userData.troveDetails">
-                        Change {{ userData.troveDetails.troveUserId }} to Manage Another
+                        Change {{ userData?.troveDetails?.troveUserId }} to Manage Another
                     </p>
                     <p v-else>Select a Trove User Id to Manage</p>
                     <!-- Trove User Id selection, fires watcher on selected UI -->
                     <select v-model="selectedTroveUserId">
                         <option disabled value="">-- Select a Trove User Id --</option>
-                        <option v-for="u in authUserWithTroveId" :key="u.id" :value="u.troveUserId">
+                        <option v-for="u in authUserWithTroveId  ?? []" :key="u.id" :value="u.troveUserId">
                             {{ u.troveUserId }}
                         </option>
                     </select>
                 </div>
             </div>
-            <div v-if="shouldUseAuth0 && error.length > 0" class="alert alert-danger">
+            <div v-if="shouldUseAuth0 && error && error.message" class="alert alert-danger">
                 Authentication error: {{ error.message }}
             </div>
         </div>
