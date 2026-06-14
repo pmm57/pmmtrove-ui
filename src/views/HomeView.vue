@@ -275,56 +275,61 @@ console.log(`HomeView Started`)
 </script>
 
 <template>
-    <div v-if="!isAuthenticated" class="card col-sm-4 text-center">
-        <MockLogin v-if="!shouldUseAuth0" />
-        <template v-else>
-            <br>
-            <p>Please log in or sign up to continue</p>
-            <button @click="login" class="btn btn-primary">Log in using Authentication User</button>
-            <p>First time user please Signup
-            </p>
-            <p>NOTE: After signing up an Authenticated User name you can link multiple Trove User names to it in Manage
-                User
-            </p>
-            <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
-        </template>
-    </div>
-    <div v-else-if="isAuthenticated && userData && !userData.verifiedTroveUserName" class="card col-sm-4 text-center">
-        <p v-if="'troveUserId' in userData.troveDetails">
-            Change {{ userData.troveDetails.troveUserId }} to Manage Another
-        </p>
-        <p v-else>Select a Trove User Id to Manage</p>
-        <!-- Trove User Id selection, fires watcher on selected UI -->
-        <select v-model="selectedTroveUserId">
-            <option disabled value="">-- Select a Trove User Id --</option>
-            <option v-for="u in authUserWithTroveId" :key="u.id" :value="u.troveUserId">
-                {{ u.troveUserId }}
-            </option>
-        </select>
-    </div>
-    <div v-else-if="userData.verifiedTroveUserName" class="card col-sm-4 text-center">
-        <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
-        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.
-            <br v-if="userData.userDuplicateListIds.length > 0">There is {{ userData.userDuplicateListIds.length }}
-            Duplicate List/s that will not be Loaded.
-        </p>
-        <p v-if="userData.userLists.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
-            {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
-        <p v-if="userData.loadedIndex > -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
-        <div v-if="loadingTroveUseData">
-            <p>{{ loadingMsg }}</p>
+    <div class="d-flex justify-content-center mt-5">
+        <div style="max-width: 400px; width: 100%;">
+            <div v-if="!isAuthenticated" class="card text-center">
+                <MockLogin v-if="!shouldUseAuth0" />
+                <template v-else>
+                    <br>
+                    <p>Please log in or sign up to continue</p>
+                    <button @click="login" class="btn btn-primary">Log in using Authentication User</button>
+                    <p>First time user please Signup
+                    </p>
+                    <p>NOTE: After signing up an Authenticated User name you can link multiple Trove User names to it in Manage
+                        User
+                    </p>
+                    <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
+                </template>
+            </div>
+            <div v-else class="centered-container">
+                <div v-if="userData?.verifiedTroveUserName" class="card text-center">
+                    <p>This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}</p>
+                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.
+                        <br v-if="userData?.userDuplicateListIds?.length > 0">There is {{ userData.userDuplicateListIds.length }}
+                        Duplicate List/s that will not be Loaded.
+                    </p>
+                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
+                        {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
+                    <p v-if="userData.loadedIndex > -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
+                    <div v-if="loadingTroveUseData">
+                        <p>{{ loadingMsg }}</p>
+                    </div>
+                    <div v-else>
+                        <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
+                            Your Trove Lists</button>
+                    </div>
+                    <div v-if="userData.userListsReady && (authUserWithTroveId?.length > 1)">
+                        <button @click.prevent="userData.verifiedTroveUserName = false" class="btn btn-primary">Change
+                            User</button>
+                    </div>
+                </div>
+                <div v-else class="card text-center">
+                    <p v-if="'troveUserId' in userData.troveDetails">
+                        Change {{ userData.troveDetails.troveUserId }} to Manage Another
+                    </p>
+                    <p v-else>Select a Trove User Id to Manage</p>
+                    <!-- Trove User Id selection, fires watcher on selected UI -->
+                    <select v-model="selectedTroveUserId">
+                        <option disabled value="">-- Select a Trove User Id --</option>
+                        <option v-for="u in authUserWithTroveId" :key="u.id" :value="u.troveUserId">
+                            {{ u.troveUserId }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div v-if="shouldUseAuth0 && error.length > 0" class="alert alert-danger">
+                Authentication error: {{ error.message }}
+            </div>
         </div>
-        <div v-else>
-            <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
-                Your Trove Lists</button>
-        </div>
-    </div>
-    <div v-if="userData && userData.userListsReady && (authUserWithTroveId.length > 1) && userData.verifiedTroveUserName"
-        class="card col-sm-4 text-center">
-        <button @click.prevent="userData.verifiedTroveUserName = false" class="btn btn-primary">Change
-            User</button>
-    </div>
-    <div v-if="shouldUseAuth0 && error.length > 0" class="alert alert-danger">
-        Authentication error: {{ error.message }}
     </div>
 </template>
