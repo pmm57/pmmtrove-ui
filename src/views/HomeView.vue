@@ -1,7 +1,7 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
 import { resetServer } from '@/components/ResetUser.js';
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { useNavBarStore } from '@/stores/navbar'
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -15,7 +15,9 @@ const navBarStore = useNavBarStore()
 const errorsStore = useErrorsArrayStore()
 const userData = useUserDataStore()
 // Status Flag cycle
-// Start - verfiedUser = false
+// Start - userData.verifiedTroveUserName = false
+//
+//
 // User Clicks Login or Signup
 // Triggers call to server to access linked Trove User Id's
 // Check number of linked TroveUserID to this Authenticated User
@@ -55,29 +57,46 @@ var intervalLoading = null
 const verifyChgPrompt = 'Verify Changed User'
 //
 // const isLoading = ref(false)
-const isAuthenticated = ref(false)
-const error = ref([])
-const loginWithRedirect = ref(null)
-const user = ref(null)
+// const isAuthenticated = ref(false)
+// const error = ref([])
+// const loginWithRedirect = ref(null)
+// const user = ref(null)
 
-onMounted(async () => {
-    const auth = await useAuth()
-    isAuthenticated.value = auth.isAuthenticated
-    error.value = auth.error
-    loginWithRedirect.value = auth.loginWithRedirect
-    user.value = auth.user
+// onMounted(async () => {
+//     const auth = await useAuth()
+//     isAuthenticated.value = auth.isAuthenticated
+//     error.value = auth.error
+//     loginWithRedirect.value = auth.loginWithRedirect
+//     user.value = auth.user
 
-    console.log(`HomeView Start onMounted isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value.value, userData.verifiedTroveUserName, JSON.stringify(user.value.value))
-    watch(() => user.value.value, async (u) => {
-        console.log("HomeView trigger user watch:", u)
-        if (u && !userData.verifiedTroveUserName) {
-            await getUserTroveIds(user.value.value?.nickname)
-        }
-    })
-    watch(error, (err) => {
-        if (err) console.error("HomeView Auth0 error:", err)
-    })
-})
+//     console.log(`HomeView Start onMounted isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value.value, userData.verifiedTroveUserName, JSON.stringify(user.value.value))
+//     watch(() => user.value.value, async (u) => {
+//         console.log("HomeView trigger user watch:", u)
+//         if (u && !userData.verifiedTroveUserName) {
+//             await getUserTroveIds(user.value?.nickname)
+//         }
+//     })
+//     watch(error, (err) => {
+//         if (err) console.error("HomeView Auth0 error:", err)
+//     })
+// })
+
+const auth = useAuth()
+const user = auth.user
+const error = auth.error
+const isAuthenticated = auth.isAuthenticated
+const loginWithRedirect = auth.loginWithRedirect
+
+watch(user, async (u) => {
+    console.log("HomeView trigger user watch:", u)
+    if (u && !userData.verifiedTroveUserName) {
+        await getUserTroveIds(u.nickname)
+    }
+}, { immediate: true })
+
+watch(error, (err) => {
+    if (err) console.error("HomeView Auth0 error:", err)
+}, { immediate: true })
 
 const login = () => loginWithRedirect.value()
 const signup = () =>
@@ -111,7 +130,7 @@ watch(
         clearInterval(intervalLoading);
         intervalLoading = null;
         navBarStore.disableTroveLists = false;
-        console.log(`HomeView Watch: Good TO Go - Is Authenticated:%s, Verified User:%s`, isAuthenticated.value.value, userData.verifiedTroveUserName)
+        console.log(`HomeView Watch: Good TO Go - Is Authenticated:%s, Verified User:%s`, isAuthenticated.value, userData.verifiedTroveUserName)
         // If this was a Browser Reload from Server - Check if the full load never completed
         // Indicated by last list that is not a duplicate having a count > 0 but no artices in its Article Array
         //  force a refresh
@@ -136,7 +155,6 @@ watch(
 //
 async function getUserTroveIds(authUserName) {
     // oauth will populate user
-    // isLoading.value.value = true
     loadingMsg.value = loadingAuthMsg
     loadingTick();
     errorsStore.arrayErrors = [];
@@ -161,7 +179,6 @@ async function getUserTroveIds(authUserName) {
         // Verification failed
         loadingTroveUseData.value = false
     } else {
-        // isLoading.value.value = false
         userData.authUserTroveIds = [...data]
         userData.verifiedAuthUserName = true
         navBarStore.disableManage = false
@@ -249,7 +266,7 @@ console.log(`HomeView Started`)
 </script>
 
 <template>
-    <div v-if="!isAuthenticated.value" class="card col-sm-4 text-center">
+    <div v-if="!isAuthenticated" class="card col-sm-4 text-center">
         <MockLogin v-if="!shouldUseAuth0" />
         <template v-else>
             <br>
@@ -263,7 +280,7 @@ console.log(`HomeView Started`)
             <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
         </template>
     </div>
-    <div v-else-if="isAuthenticated.value && !userData.verifiedTroveUserName" class="card col-sm-4 text-center">
+    <div v-else-if="isAuthenticated && !userData.verifiedTroveUserName" class="card col-sm-4 text-center">
         <p v-if="'troveUserId' in userData.troveDetails">
             Change {{ userData.troveDetails.troveUserId }} to Manage Another
         </p>

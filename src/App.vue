@@ -18,6 +18,7 @@ const updateHeight = () => {
   navHeight.value = navRef.value?.$el.offsetHeight || 0
 }
 const backendReady = ref(false);
+let dotInterval;
 const loadingMessage = ref("Starting...");
 //
 // This code handles the following SSE events from the server
@@ -311,6 +312,16 @@ async function verifyServerUp() {
 
 }
 //
+function startDotAnimation() {
+    dotInterval = setInterval(() => {
+        loadingMessage.value += '.';
+    }, 500); // faster UI updates
+}
+//
+function stopDotAnimation() {
+    clearInterval(dotInterval);
+}
+//
 function updateLoadingMessage(status) {
     if (status?.auraStatus === "resuming") {
         loadingMessage.value = "Warming up database...";
@@ -334,9 +345,14 @@ async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
         try {
             const status = await verifyServerUp();
             if (status.ready) {
+                backendReady.value = true;
                 return status;
             }
-            if (JSON.stringify(status) !== JSON.stringify(previousStatus)) {
+            if (status.startupStatus === "Failed") {
+                errorsStore.arrayErrors.push({ msg: status.errors[0], param: JSON.stringify(status.errors) });
+                break
+            }
+            if ((JSON.stringify(status) !== JSON.stringify(previousStatus)) || (loadingMessage.value.length > 20)) {
                 updateLoadingMessage(status);
                 console.log(`App/waitForBackend Status: %s`, JSON.stringify(status));
                 previousStatus = status;
@@ -345,9 +361,10 @@ async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
             console.error(`App/waitForBackend Error checking backend status:%s`, error);
             updateLoadingMessage({ startupStatus: "Starting" });
         }
-        loadingMessage.value += '.';
+        startDotAnimation();
         await new Promise(r => setTimeout(r, delay));
         delay = Math.min(delay + 1000, 8000);
+        stopDotAnimation()
     }
 }
 //
@@ -359,7 +376,6 @@ onMounted(async () => {
     try {
         // wait for backend readiness
         await waitForBackend();
-        backendReady.value = true;
     } catch (err) {
         console.error("Startup failed:", err);
         loadingMessage.value = "Startup failed";
