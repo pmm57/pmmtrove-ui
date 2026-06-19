@@ -2,15 +2,15 @@
 import { useDoFetch } from '@/components/DoFetch.js';
 import { ref } from 'vue'
 import EditItem from '@/components/EditItem.vue'
-import { useRouter } from 'vue-router';
-const router = useRouter();
-import NavBar from '@/components/NavBar.vue'
-import { useErrorsArrayStore } from '@/stores/errorsarray'
-const errorsStore = useErrorsArrayStore()
+// import { useRouter } from 'vue-router';
+// const router = useRouter();
+// import NavBar from '@/components/NavBar.vue'
+// import { useErrorsArrayStore } from '@/stores/errorsarray'
+// const errorsStore = useErrorsArrayStore()
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
-import { useNavBarStore } from '@/stores/navbar'
-const navStore = useNavBarStore()
+// import { useNavBarStore } from '@/stores/navbar'
+// const navStore = useNavBarStore()
 //
 var notifyEditError = ref('inherit')
 var popoverForTroveId = ref('')
@@ -54,6 +54,7 @@ async function validateInput(action, index) {
             } else {
                 if ((index > userData.authUserTroveIds.length - 1) ||
                     (localAuthUserTroveIds.value[index].troveUserId != userData.authUserTroveIds[index].troveUserId)) {
+                    console.log(`ManageView/validateInput index:%s Check:%s`, index, localAuthUserTroveIds.value[index].troveUserId)
                     // Validate the entered Trove Id
                     const chkedTroveUserId = await ckhTroveUserId(localAuthUserTroveIds.value[index].troveUserId)
                     if (!chkedTroveUserId.validTroveUserId) {
@@ -108,9 +109,9 @@ async function validateInput(action, index) {
 //
 //  Check if troveUserId is valid and not linked to another authUserName
 async function ckhTroveUserId(chkTroveUserId) {
-    console.log("ManageView/ckhTroveUserId ", chkTroveUserId)
+    console.log(`ManageView/ckhTroveUserId AuthUserName:%s, Check Trove USer Id:%s`, userData.authUserTroveIds[0]?.authUserName, chkTroveUserId)
     var updatedData = {
-        'troveUserId': userData.troveDetails.troveUserId,
+        'authUserName': userData.authUserTroveIds[0]?.authUserName,
         'chkTroveUserId': chkTroveUserId
     }
     // console.log (updatedData);
@@ -295,14 +296,14 @@ async function saveData() {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(troveId, index) in localAuthUserTroveIds">
+                    <tr v-for="(troveId, index) in localAuthUserTroveIds" :key="index">
                         <template v-if="editTroveId > -1"> <!-- In Edit Mode-->
                             <template v-if="editTroveId == index"> <!-- Row to Edit -->
                                 <td :style="{ 'background-color': notifyEditError }"> <!-- Trove Id -->
-                                    <input v-model="troveId.troveUserId" placeholder="Enter a Trove Id">
-                                    <span v-if="popoverForTroveId.length > 0" class="tooltiptext">{{ popoverForTroveId
-                                    }}</span>
-                                    </input>
+                                    <div>
+                                        <input v-model="troveId.troveUserId" placeholder="Enter a Trove Id">
+                                        <span v-if="popoverForTroveId.length > 0" class="tooltiptext">{{ popoverForTroveId }}</span>
+                                    </div>
                                 </td>
                                 <td> <!-- troveUserApiKey -->
                                     <input v-model="troveId.troveUserApiKey" placeholder="Enter a Trove API Key" />
