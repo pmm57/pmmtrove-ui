@@ -48,13 +48,14 @@ const userData = useUserDataStore()
 var userReloadLists = false // Browser restart - User Verified - Session On Server to reload from
 const loadingAuthMsg = 'Authenticating .'
 const loadingTroveMsg = 'Loading from TROVE .'
+var currentLoadingMsg = ''
 const loadingMsg = ref('')
-const authUserWithTroveId = ref([])
+const authUserTroveIds = ref([])
 const selectedTroveUserId = ref('')
 const loadingTroveUseData = ref(false) // Shows / Hides loadingMsg
 var inUserId = ''
 var intervalLoading = null
-const verifyChgPrompt = 'Verify Changed User'
+// const verifyChgPrompt = 'Verify Changed User'
 
 const auth = useAuth()
 const user = auth.user
@@ -64,7 +65,7 @@ const loginWithRedirect = auth.loginWithRedirect
 
 console.log(`HomeView Start isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value, userData.verifiedTroveUserName, user?.value)
 watch(user, async (u) => {
-    console.log(`HomeView WATCH user:%s, userData:%s`, u, userData?.verifiedTroveUserName)
+    console.log(`HomeView WATCH user:%s, userData:%s`, JSON.stringify(u), userData?.verifiedTroveUserName)
     if (!u) {
         console.log("HomeView WATCH userSkipping: no user yet")
         return
@@ -103,6 +104,9 @@ function loadingTick() {
 }
 function tick() {
     loadingMsg.value += '.';
+    if (loadingMsg.value.length > 20) {
+        loadingMsg.value = currentLoadingMsg
+    }
 }
 // Asynch method in App.vue will set this
 watch(
@@ -140,6 +144,7 @@ watch(
 async function getUserTroveIds(authUserName) {
     // oauth will populate user
     loadingMsg.value = loadingAuthMsg
+    currentLoadingMsg = loadingAuthMsg
     loadingTick();
     errorsStore.arrayErrors = [];
     console.log('HomeView/getUserTroveIds User-', authUserName)
@@ -166,18 +171,18 @@ async function getUserTroveIds(authUserName) {
         userData.authUserTroveIds = [...data]
         userData.verifiedAuthUserName = true
         navBarStore.disableManage = false
-        console.log(`HomeView/getUserTroveIds Returned userData.authUserTroveIds: %s `, userData?.authUserTroveIds)
+        console.log(`HomeView/getUserTroveIds Returned userData.authUserTroveIds: %s `, JSON.stringify(userData?.authUserTroveIds))
         // How many Trove User ID's are linked to this AuthUser
-        authUserWithTroveId.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
-        console.log(`HomeView/getUserTroveIds Returned authUserWithTroveId: %s `, authUserWithTroveId?.value)
-        switch (authUserWithTroveId.value.length) {
+        authUserTroveIds.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
+        console.log(`HomeView/getUserTroveIds Returned authUserTroveIds: %s `, JSON.stringify(authUserTroveIds?.value))
+        switch (authUserTroveIds.value.length) {
             case 0: // Ask User to link one in Manage
                 userData.authUserTroveIds[0].troveUserId = ''
                 userData.authUserTroveIds[0].troveUserApiKey = ''
                 router.push({ name: 'manage' })
                 break
             case 1: // If only one then use that as Trove User Id
-                inUserId = authUserWithTroveId.value[0].troveUserId
+                inUserId = authUserTroveIds.value[0].troveUserId
                 userData.verifiedTroveUserName = true
                 console.log(`HomeView/getUserTroveIds Direct verifyTroveUser: %s `, inUserId)
                 verifyTroveUser(false)
@@ -222,6 +227,7 @@ async function verifyTroveUser(refresh) {
             userReloadLists = true;
         }
         loadingMsg.value = loadingTroveMsg
+        currentLoadingMsg = loadingTroveMsg
         loadingTick();
     }
 }
@@ -242,7 +248,7 @@ function resetTroveUser() {
     console.log('resetTroveUser')
     userData.verifiedTroveUserName = false
     inUserId = ''
-    verifyUserPrompt = verifyChgPrompt
+    // verifyUserPrompt = verifyChgPrompt
     resetServer()
 }
 
@@ -283,7 +289,7 @@ console.log(`HomeView Started`)
                         <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
                             Your Trove Lists</button>
                     </div>
-                    <div v-if="userData?.userListsReady && (authUserWithTroveId?.length > 1)">
+                    <div v-if="userData?.userListsReady && (authUserTroveIds?.length > 1)">
                         <button @click.prevent="userData.verifiedTroveUserName = false" class="btn btn-primary">Change
                             User</button>
                     </div>
@@ -296,7 +302,7 @@ console.log(`HomeView Started`)
                     <!-- Trove User Id selection, fires watcher on selected UI -->
                     <select v-model="selectedTroveUserId">
                         <option disabled value="">-- Select a Trove User Id --</option>
-                        <option v-for="u in authUserWithTroveId  ?? []" :key="u.id" :value="u.troveUserId">
+                        <option v-for="u in authUserTroveIds  ?? []" :key="u.id" :value="u.troveUserId">
                             {{ u.troveUserId }}
                         </option>
                     </select>

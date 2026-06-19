@@ -338,6 +338,7 @@ async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
     const start = Date.now();
     let delay = 2000;
     var previousStatus = null;
+    startDotAnimation();
     while (true) {
         if (Date.now() - start > timeoutMs) {
             throw new Error("Backend startup timeout");
@@ -346,6 +347,7 @@ async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
             const status = await verifyServerUp();
             if (status.ready) {
                 backendReady.value = true;
+                stopDotAnimation()
                 return status;
             }
             if (status.startupStatus === "Failed") {
@@ -361,19 +363,19 @@ async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
             console.error(`App/waitForBackend Error checking backend status:%s`, error);
             updateLoadingMessage({ startupStatus: "Starting" });
         }
-        startDotAnimation();
         await new Promise(r => setTimeout(r, delay));
         delay = Math.min(delay + 1000, 8000);
-        stopDotAnimation()
     }
 }
 //
 onMounted(async () => {
+    console.log(`App/onMounted Start`);
     await nextTick()
     updateHeight()
     // optional: update if window resizes
     window.addEventListener('resize', updateHeight)
     try {
+        console.log(`App/onMounted waitForBackend`);
         // wait for backend readiness
         await waitForBackend();
     } catch (err) {
