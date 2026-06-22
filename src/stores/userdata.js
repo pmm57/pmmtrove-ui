@@ -116,6 +116,14 @@ export const useUserDataStore = defineStore('userData', () => {
     //     articleListArray - {troveArticleId, troveListId, idxViewedArticle}
 
     const storyEventsForPersons = ref([])
+    const savedSearches = ref([])
+    // searchId
+    // troveUserId
+    // createdAt
+    // searchDateTime
+    // searchTotalFound
+    // searchFields
+    // searchIgnoredArticleIds []
   //
     function clearCacheStore() {
         this.troveQueryTotal = 0
@@ -130,6 +138,7 @@ export const useUserDataStore = defineStore('userData', () => {
         this.metadataValueTotal = 0
         this.metadataTypeByMetadata = []
         this.storyEventsForPersons = []
+        this.savedSearches = []
     }
     //
     function clearStore() {
@@ -150,6 +159,7 @@ export const useUserDataStore = defineStore('userData', () => {
         this.metadataValueTotal = 0
         this.metadataTypeByMetadata = []
         this.storyEventsForPersons = []
+        this.savedSearches = []
     }
     //
     function normalizeUserList(list) {
@@ -325,7 +335,8 @@ export const useUserDataStore = defineStore('userData', () => {
         viewedArticles, 
         metadataValueTotal, 
         metadataTypeByMetadata,
-        storyEventsForPersons,
+        storyEventsForPersons,        
+        savedSearches,
         clearStore,
         clearCacheStore,
         updateAllLists,

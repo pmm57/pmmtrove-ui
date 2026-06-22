@@ -33,6 +33,7 @@ const loadingMessage = ref("Starting...");
 //    sseReloadViewedArticle
 //    sseUpdateListsArticleStatus
 //    sseUpdateListStatusCount
+//    sseSavedSearches
 //    sseServerError
 //
 function handleMessage(e) {
@@ -209,6 +210,10 @@ function handleMessage(e) {
         case 'sseStoryEvents':
             // console.log(`App/sseStoryEvents %s`, JSON.stringify(sseRetrieve))
             userData.storyEventsForPersons = sseRetrieve.cacheStoryEvents
+            break
+        case 'sseSavedSearches':
+            // console.log(`App/sseSavedSearches %s`, JSON.stringify(sseRetrieve))
+            userData.savedSearches = sseRetrieve.cacheSavedSearches
             break
         case 'sseServerError':
             errorsStore.arrayErrors.push({ msg: sseRetrieve.errorResponse.statusText, param: JSON.stringify(sseRetrieve.errorResponse) });

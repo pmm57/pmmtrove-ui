@@ -57,6 +57,7 @@ whenever(
 //
 const loading = ref(false);
 const loadingText = ref("");
+const showSavedSearchesToggle = ref(false);
 const showSearchToggle = ref(true);
 const searchBlock = ref(false);
 const searchFor = ref("");
@@ -148,6 +149,10 @@ function onSearchToggle(event) {
   searchBlock.value = false
 }
 //
+function onSavedSearchesToggle(event) {
+  showSavedSearchesToggle.value = event.target.open
+}
+//
 function checkSearchPhrase() {
     console.log('checkSearchPhrase', searchPhrase.value);
     var isPhrase = false;
@@ -208,14 +213,18 @@ function checkIfAllYears() {
 function checkLimitDecade () {
     // Populate with years of decade
     console.log ("checkLimitDecade ", limitDecade.value)
-    limitYears.value = Array.from(
-        { length: 10 },
-        (_, i) => Number(`${limitDecade.value}${i}`)
-    )
+    updateLimitYears()
     // limitYear.value = limitYears.value[0]
     console.log ("limitYears ", limitYears.value)
     showLimitYear.value = false
     changeSearch()
+}
+//
+function updateLimitYears() {
+    limitYears.value = Array.from(
+        { length: 10 },
+        (_, i) => Number(`${limitDecade.value}${i}`)
+    )
 }
 //
 function checkLimitYear () {
@@ -336,7 +345,53 @@ function getSearch() {
     [...strSearchFields].forEach((aChar, index) => {
         aSearch.searchId = aSearch.searchId + (aChar.codePointAt(0) * index)
     });
+    console.log (`getSearch %s strSearchFields:%s `, strSearchFields.length, strSearchFields)
     return aSearch;
+}
+//
+function textSearchString (searchFields) {
+    const savedSearchFields = JSON.parse(searchFields);
+    let textSearch = savedSearchFields.searchString;
+    textSearch += savedSearchFields.searchAllStates ? ' (All States)' : ` (State:${savedSearchFields.searchLimitState})`;
+    if (savedSearchFields.searchAllYears) {
+        textSearch += ' (All Years)' 
+    } else {
+        textSearch += !savedSearchFields.searchAllDecadeYears ? ` (Year:${savedSearchFields.searchLimitYear})` : ' (Limited to Decade:' + savedSearchFields.searchLimitDecade + '0s)';
+    }
+    return textSearch;
+}
+//
+function textSearchDate (searchDateTime) {
+    return new Date(searchDateTime).toLocaleString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "short",
+        year: "2-digit",
+        hour12: false,
+    }).replace(",", "")
+}
+//
+function loadSavedSearch(searchFields) {
+    const savedSearchFields = JSON.parse(searchFields);
+    console.log (`SearchTroveView/loadSavedSearch %s`, JSON.stringify(savedSearchFields));
+    searchFor.value = savedSearchFields.searchString;
+    allStates.value = savedSearchFields.searchAllStates;
+    limitState.value = savedSearchFields.searchLimitState;
+    allYears.value = savedSearchFields.searchAllYears;
+    showLimitToDecade.value = !savedSearchFields.searchAllYears;
+    limitDecade.value = savedSearchFields.searchLimitDecade;
+    allDecadeYears.value = savedSearchFields.searchAllDecadeYears;
+    if (savedSearchFields.searchLimitYear > 0) {
+        updateLimitYears()
+        showLimitToYear.value = true;
+        showLimitYear.value = true;
+     } else {
+        showLimitToYear.value = false;
+    }
+    limitYear.value = savedSearchFields.searchLimitYear;
+    showSearchToggle.value = true;
+    changeSearch()
 }
 //
 function changeSearchText() {
@@ -720,6 +775,7 @@ function postSearch() {
     //
     disableSearch.value = true;
     disableUpdateIgnored.value = true;
+    showSavedSearchesToggle.value = false;
     showSearchToggle.value = false;
     loading.value = true;
     loadingText.value = "Loading Search Results ";
@@ -797,11 +853,12 @@ async function updateIgnoredArticles() {
             action = ''
         }
     });
-    console.log("clicked Save Ignored action " + JSON.stringify(items));
     const ignored = {
+        searchId: currentSearchId,
         ignoreArticlesInfo: items,
         reloadArticle: false
     };
+    console.log("clicked Save Ignored action " + JSON.stringify(ignored));
     //
     const options = {
         method: "post",
@@ -858,6 +915,54 @@ onMounted(() => {
 //
 <template>
     <div class="card">
+        <details :open="showSavedSearchesToggle" @toggle="onSavedSearchesToggle">
+            <summary>Show Saved Searches</summary>
+            <div class="card-body">
+                <div v-if="userData.savedSearches.length == 0">No Saved Searches</div>
+                <div v-else class="card-body pre-scrollable" style="max-height: 65vh; line-height: 100%">
+                    <table id="tableSearches" class="table table-bordered">
+                        <thead class="mbhead">
+                            <tr class="mbrow">
+                                <th>Action</th>
+                                <th>Created</th>
+                                <th>Last Run</th>
+                                <th>Search</th>
+                                <th>Nbr Articles</th>
+                                <th>Nbr Ignored</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(row, index) in userData.savedSearches" :key="index">
+                                <!-- Action -->
+                                <td>
+                                    <button class="btn btn-sm btn-primary" @click="loadSavedSearch(row.searchFields)">Load</button>
+                                </td>
+                                <!-- Created -->
+                                <td>
+                                    {{ textSearchDate(row.createdAt) }}
+                                </td>
+                                <!-- Last Run -->
+                                <td>
+                                    {{ textSearchDate(row.searchDateTime) }}
+                                </td>
+                                <!-- Search -->
+                                <td>
+                                    {{ textSearchString(row.searchFields) }}
+                                </td>
+                                <!-- Nbr Articles -->
+                                <td>
+                                    {{ row.searchTotalFound }}
+                                </td>
+                                <!-- Nbr Ignored -->
+                                <td>
+                                    {{ row.searchIgnoredArticleIds.length }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </details>
         <details :open="showSearchToggle" @toggle="onSearchToggle">
             <summary>Trove Search</summary>
             <div class="card-body">
@@ -1018,9 +1123,11 @@ onMounted(() => {
                     </thead>
                     <tbody>
                         <tr v-for="(row, index) in visibleRows" :key="row.id">
+                            <td>
                             <!-- Row -->
                             {{ row.rowNbr }}
-                            <!-- Date -->
+                            </td>
+                            <!-- Date -->>
                             <td :style="{backgroundColor: identifyDuplicate(row.articleMatch)}">
                                 {{ row.date }}
                             </td>
