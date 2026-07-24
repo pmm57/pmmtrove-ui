@@ -65,13 +65,17 @@ const loginWithRedirect = auth.loginWithRedirect
 
 console.log(`HomeView Start isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value, userData.verifiedTroveUserName, user?.value)
 watch(user, async (u) => {
-    console.log(`HomeView WATCH user:%s, userData:%s`, JSON.stringify(u), userData?.verifiedTroveUserName)
-    if (!u) {
-        console.log("HomeView WATCH userSkipping: no user yet")
-        return
-    }
-    if (!userData) {
-        console.log("HomeView WATCH userSkipping: no userData yet")
+    console.log(`HomeView WATCH user:%s, userData:%s`, u?.nickname, userData?.verifiedTroveUserName)
+    // if (!u) {
+    //     console.log("HomeView WATCH userSkipping: no user yet")
+    //     return
+    // }
+    // if (!userData) {
+    //     console.log("HomeView WATCH userSkipping: no userData yet")
+    //     return
+    // }
+    if (!u?.nickname) {
+        console.log('HomeView WATCH - No authenticated user yet')
         return
     }
     if (!userData.verifiedTroveUserName) {
@@ -104,7 +108,7 @@ function loadingTick() {
 }
 function tick() {
     loadingMsg.value += '.';
-    if (loadingMsg.value.length > 20) {
+    if (loadingMsg.value.length > 40) {
         loadingMsg.value = currentLoadingMsg
     }
 }
@@ -234,7 +238,8 @@ async function verifyTroveUser(refresh) {
 //
 function refreshUserLists() {
     console.log('Refresh User Trove Lists')
-    loadingMsg.value = 'Loading from TROVE.'
+    loadingMsg.value = loadingTroveMsg
+    currentLoadingMsg = loadingTroveMsg
     inUserId = userData.troveDetails.troveUserId
     // Doing a refresh not a reload
     userReloadLists = false;
@@ -275,8 +280,9 @@ console.log(`HomeView Started`)
             <div v-else>
                 <div v-if="userData?.verifiedTroveUserName" class="card text-center">
                     <p>This is a Trove Data Miner for user {{ userData?.troveDetails?.troveUserId }}</p>
-                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove.
-                        <br v-if="userData?.userDuplicateListIds?.length > 0">There is {{ userData?.userDuplicateListIds?.length ?? 0 }}
+                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove
+                        <br v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches
+                        <br v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
                         Duplicate List/s that will not be Loaded.
                     </p>
                     <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
