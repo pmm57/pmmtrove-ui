@@ -286,6 +286,7 @@ function ignoreArticleClick(doing, rowNbr) {
     console.log (`ignoreArticleClick doing:%s, idx:%s, row:%s`, doing, rowNbr, JSON.stringify(searchResults.value[rowNbr - 1]));
     if (doing) saveAction ("Undo Last Ignore", rowNbr)
     switch (searchResults.value[rowNbr - 1].status) { // Current Status
+        case 'QIgnored':
         case 'Ignored': // Is in DB IgnoredArticles List - Unignore It
             searchResults.value[rowNbr - 1].status = 'UnignoreArticle';
             ++searchPageCounts.nbrToUnignore;
@@ -442,6 +443,7 @@ function countSearchResults() {
                 ++searchAllCounts.nbrKnown;
                 break;
             case 'Ignored':
+            case 'QIgnored':
             case 'IgnoreArticle':
                 if (onPage) ++searchPageCounts.nbrIgnored;
                 ++searchAllCounts.nbrIgnored;
@@ -572,6 +574,7 @@ function showResultRow(hidden, status) {
             }
             break;
         case 'Ignored':
+        case 'QIgnored':
         case 'IgnoreArticle':
             if (toggleIgnored.value) {
                 return true;
@@ -611,6 +614,7 @@ function showStatus(status) {
         case 'KnownStored':
             return "Known";
         case 'Ignored':
+        case 'QIgnored':
         case 'IgnoreArticle':
             return "Ignored";
         case 'LowRelevance':
@@ -935,7 +939,9 @@ onMounted(() => {
                             <tr v-for="(row, index) in userData.savedSearches" :key="index">
                                 <!-- Action -->
                                 <td>
-                                    <button class="btn btn-sm btn-primary" @click="loadSavedSearch(row.searchFields)">Load</button>
+                                    <button class="btn btn-primary" 
+                                    style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
+                                    @click="loadSavedSearch(row.searchFields)">Load</button>
                                 </td>
                                 <!-- Created -->
                                 <td>
@@ -1127,7 +1133,7 @@ onMounted(() => {
                             <!-- Row -->
                             {{ row.rowNbr }}
                             </td>
-                            <!-- Date -->>
+                            <!-- Date -->
                             <td :style="{backgroundColor: identifyDuplicate(row.articleMatch)}">
                                 {{ row.date }}
                             </td>
