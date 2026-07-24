@@ -65,13 +65,17 @@ const loginWithRedirect = auth.loginWithRedirect
 
 console.log(`HomeView Start isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value, userData.verifiedTroveUserName, user?.value)
 watch(user, async (u) => {
-    console.log(`HomeView WATCH user:%s, userData:%s`, JSON.stringify(u), userData?.verifiedTroveUserName)
-    if (!u) {
-        console.log("HomeView WATCH userSkipping: no user yet")
-        return
-    }
-    if (!userData) {
-        console.log("HomeView WATCH userSkipping: no userData yet")
+    console.log(`HomeView WATCH user:%s, userData:%s`, u?.nickname, userData?.verifiedTroveUserName)
+    // if (!u) {
+    //     console.log("HomeView WATCH userSkipping: no user yet")
+    //     return
+    // }
+    // if (!userData) {
+    //     console.log("HomeView WATCH userSkipping: no userData yet")
+    //     return
+    // }
+    if (!u?.nickname) {
+        console.log('HomeView WATCH - No authenticated user yet')
         return
     }
     if (!userData.verifiedTroveUserName) {
