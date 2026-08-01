@@ -6,13 +6,12 @@ export const useUserDataStore = defineStore('userData', () => {
     const arrayMetadataTypes = ref([])
     const authUserTroveIds = ref([])
     // authUserName
-    // troveApiKey
     // troveUserId
     // troveUserApiKey
     const verifiedAuthUserName = ref(false)
     const troveDetails = reactive({})
     // troveUserId
-    // troveApiKey
+    // troveUserApiKey
     // troveApiRoot
     const troveQueryTotal = ref(0)
     const troveQueryArticleTotal = ref(0)

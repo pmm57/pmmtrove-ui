@@ -18,8 +18,8 @@ var notifyEditErrors = ref([[], []]);
 var popoverEditErrors = ref([[], []]);
 var editTroveId = ref(-1)
 var savedTroveId = {}
-var changeDefaultApiKey = ref(false)
-var disableChangeDefaultApiKey = ref(false)
+// var changeDefaultApiKey = ref(false)
+// var disableChangeDefaultApiKey = ref(false)
 var disableUpdate = ref(true)
 var localAuthUserTroveIds = ref([])
 var chgAuthUserTroveIds = []
@@ -29,7 +29,7 @@ notifyEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTrov
 popoverEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTroveIds.value.length).fill(""));
 //
 async function validateInput(action, index) {
-    disableChangeDefaultApiKey.value = true
+    // disableChangeDefaultApiKey.value = true
     notifyEditError.value = 'inherit';
     popoverForTroveId.value = ''
     disableUpdate.value = true;
@@ -44,7 +44,7 @@ async function validateInput(action, index) {
                 localAuthUserTroveIds.value[index] = { ...savedTroveId };
                 savedTroveId = '';
             }
-            disableChangeDefaultApiKey.value = false
+            // disableChangeDefaultApiKey.value = false
             console.log(`ManageView/validateInput cancel index:%s saved:%s`, editTroveId.value, JSON.stringify(savedTroveId))
             return;
         case 'Check':
@@ -89,7 +89,7 @@ async function validateInput(action, index) {
             savedTroveId = '';
             const newAuthUser = {
                 authUserName: localAuthUserTroveIds.value[0].authUserName,
-                troveApiKey: localAuthUserTroveIds.value[0].troveApiKey,
+                // troveApiKey: localAuthUserTroveIds.value[0].troveApiKey,
                 troveUserId: '',
                 troveUserApiKey: ''
             }
@@ -104,7 +104,7 @@ async function validateInput(action, index) {
         default:
             break;
     }
-    if (!disableUpdate.value) disableChangeDefaultApiKey.value = false
+    // if (!disableUpdate.value) disableChangeDefaultApiKey.value = false
 }
 //
 //  Check if troveUserId is valid and not linked to another authUserName
@@ -132,24 +132,24 @@ async function ckhTroveUserId(chkTroveUserId) {
 }
 //
 // Default Api Key Functions
-function updateDefaultApiKey() {
-    changeDefaultApiKey.value = false;
-    for (var i = 1; i < localAuthUserTroveIds.value.length; ++i) {
-        localAuthUserTroveIds.value[i].troveApiKey = localAuthUserTroveIds.value[0].troveApiKey
-    }
-    chgAuthUserTroveIds.push({
-        authUserName: localAuthUserTroveIds.value[0].authUserName,
-        troveApiKey: localAuthUserTroveIds.value[0].troveApiKey,
-        troveUserId: '',
-        troveUserApiKey: '',
-        action: 'DEFKEY'
-    })
-    saveData()
-}
-function cancelUpdateDefaultApiKey() {
-    changeDefaultApiKey.value = false;
-    localAuthUserTroveIds.value[0].troveApiKey = userData.authUserTroveIds[0].troveApiKey
-}
+// function updateDefaultApiKey() {
+//     changeDefaultApiKey.value = false;
+//     for (var i = 1; i < localAuthUserTroveIds.value.length; ++i) {
+//         localAuthUserTroveIds.value[i].troveApiKey = localAuthUserTroveIds.value[0].troveApiKey
+//     }
+//     chgAuthUserTroveIds.push({
+//         authUserName: localAuthUserTroveIds.value[0].authUserName,
+//         troveApiKey: localAuthUserTroveIds.value[0].troveApiKey,
+//         troveUserId: '',
+//         troveUserApiKey: '',
+//         action: 'DEFKEY'
+//     })
+//     saveData()
+// }
+// function cancelUpdateDefaultApiKey() {
+//     changeDefaultApiKey.value = false;
+//     localAuthUserTroveIds.value[0].troveApiKey = userData.authUserTroveIds[0].troveApiKey
+// }
 //
 // Only enable Update if there is a change
 // Must be at least one Trove Id
@@ -241,7 +241,7 @@ async function saveData() {
     userData.authUserTroveIds = JSON.parse(JSON.stringify(localAuthUserTroveIds.value))
     //
     disableUpdate.value = true
-    disableChangeDefaultApiKey.value = false
+    // disableChangeDefaultApiKey.value = false
     chgAuthUserTroveIds = []
 }
 </script>
@@ -263,7 +263,7 @@ async function saveData() {
     </div>
     <div v-if="userData.verifiedAuthUserName">
         <h2>User {{ localAuthUserTroveIds[0].authUserName }} Configuration</h2>
-        <div class="card col-sm-4 text-center">
+        <!-- <div class="card col-sm-4 text-center">
             <div v-if="changeDefaultApiKey" class="card">
                 <input v-model="localAuthUserTroveIds[0].troveApiKey" placeholder="Enter a Trove API Key" />
                 <div style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
@@ -280,7 +280,7 @@ async function saveData() {
                     class="btn btn-primary">Change
                     Default Trove API Key</button>
             </div>
-        </div>
+        </div> -->
         <br>
         <p v-if="(localAuthUserTroveIds.length == 1) && (localAuthUserTroveIds[0].troveUserId.length == 0)">
             Link a Trove User Id to this Authorised User to access Trove Data

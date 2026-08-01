@@ -46,7 +46,8 @@ const userData = useUserDataStore()
 // User goto start
 // 
 var userReloadLists = false // Browser restart - User Verified - Session On Server to reload from
-const loadingAuthMsg = 'Authenticating .'
+const authenticateAuthUser = 'Authenticating .'
+const verifyTroveUserMsg = 'Verifying Trove User .'
 const loadingTroveMsg = 'Loading from TROVE .'
 var currentLoadingMsg = ''
 const loadingMsg = ref('')
@@ -66,14 +67,6 @@ const loginWithRedirect = auth.loginWithRedirect
 console.log(`HomeView Start isAuthenticated-%s, verifiedTroveUserID-%s user-%s`, isAuthenticated.value, userData.verifiedTroveUserName, user?.value)
 watch(user, async (u) => {
     console.log(`HomeView WATCH user:%s, userData:%s`, u?.nickname, userData?.verifiedTroveUserName)
-    // if (!u) {
-    //     console.log("HomeView WATCH userSkipping: no user yet")
-    //     return
-    // }
-    // if (!userData) {
-    //     console.log("HomeView WATCH userSkipping: no userData yet")
-    //     return
-    // }
     if (!u?.nickname) {
         console.log('HomeView WATCH - No authenticated user yet')
         return
@@ -96,7 +89,7 @@ const signup = () =>
 watch(selectedTroveUserId, (troveUserId) => {
     if (!troveUserId) return;
     console.log(`Watch selectedTroveUserId:"%s" verifiedTroveUserName: `, selectedTroveUserId.value, userData.verifiedTroveUserName)
-    if ('troveUserId' in userData.troveDetails) {
+    if (troveUserId in userData.troveDetails) {
         resetTroveUser()
     }
     inUserId = troveUserId
@@ -104,6 +97,7 @@ watch(selectedTroveUserId, (troveUserId) => {
 });
 //
 function loadingTick() {
+    loadingTroveUseData.value = true
     intervalLoading = setInterval(tick, 500);
 }
 function tick() {
@@ -112,15 +106,18 @@ function tick() {
         loadingMsg.value = currentLoadingMsg
     }
 }
+function clearTick() {
+    loadingTroveUseData.value = false
+    clearInterval(intervalLoading);
+    intervalLoading = null;
+}
 // Asynch method in App.vue will set this
 watch(
     () => userData.userListsReady,
     (ready) => {
         console.log(`HomeView Watch: ready %s`, ready)
         if (!ready) return // Set to false userData.clearStore()
-        loadingTroveUseData.value = false; // userData.userListsReady is true
-        clearInterval(intervalLoading);
-        intervalLoading = null;
+        clearTick()
         navBarStore.disableTroveLists = false;
         console.log(`HomeView Watch: Good TO Go - Is Authenticated:%s, Verified User:%s`, isAuthenticated.value, userData.verifiedTroveUserName)
         // If this was a Browser Reload from Server - Check if the full load never completed
@@ -147,8 +144,8 @@ watch(
 //
 async function getUserTroveIds(authUserName) {
     // oauth will populate user
-    loadingMsg.value = loadingAuthMsg
-    currentLoadingMsg = loadingAuthMsg
+    loadingMsg.value = authenticateAuthUser
+    currentLoadingMsg = authenticateAuthUser
     loadingTick();
     errorsStore.arrayErrors = [];
     console.log('HomeView/getUserTroveIds User-', authUserName)
@@ -165,12 +162,10 @@ async function getUserTroveIds(authUserName) {
             authUserName: authUserName
         })
     };
-    const data = await useDoFetch('getUserTroveIds', "/", options);
-    clearInterval(intervalLoading);
-    intervalLoading = null;
+    const data = await useDoFetch('getUserTroveIds', "/", options); // pmmtrove-servicelayer index\initTroveUser.authUserInitRouter
+    clearTick()
     if (typeof data == 'boolean') {
         // Verification failed
-        loadingTroveUseData.value = false
     } else {
         userData.authUserTroveIds = [...data]
         userData.verifiedAuthUserName = true
@@ -195,9 +190,14 @@ async function getUserTroveIds(authUserName) {
         }
     }
 }
-//
+// 
 async function verifyTroveUser(refresh) {
-    loadingTroveUseData.value = true
+    selectedTroveUserId.value = ''
+    if (!refresh){
+        loadingMsg.value = verifyTroveUserMsg
+        currentLoadingMsg = verifyTroveUserMsg
+    }
+    loadingTick();
     errorsStore.arrayErrors = [];
     console.log('Verify User-', inUserId)
     const options = {
@@ -215,11 +215,12 @@ async function verifyTroveUser(refresh) {
         })
     };
     const data = await useDoFetch('verifyTroveUser', "/troveUser", options);
+    clearTick();
     if (typeof data == 'boolean') {
         // Verification failed
-        loadingTroveUseData.value = false
     } else {
         // console.log(`HomeView/verifyTroveUser Returned data: %s `, JSON.stringify(data))
+        console.log(`HomeView/verifyTroveUser Returned New Logon: %s `, data.newLogon)
         userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
         navBarStore.disableSearch = false;
         userData.verifiedTroveUserName = true
@@ -230,6 +231,7 @@ async function verifyTroveUser(refresh) {
             // Doing a server reload reload
             userReloadLists = true;
         }
+        // Server will sseMetaData and sseUserLists - setting userData.userListsReady to trigger above Watch
         loadingMsg.value = loadingTroveMsg
         currentLoadingMsg = loadingTroveMsg
         loadingTick();
@@ -278,6 +280,9 @@ console.log(`HomeView Started`)
                 </template>
             </div>
             <div v-else>
+                <div v-if="loadingTroveUseData" class="card text-center">
+                    <p><b>{{ loadingMsg }}</b></p>
+                </div>
                 <div v-if="userData?.verifiedTroveUserName" class="card text-center">
                     <p>This is a Trove Data Miner for user {{ userData?.troveDetails?.troveUserId }}</p>
                     <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove
@@ -288,9 +293,6 @@ console.log(`HomeView Started`)
                     <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
                         {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
                     <p v-if="(userData?.loadedIndex ?? -1)> -1">{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
-                    <div v-if="loadingTroveUseData">
-                        <p>{{ loadingMsg }}</p>
-                    </div>
                     <div v-else>
                         <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
                             Your Trove Lists</button>
