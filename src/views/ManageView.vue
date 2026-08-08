@@ -12,8 +12,12 @@ const userData = useUserDataStore()
 // import { useNavBarStore } from '@/stores/navbar'
 // const navStore = useNavBarStore()
 //
-var notifyEditError = ref('inherit')
-var popoverForTroveId = ref('')
+// Used for check new Trove Id and Trove Api Key
+var notifyCheckTroveIdError = ref('inherit')
+var popoverForCheckTroveIdError = ref('')
+var notifyCheckApiKeyError = ref('inherit')
+var popoverForCheckApiKeyError = ref('')
+// Used for errors on saveData - to highlight the row and column with error
 var notifyEditErrors = ref([[], []]);
 var popoverEditErrors = ref([[], []]);
 var editTroveId = ref(-1)
@@ -23,15 +27,22 @@ var savedTroveId = {}
 var disableUpdate = ref(true)
 var localAuthUserTroveIds = ref([])
 var chgAuthUserTroveIds = []
+//    [{
+//         authUserName: '',
+//         troveUserId: '',
+//         troveUserApiKey: '',
+//         action: 'ADDLINK'/'DELLINK'/'CHG'
+//     }]
 localAuthUserTroveIds.value = JSON.parse(JSON.stringify(userData.authUserTroveIds))
 console.log(`ManageView Start %s`, JSON.stringify(localAuthUserTroveIds.value))
 notifyEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTroveIds.value.length).fill("inherit"));
 popoverEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTroveIds.value.length).fill(""));
 //
 async function validateInput(action, index) {
-    // disableChangeDefaultApiKey.value = true
-    notifyEditError.value = 'inherit';
-    popoverForTroveId.value = ''
+    notifyCheckTroveIdError.value = 'inherit';
+    popoverForCheckTroveIdError.value = ''
+    notifyCheckApiKeyError.value = 'inherit';
+    popoverForCheckApiKeyError.value = ''
     disableUpdate.value = true;
     console.log(`ManageView/validateInput index:%s action:%s`, index, action)
     console.log(`ManageView/validateInput localAuthUserTroveIds:%s stored:%s`, JSON.stringify(localAuthUserTroveIds.value), JSON.stringify(userData.authUserTroveIds))
@@ -48,31 +59,40 @@ async function validateInput(action, index) {
             console.log(`ManageView/validateInput cancel index:%s saved:%s`, editTroveId.value, JSON.stringify(savedTroveId))
             return;
         case 'Check':
-            if (localAuthUserTroveIds.value[index].troveUserId.length < 4) {
-                popoverForTroveId.value = 'Trove Id must be at least 4 chars';
-                notifyEditError.value = 'red';
-            } else {
-                if ((index > userData.authUserTroveIds.length - 1) ||
-                    (localAuthUserTroveIds.value[index].troveUserId != userData.authUserTroveIds[index].troveUserId)) {
-                    console.log(`ManageView/validateInput index:%s Check:%s`, index, localAuthUserTroveIds.value[index].troveUserId)
-                    // Validate the entered Trove Id
-                    const chkedTroveUserId = await ckhTroveUserId(localAuthUserTroveIds.value[index].troveUserId)
-                    if (!chkedTroveUserId.validTroveUserId) {
-                        popoverForTroveId.value = chkedTroveUserId.errorMsg
-                        notifyEditError.value = 'red';
-                        return
-                    }
-                    if ((chkedTroveUserId.linkedAuthUserName.length > 0) &&
-                        (chkedTroveUserId.linkedAuthUserName != userData.authUserTroveIds[0].authUserName)) {
-                        popoverForTroveId.value = 'Trove User Id already Linked to another Authorised User'
-                        notifyEditError.value = 'red';
-                        return
-                    }
-                }
-                editTroveId.value = -1;
-                disableUpdate.value = checkUpdate();
-                savedTroveId = '';
+            console.log(`ManageView/validateInput Check index:%s :%s`, index, JSON.stringify(localAuthUserTroveIds.value[index]))
+            if (localAuthUserTroveIds.value[index].troveUserApiKey.length < 14) {
+                console.log(`ManageView/validateInput Check APiKey < 14`)
+                popoverForCheckApiKeyError.value = 'Trove Api Key must be greater than 14 chars';
+                notifyCheckApiKeyError.value = 'red';
             }
+            if (localAuthUserTroveIds.value[index].troveUserId.length < 4) {
+                popoverForCheckTroveIdError.value = 'Trove Id must be at least 4 chars';
+                notifyCheckTroveIdError.value = 'red';
+            }
+            if ((popoverForCheckApiKeyError.value.length > 0) || (popoverForCheckTroveIdError.value.length > 0)) {
+                console.log(`ManageView/validateInput check TroveIdError:%s, ApiKeyError:%s`, popoverForCheckTroveIdError.value, popoverForCheckApiKeyError.value)
+                return
+            }
+            if ((index > userData.authUserTroveIds.length - 1) || // New Trove Id
+                    (localAuthUserTroveIds.value[index].troveUserId != userData.authUserTroveIds[index].troveUserId)) {
+                console.log(`ManageView/validateInput index:%s Check:%s`, index, localAuthUserTroveIds.value[index].troveUserId)
+                // Validate the entered Trove Id
+                const chkedTroveUserId = await ckhTroveUserId(localAuthUserTroveIds.value[index].troveUserId)
+                if (!chkedTroveUserId.validTroveUserId) {
+                    popoverForCheckTroveIdError.value = chkedTroveUserId.errorMsg
+                    notifyCheckTroveIdError.value = 'red';
+                    return
+                }
+                if ((chkedTroveUserId.linkedAuthUserName.length > 0) &&
+                    (chkedTroveUserId.linkedAuthUserName != userData.authUserTroveIds[0].authUserName)) {
+                    popoverForCheckTroveIdError.value = 'Trove User Id already Linked to another Authorised User'
+                    notifyCheckTroveIdError.value = 'red';
+                    return
+                }
+            }
+            editTroveId.value = -1;
+            disableUpdate.value = checkUpdate();
+            savedTroveId = '';
             console.log(`ManageView/validateInput check index:%s disableUpdate:%s`, editTroveId.value, disableUpdate.value)
             break;
         case 'Del':
@@ -130,26 +150,6 @@ async function ckhTroveUserId(chkTroveUserId) {
     return useDoFetch('ckhTroveUserId', "/chkTroveUserId", options)
     //
 }
-//
-// Default Api Key Functions
-// function updateDefaultApiKey() {
-//     changeDefaultApiKey.value = false;
-//     for (var i = 1; i < localAuthUserTroveIds.value.length; ++i) {
-//         localAuthUserTroveIds.value[i].troveApiKey = localAuthUserTroveIds.value[0].troveApiKey
-//     }
-//     chgAuthUserTroveIds.push({
-//         authUserName: localAuthUserTroveIds.value[0].authUserName,
-//         troveApiKey: localAuthUserTroveIds.value[0].troveApiKey,
-//         troveUserId: '',
-//         troveUserApiKey: '',
-//         action: 'DEFKEY'
-//     })
-//     saveData()
-// }
-// function cancelUpdateDefaultApiKey() {
-//     changeDefaultApiKey.value = false;
-//     localAuthUserTroveIds.value[0].troveApiKey = userData.authUserTroveIds[0].troveApiKey
-// }
 //
 // Only enable Update if there is a change
 // Must be at least one Trove Id
@@ -246,116 +246,115 @@ async function saveData() {
 }
 </script>
 <template>
-    <div>
-        <h1>Overview</h1>
-        <h2>About Trove Data Miner</h2>
-        The source of the data is the National Library of Australia Trove<br>
-        This is a node javascript ui and server that is design to manage the data in TROVE lists.<br>
-        Organisation of data works best when Trove Lists have names that identify the primary reference person.<br>
-        Name Trove Lists - "Surname (nee MaidenName), GivenName/Initial., b.yyyy-d.yyyy <br>
-        <h2>Manage User</h2>
-    </div>
-    <div v-if="userData.verifiedTroveUserName">
-        This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}<br>
-        <p v-if="userData.userLists.length > 0">There are {{ userData.userLists.length -
-            userData.userDuplicateListIds.length }}
-            Lists in Trove to manage in Trove Data Miner</p>
-    </div>
-    <div v-if="userData.verifiedAuthUserName">
-        <h2>User {{ localAuthUserTroveIds[0].authUserName }} Configuration</h2>
-        <!-- <div class="card col-sm-4 text-center">
-            <div v-if="changeDefaultApiKey" class="card">
-                <input v-model="localAuthUserTroveIds[0].troveApiKey" placeholder="Enter a Trove API Key" />
-                <div style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
-                    <button :disabled="localAuthUserTroveIds[0].troveApiKey.length < 10"
-                        @click.prevent="updateDefaultApiKey()" class="btn btn-primary">Save
-                    </button>
-                    <button @click.prevent="cancelUpdateDefaultApiKey()" class="btn btn-primary">Cancel
-                    </button>
-                </div>
-            </div>
-            <div v-else>
-                Default Trove API Key <br> {{ localAuthUserTroveIds[0].troveApiKey }} <br>
-                <button :disabled="disableChangeDefaultApiKey" @click.prevent="changeDefaultApiKey = true"
-                    class="btn btn-primary">Change
-                    Default Trove API Key</button>
-            </div>
-        </div> -->
-        <br>
-        <p v-if="(localAuthUserTroveIds.length == 1) && (localAuthUserTroveIds[0].troveUserId.length == 0)">
-            Link a Trove User Id to this Authorised User to access Trove Data
-        </p>
-        <p v-else>Link additional Trove Ids and specify specific Trove Id API Key</p>
-        <div class="card col-sm-4 text-center">
-            <table class="table table-bordered">
-                <thead class="mbhead">
-                    <tr class="mbrow">
-                        <th>Trove Id</th>
-                        <th>Trove Api Key</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(troveId, index) in localAuthUserTroveIds" :key="index">
-                        <template v-if="editTroveId > -1"> <!-- In Edit Mode-->
-                            <template v-if="editTroveId == index"> <!-- Row to Edit -->
-                                <td :style="{ 'background-color': notifyEditError }"> <!-- Trove Id -->
-                                    <div>
-                                        <input v-model="troveId.troveUserId" placeholder="Enter a Trove Id">
-                                        <span v-if="popoverForTroveId.length > 0" class="tooltiptext">{{ popoverForTroveId }}</span>
-                                    </div>
+    <div class="card col-sm-5 border-0 mx-auto text-center">
+        <div>
+            <h1>Overview</h1>
+            <h2>About Trove Data Miner</h2>
+            The source of the data is the National Library of Australia Trove.<br>
+            This is a node javascript ui and server that is design to manage the data in TROVE lists.<br>
+            Organisation of data works best when Trove Lists have names that identify the primary reference person.<br>
+            Name Trove Lists - "Surname (nee MaidenName), GivenName/Initial., b.yyyy-d.yyyy <br>
+            <h2>Manage User</h2>
+        </div>
+        <div v-if="userData.verifiedTroveUserName">
+            This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}<br>
+            <p v-if="userData.userLists.length > 0">There are {{ userData.userLists.length -
+                userData.userDuplicateListIds.length }}
+                Lists in Trove to manage in Trove Data Miner</p>
+        </div>
+        <div v-if="userData.verifiedAuthUserName">
+            <h2>User {{ localAuthUserTroveIds[0].authUserName }} Configuration</h2>
+            <br>
+            <p v-if="(localAuthUserTroveIds.length == 1) && (localAuthUserTroveIds[0].troveUserId.length == 0)">
+                Link a Trove User Id to this Authorised User to access Trove Data
+            </p>
+            <p v-else>Link additional Trove Ids and specify specific Trove Id API Key</p>
+            <div class="card text-center">
+                <table class="table table-bordered trove-table">
+                <colgroup>
+                    <col style="width: 30%">
+                    <col style="width: 50%">
+                    <col style="width: 20%">
+                </colgroup>
+                    <thead class="mbhead">
+                        <tr class="mbrow">
+                            <th>Trove Id</th>
+                            <th>Trove Api Key</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(troveId, index) in localAuthUserTroveIds" :key="index">
+                            <template v-if="editTroveId > -1"> <!-- In Edit Mode-->
+                                <template v-if="editTroveId == index"> <!-- Row to Edit -->
+                                    <td :style="{ 'background-color': notifyCheckTroveIdError }"> <!-- Trove Id -->
+                                        <div>
+                                            <input v-model="troveId.troveUserId" placeholder="Enter a Trove Id">
+                                            <span v-if="popoverForCheckTroveIdError.length > 0" class="tooltiptext">{{ popoverForCheckTroveIdError }}</span>
+                                        </div>
+                                    </td>
+                                    <td :style="{ 'background-color': notifyCheckApiKeyError }"> <!-- troveUserApiKey -->
+                                        <input v-model="troveId.troveUserApiKey" placeholder="Enter a Trove API Key" />
+                                            <span v-if="popoverForCheckApiKeyError.length > 0" class="tooltiptext">{{ popoverForCheckApiKeyError }}</span>
+                                    </td>
+                                    <td>
+                                        <EditItem @click-item="validateInput('Check', index)" action="Check"
+                                            icon="bi-check-square" />
+                                        <EditItem @click-item="validateInput('Cancel', index)" action="Cancel"
+                                            icon="bi-x-square" />
+                                    </td>
+                                </template>
+                                <template v-else>
+                                    <td>{{ troveId.troveUserId }}</td>
+                                    <td>{{ troveId.troveUserApiKey }}</td>
+                                    <td>
+                                    </td>
+                                </template>
+                            </template>
+                            <template v-else> <!-- In Display Mode-->
+                                <td :style="{ 'background-color': notifyEditErrors[0][index] }">{{ troveId.troveUserId }}
+                                    <span v-if="popoverEditErrors[0][index].length > 0" class="tooltiptext">{{
+                                        popoverEditErrors[0][index]
+                                        }}</span>
                                 </td>
-                                <td> <!-- troveUserApiKey -->
-                                    <input v-model="troveId.troveUserApiKey" placeholder="Enter a Trove API Key" />
+                                <td :style="{ 'background-color': notifyEditErrors[1][index] }">{{ troveId.troveUserApiKey
+                                    }}
+                                    <span v-if="popoverEditErrors[1][index].length > 0" class="tooltiptext">{{
+                                        popoverEditErrors[1][index]
+                                        }}</span>
                                 </td>
                                 <td>
-                                    <EditItem @click-item="validateInput('Check', index)" action="Check"
-                                        icon="bi-check-square" />
-                                    <EditItem @click-item="validateInput('Cancel', index)" action="Cancel"
+                                    <EditItem
+                                        v-if="(index + 1 == localAuthUserTroveIds.length) && (localAuthUserTroveIds[0].troveUserId.length > 0)"
+                                        @click-item="validateInput('New', index)" action="New" icon="bi-plus-square" />
+                                    <EditItem @click-item="validateInput('Edit', index)" action="Edit"
+                                        icon="bi-pencil-square" />
+                                    <EditItem v-if="index > 0" @click-item="validateInput('Del', index)" action="Del"
                                         icon="bi-x-square" />
                                 </td>
                             </template>
-                            <template v-else>
-                                <td>{{ troveId.troveUserId }}</td>
-                                <td>{{ troveId.troveUserApiKey }}</td>
-                                <td>
-                                </td>
-                            </template>
-                        </template>
-                        <template v-else> <!-- In Display Mode-->
-                            <td :style="{ 'background-color': notifyEditErrors[0][index] }">{{ troveId.troveUserId }}
-                                <span v-if="popoverEditErrors[0][index].length > 0" class="tooltiptext">{{
-                                    popoverEditErrors[0][index]
-                                    }}</span>
-                            </td>
-                            <td :style="{ 'background-color': notifyEditErrors[1][index] }">{{ troveId.troveUserApiKey
-                                }}
-                                <span v-if="popoverEditErrors[1][index].length > 0" class="tooltiptext">{{
-                                    popoverEditErrors[1][index]
-                                    }}</span>
-                            </td>
-                            <td>
-                                <EditItem
-                                    v-if="(index + 1 == localAuthUserTroveIds.length) && (localAuthUserTroveIds[0].troveUserId.length > 0)"
-                                    @click-item="validateInput('New', index)" action="New" icon="bi-plus-square" />
-                                <EditItem @click-item="validateInput('Edit', index)" action="Edit"
-                                    icon="bi-pencil-square" />
-                                <EditItem v-if="index > 0" @click-item="validateInput('Del', index)" action="Del"
-                                    icon="bi-x-square" />
-                            </td>
-                        </template>
-                    </tr>
-                </tbody>
-            </table>
-            <div class="card">
-                <button :disabled="disableUpdate" @click.prevent="saveData()" class="btn btn-primary">Update
-                    Trove Id Data</button>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="card">
+                    <button :disabled="disableUpdate" @click.prevent="saveData()" class="btn btn-primary">Update
+                        Trove Id Data</button>
+                </div>
             </div>
         </div>
-    </div>
-    <div v-else>
-        <p>No Authorised User entered.</p>
+        <div v-else>
+            <p>No Authorised User entered.</p>
+        </div>
     </div>
 </template>
 
-<style></style>
+<style>
+.trove-table {
+    table-layout: fixed;
+    width: 100%;
+}
+.trove-table input {
+    width: 100%;
+    box-sizing: border-box;
+}
+</style>

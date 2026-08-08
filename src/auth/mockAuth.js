@@ -5,7 +5,7 @@ export const isLoading = ref(false)   // mockAuth never loads asynchronously
 export const error = ref(null)        // no errors by default
 export const isAuthenticated = ref(false)
 export const user = ref(null)
-export const availableUsers = ref([])
+export const availableAuthUsers = ref([])
 
 export async function loadMockUsers() {
     const options = {
@@ -23,8 +23,8 @@ export async function loadMockUsers() {
         return
     }
     // console.log(`mockAuth/loadMockUsers Load Success:%s`, JSON.stringify(data))
-    availableUsers.value = [...data]
-    // console.log(`mockAuth/loadMockUsers availableUsers:%s`, JSON.stringify(availableUsers.value))
+    availableAuthUsers.value = [...data]
+    // console.log(`mockAuth/loadMockUsers availableAuthUsers:%s`, JSON.stringify(availableAuthUsers.value))
 }
 
 export function selectMockUser(name) {
