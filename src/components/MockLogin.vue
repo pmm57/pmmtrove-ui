@@ -1,5 +1,5 @@
 <script setup>
-import { availableUsers, loadMockUsers, selectMockUser } from '@/auth/mockAuth'
+import { availableAuthUsers, loadMockUsers, selectMockUser } from '@/auth/mockAuth'
 import { onMounted } from 'vue'
 
 onMounted(() => loadMockUsers())
@@ -10,7 +10,7 @@ onMounted(() => loadMockUsers())
         <h3>Select a mock user</h3>
         <select @change="selectMockUser($event.target.value)">
             <option value="">-- choose user --</option>
-            <option v-for="user in availableUsers" :key="user" :value="user">
+            <option v-for="user in availableAuthUsers" :key="user" :value="user">
                 {{ user }}
             </option>
         </select>
