@@ -4,6 +4,7 @@ import ArticleUrls from '@/components/ArticleUrls.vue'
 import EditItem from '@/components/EditItem.vue'
 import { useDoFetch } from '@/components/DoFetch.js';
 import { unstringifyName } from '@/components/UnstringifyName.js';
+import ModalCheckDeleteSSearch from '@/components/ModalCheckDeleteSearch.vue';
 import { useUserDataStore } from '@/stores/userdata';
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -70,7 +71,7 @@ const limitDecades = ["1800-1809", "1810-1819", "1820-1829", "1830-1839", "1840-
 const showLimitToDecade = ref(false);
 const limitDecade = ref("");
 const showLimitToYear = ref(false);
-const allDecadeYears = ref(false);
+const searchAllDecadeYears = ref(false);
 const showLimitYear = ref(false);
 const limitYears = ref([]);
 const limitYear = ref("");
@@ -95,7 +96,7 @@ const disableNext = computed(() => {
 })
 const disableUpdateIgnored = ref(true);
 const waitUpdateIgnored = ref(false)
-const diasbledButtonText = ref('')
+const actionButtonText = ref('')
 const toggleNew = ref(true);
 const toggleKnown = ref(false);
 const toggleRelevant = ref(false);
@@ -119,6 +120,7 @@ let thisSearch = {searchId: 0,
     searchLimitDecade: '',
     searchAllDecadeYears: true,
     searchLimitYear: ''};
+const thisSearchId = ref('')
 const thisSearchText = ref('')
 const visiblePageNbr = ref(0);
 const searchPageCounts = reactive({
@@ -135,6 +137,8 @@ const searchCountState = ref([])
 const searchCountDecade = ref([])
 const searchCountYear = ref([])
 let searchNextUrl = 'done'
+var toDeleteSearchId = 0;
+const showCheckDeleteSearch = ref(false);
 //
 const visibleRows = computed(() => {
   const startIndex = (visiblePageNbr.value - 1) * searchPageSize;
@@ -154,10 +158,10 @@ function onSavedSearchesToggle(event) {
 }
 //
 function checkSearchPhrase() {
-    console.log('checkSearchPhrase', searchPhrase.value);
+    console.log('SearchTroveView/checkSearchPhrase', searchPhrase.value);
     var isPhrase = false;
     if (searchFor.value.includes(' ')) {
-        console.log('isPhrase');
+        console.log('SearchTroveView/checkSearchPhrase isPhrase');
         isPhrase = true;
     }
     if (searchPhrase.value) {
@@ -182,7 +186,7 @@ function checkSearchPhrase() {
 }
 //
 function checkIfLimitState() {
-    // console.log ("Check Limit State:", allStates.value)
+    console.log ("SearchTroveView/checkIfLimitState All States:", allStates.value)
     if (allStates.value) {
         limitState.value = "";
     } else {
@@ -192,19 +196,19 @@ function checkIfLimitState() {
 }
 //
 function checkIfAllYears() {
-    console.log ("Check All Year:", allYears.value)
+    console.log ("SearchTroveView/checkIfAllYears All Years:", allYears.value)
     if (allYears.value) {
         limitDecade.value = "";
         showLimitToDecade.value = false;
         showLimitToYear.value = false;
-        allDecadeYears.value = false;
+        searchAllDecadeYears.value = false;
         showLimitYear.value = false;
         changeSearch()
         return
     } 
     showLimitToDecade.value = true;
     showLimitToYear.value = true;
-    allDecadeYears.value = true;
+    searchAllDecadeYears.value = true;
     limitDecade.value = "187";
     checkLimitDecade ()
     return
@@ -212,10 +216,10 @@ function checkIfAllYears() {
 //
 function checkLimitDecade () {
     // Populate with years of decade
-    console.log ("checkLimitDecade ", limitDecade.value)
+    console.log ("SearchTroveView/checkLimitDecade ", limitDecade.value)
     updateLimitYears()
     // limitYear.value = limitYears.value[0]
-    console.log ("limitYears ", limitYears.value)
+    console.log ("SearchTroveView/checkLimitDecade limitYears ", limitYears.value)
     showLimitYear.value = false
     changeSearch()
 }
@@ -279,44 +283,48 @@ function addedListClick(rowNbr) {
 }
 // On clicking the ignore row
 // New => IgnoreArticle => Remove from TO Ignore
-//                      => OR Save => Ignored
-// Ignored => UnignoreArticle
+//                      => OR Save => QIgnored
+// GIgnored => UnignoreArticle
 //
 function ignoreArticleClick(doing, rowNbr) {
     console.log (`ignoreArticleClick doing:%s, idx:%s, row:%s`, doing, rowNbr, JSON.stringify(searchResults.value[rowNbr - 1]));
     if (doing) saveAction ("Undo Last Ignore", rowNbr)
     switch (searchResults.value[rowNbr - 1].status) { // Current Status
         case 'QIgnored':
-        case 'Ignored': // Is in DB IgnoredArticles List - Unignore It
+        case 'GIgnored': // Is in DB IgnoredArticles List - Unignore It
             searchResults.value[rowNbr - 1].status = 'UnignoreArticle';
             ++searchPageCounts.nbrToUnignore;
             ignoreAction.value = "UnIgnore";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
         case 'UnignoreArticle': // Is in DB IgnoredArticles List Was to be Unignored - changed mind
-            searchResults.value[rowNbr - 1].status = 'Ignored';
+            searchResults.value[rowNbr - 1].status = 'QIgnored';
             --searchPageCounts.nbrToUnignore;
             ignoreAction.value = "UnIgnore";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             break;
-        case 'IgnoreArticle': // Was set to be Ignored - changed mind
+        case 'IgnoreArticle': // Was set to be QIgnored - changed mind
             searchResults.value[rowNbr - 1].status = 'New';
             ignoreAction.value = "Add to Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-down";
             --searchPageCounts.nbrToIgnore;
             break;
-        default: // Was new - Now To be Ignored
+        default: // Was new - Now To be QIgnored
             ignoreAction.value = "Remove from TO Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
             searchResults.value[rowNbr - 1].status = 'IgnoreArticle';
             ++searchPageCounts.nbrToIgnore;
     }
     if ((searchPageCounts.nbrToIgnore > 0) || (searchPageCounts.nbrToUnignore > 0)) {
-        diasbledButtonText.value = "Save "
-        if (searchPageCounts.nbrToIgnore > 0) diasbledButtonText.value += searchPageCounts.nbrToIgnore + " Ignored "
-        if (searchPageCounts.nbrToUnignore > 0) diasbledButtonText.value += searchPageCounts.nbrToUnignore + " Unignore"
-        diasbledButtonText.value += " Articles"
+        actionButtonText.value = "Save "
+        if (searchPageCounts.nbrToIgnore > 0) actionButtonText.value += searchPageCounts.nbrToIgnore + " Ignored "
+        if (searchPageCounts.nbrToUnignore > 0) actionButtonText.value += searchPageCounts.nbrToUnignore + " Unignore"
+        actionButtonText.value += " Articles"
         disableUpdateIgnored.value = false;
+    } else {
+        actionButtonText.value = ''
+        disableUpdateIgnored.value = true;
+        lastActionSaved.value = ""
     }
     // console.log ('ignoreArticleClick Done');
 }
@@ -331,7 +339,7 @@ function getSearch() {
         searchLimitState: '',
         searchAllYears: allYears.value,
         searchLimitDecade: '',
-        searchAllDecadeYears: allDecadeYears.value,
+        searchAllDecadeYears: searchAllDecadeYears.value,
         searchLimitYear: ''
     }
     if (!aSearch.searchAllStates) {
@@ -346,12 +354,14 @@ function getSearch() {
     [...strSearchFields].forEach((aChar, index) => {
         aSearch.searchId = aSearch.searchId + (aChar.codePointAt(0) * index)
     });
-    console.log (`getSearch %s strSearchFields:%s `, strSearchFields.length, strSearchFields)
+    console.log (`SearchTroveView/getSearch %s strSearchFields:%s `, strSearchFields.length, strSearchFields)
     return aSearch;
 }
 //
 function textSearchString (searchFields) {
+    // console.log (`SearchTroveView/textSearchString In:%s`, searchFields)
     const savedSearchFields = JSON.parse(searchFields);
+    // console.log (`SearchTroveView/textSearchString Fields:%s`, JSON.stringify(savedSearchFields));
     let textSearch = savedSearchFields.searchString;
     textSearch += savedSearchFields.searchAllStates ? ' (All States)' : ` (State:${savedSearchFields.searchLimitState})`;
     if (savedSearchFields.searchAllYears) {
@@ -359,6 +369,7 @@ function textSearchString (searchFields) {
     } else {
         textSearch += !savedSearchFields.searchAllDecadeYears ? ` (Year:${savedSearchFields.searchLimitYear})` : ' (Limited to Decade:' + savedSearchFields.searchLimitDecade + '0s)';
     }
+    // console.log (`SearchTroveView/textSearchString Out:%s`, textSearch) 
     return textSearch;
 }
 //
@@ -382,8 +393,8 @@ function loadSavedSearch(searchFields) {
     allYears.value = savedSearchFields.searchAllYears;
     showLimitToDecade.value = !savedSearchFields.searchAllYears;
     limitDecade.value = savedSearchFields.searchLimitDecade;
-    allDecadeYears.value = savedSearchFields.searchAllDecadeYears;
-    if (savedSearchFields.searchLimitYear > 0) {
+    searchAllDecadeYears.value = savedSearchFields.searchAllDecadeYears;
+    if ((searchAllDecadeYears.value) || (savedSearchFields.searchLimitYear > 0)) {
         updateLimitYears()
         showLimitToYear.value = true;
         showLimitYear.value = true;
@@ -393,6 +404,29 @@ function loadSavedSearch(searchFields) {
     limitYear.value = savedSearchFields.searchLimitYear;
     showSearchToggle.value = true;
     changeSearch()
+}
+//
+function checkDeleteSavedSearch (searchId) {
+    console.log (`SearchTroveView/checkDeleteSavedSearch Check Delete %s`, searchId);
+    toDeleteSearchId = searchId;
+    showCheckDeleteSearch.value = true;
+}
+//
+function deleteSavedSearch() {
+    showCheckDeleteSearch.value = false;
+    console.log (`SearchTroveView/deleteSavedSearch Check Delete %s`, toDeleteSearchId);
+    const options = {
+        method: "delete",
+        mode: "cors",
+        credentials: "include", // to send HTTP only cookies
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        //make sure to serialize your JSON body
+        body: JSON.stringify({searchId: toDeleteSearchId})
+    };
+    useDoFetch('Delete Search', "/searchTrove/deleteSavedSearch", options)
 }
 //
 function changeSearchText() {
@@ -442,8 +476,9 @@ function countSearchResults() {
                 if (onPage) ++searchPageCounts.nbrKnown;
                 ++searchAllCounts.nbrKnown;
                 break;
-            case 'Ignored':
+            case 'GIgnored':
             case 'QIgnored':
+            case 'AQIgnored':
             case 'IgnoreArticle':
                 if (onPage) ++searchPageCounts.nbrIgnored;
                 ++searchAllCounts.nbrIgnored;
@@ -573,8 +608,9 @@ function showResultRow(hidden, status) {
                 return false;
             }
             break;
-        case 'Ignored':
+        case 'GIgnored':
         case 'QIgnored':
+        case 'AQIgnored':
         case 'IgnoreArticle':
             if (toggleIgnored.value) {
                 return true;
@@ -608,15 +644,21 @@ function haveListLink(listId) {
 }
 //
 function showStatus(status) {
-    // Setup for Show Known-KnownStored / Ignored / New
+    // Setup for Show Known-KnownStored / GIgnored / QIgnored / AQIgnored/ New
     switch (status) {
+        case 'Duplicate':
+            return "Duplicate";
         case 'Known':
         case 'KnownStored':
             return "Known";
-        case 'Ignored':
         case 'QIgnored':
+            return "Ignored (This Query)";
+        case 'AQIgnored':
+            return "Ignored (Another Query)";
+        case 'GIgnored':
+            return "Ignored (General)";
         case 'IgnoreArticle':
-            return "Ignored";
+            return "TO Ignore";
         case 'LowRelevance':
             return "Low Relevance";
         default:
@@ -624,56 +666,56 @@ function showStatus(status) {
     }
 }
 //
-function getIgnoreUI(index, status) {
+function getIgnoreUI(status) {
   // return null when the ignore action should not be shown
   switch (status) {
     case 'Known':
     case 'KnownStored':
       return null;
-    case 'Ignored':
+    case 'QIgnored':
+    case 'GIgnored':
       return {
         filler: ' - ',
-        action: index === 0 ? '<u>U</u>nIgnore' : 'UnIgnore',
+        action: '<u>U</u>nIgnore',
         icon: 'bi bi-file-earmark-arrow-up',
       };
     case 'IgnoreArticle':
       return {
         filler: ' - ',
-        action: index === 0 ? '<u>U</u>nlink from TO Ignore List' : 'Unlink from TO Ignore List',
+        action: '<u>U</u>nlink from TO Ignore List',
         icon: 'bi bi-file-earmark-arrow-up',
       };
     case 'UnignoreArticle':
       // optional: if you want a UI state for this
       return {
         filler: ' - ',
-        action: index === 0 ? '<u>U</u>nIgnore' : 'UnIgnore',
+        action: '<u>U</u>nIgnore',
         icon: 'bi bi-file-earmark-arrow-up',
       };
-
     default:
       return {
         filler: ' - ',
-        action: index === 0 ? '<u>I</u>nclude in <u>I</u>gnore List' : 'Include in Ignore List',
+        action: '<u>I</u>nclude in This Query <u>I</u>gnore List',
         icon: 'bi bi-file-earmark-arrow-down',
       };
   }
 }
 //
-function getHideUI(index, hidden) {
+function getHideUI(hidden) {
     if (hidden) {
         return {
-            action: index === 0 ? '<u>S</u>how Row' : 'Show Row',
+            action: '<u>S</u>how Row',
             icon: 'bi bi-toggle-on',
         };
     }
     return {
-        action: index === 0 ? '<u>H</u>ide Row' : 'Hide Row',
+        action: '<u>H</u>ide Row',
         icon: 'bi bi-toggle-off',
     };
 }
 //
-function getAddListUI(index, status) {
-    if ((index === 0) && ((status === 'New') || (status === 'LowRelevance'))) {
+function getAddListUI(status) {
+    if ((status === 'New') || (status === 'LowRelevance')) {
         return {
             filler: ' - ',
             action: '<u>A</u>dded To List',
@@ -721,7 +763,8 @@ function waitSearch(started) {
         source.addEventListener(searchName, function (e) {
             clearInterval(intervalLoading);
             var returnData = JSON.parse(e.data);
-            console.log(`SearchTroveView/waitSearch Return Started:%s NumberReturned:%s`, started, returnData.searchResults.length);
+            console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, started, returnData.searchId, returnData.searchResults.length);
+            thisSearchId.value = returnData.searchId;
             const results = returnData.searchResults.map(item => ({...item, hidden: false}));
             if (started){
                 searchAllCounts.nbrFound = returnData.searchTotalFound;
@@ -745,8 +788,6 @@ function waitSearch(started) {
                 })));
                 ++searchReadPageNbr.value
             }
-            // const shortSearchResults = searchResults.value.map(({ id, status, articleMatch }) => ({id,status,articleMatch}));
-            // console.log('SearchTroveView/waitSearch Return Result = ', JSON.stringify(shortSearchResults));
             //
             searchNextUrl = returnData.searchNextUrl
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
@@ -837,14 +878,14 @@ function openList(listLink) {
     navStore.listId = listLink;
     router.push({ name: 'userListPage' });
 }
-//  Post array of Ignored Article Id's
+//  Post array of QIgnored Article Id's
 async function updateIgnoredArticles() {
     var items = [];
     var action = ''
     searchResults.value.forEach((el, index) => {
         if (el.status == 'IgnoreArticle') {
             // console.log ('Ignore Article ', el)
-            searchResults.value[index].status = 'Ignored';
+            searchResults.value[index].status = 'QIgnored';
             action = 'add'
         }
         if (el.status == 'UnignoreArticle') {
@@ -857,12 +898,12 @@ async function updateIgnoredArticles() {
             action = ''
         }
     });
-    const ignored = {
+    const actionIgnores = {
         searchId: currentSearchId,
         ignoreArticlesInfo: items,
         reloadArticle: false
     };
-    console.log("clicked Save Ignored action " + JSON.stringify(ignored));
+    console.log("clicked Save Ignore actions " + JSON.stringify(actionIgnores));
     //
     const options = {
         method: "post",
@@ -873,11 +914,11 @@ async function updateIgnoredArticles() {
             'Content-Type': 'application/json'
         },
         //make sure to serialize your JSON body
-        body: JSON.stringify(ignored)
+        body: JSON.stringify(actionIgnores)
     };
     countSearchResults();
     disableUpdateIgnored.value = true;
-    diasbledButtonText.value = '';
+    actionButtonText.value = '';
     lastActionSaved.value = "";
     waitUpdateIgnored.value = true
     const data = await useDoFetch('Ignore Articles', "/searchTrove/updateIgnored", options)
@@ -930,7 +971,8 @@ onMounted(() => {
                                 <th>Action</th>
                                 <th>Created</th>
                                 <th>Last Run</th>
-                                <th>Search</th>
+                                <th>Search Parameters</th>
+                                <th>Search Id</th>
                                 <th>Nbr Articles</th>
                                 <th>Nbr Ignored</th>
                             </tr>
@@ -942,6 +984,9 @@ onMounted(() => {
                                     <button class="btn btn-primary" 
                                     style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
                                     @click="loadSavedSearch(row.searchFields)">Load</button>
+                                    <button class="btn btn-danger" 
+                                    style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
+                                    @click="checkDeleteSavedSearch(row.searchId)">Delete</button>
                                 </td>
                                 <!-- Created -->
                                 <td>
@@ -951,9 +996,13 @@ onMounted(() => {
                                 <td>
                                     {{ textSearchDate(row.searchDateTime) }}
                                 </td>
-                                <!-- Search -->
+                                <!-- Search Parameters -->
                                 <td>
                                     {{ textSearchString(row.searchFields) }}
+                                </td>
+                                <!-- Search Id -->
+                                <td>
+                                    {{ row.searchId }}
                                 </td>
                                 <!-- Nbr Articles -->
                                 <td>
@@ -1010,7 +1059,7 @@ onMounted(() => {
                     </div>
                 </div>
                 <div v-show="showLimitToYear">
-                    <input type="checkbox" class="form-check-input  form-check-inline" v-model="allDecadeYears" @change="checkLimitYear()"
+                    <input type="checkbox" class="form-check-input  form-check-inline" v-model="searchAllDecadeYears" @change="checkLimitYear()"
                         id="checkboxAllDecadeYears">
                     <label class="form-check-label" for="checkboxAllDecadeYears">Include All Decade Years&nbsp;</label>
                     <!--Radio group of Years to Limit Search -->
@@ -1037,7 +1086,8 @@ onMounted(() => {
         <div v-else class="card-body">
             <div>
                 <div>
-                    Searched for {{ thisSearchText }} 
+                    <h3>Search Results</h3>
+                    Search Id:{{ thisSearchId }} - Searched for "{{ thisSearchText }}" 
                 </div> 
                 <div>
                     <i v-if="searchAllCounts.nbrFound === searchAllCounts.nbrKnown + searchAllCounts.nbrIgnored"
@@ -1059,8 +1109,8 @@ onMounted(() => {
                         </button>
                     </div>
                     <div id="actionButtons">
-                        <button v-if="diasbledButtonText.length > 0" @click.prevent="updateIgnoredArticles()" type="button" class="btn btn-primary ms-2"
-                            :class="{ disabled: disableUpdateIgnored && !waitUpdateIgnored}"> {{ diasbledButtonText }}
+                        <button v-if="actionButtonText.length > 0" @click.prevent="updateIgnoredArticles()" type="button" class="btn btn-primary ms-2"
+                            :class="{ disabled: disableUpdateIgnored && !waitUpdateIgnored}"> {{ actionButtonText }}
                         </button>
                         <button v-if="lastActionSaved.length > 0" @click.prevent="undoLastAction" type="button" class="btn btn-primary ms-2"> {{ lastActionSaved }} 
                         </button>                
@@ -1172,26 +1222,26 @@ onMounted(() => {
                             <!-- Action -->
                              <td>
                                 <template v-if="index == 0">
-                                    <template v-if="getIgnoreUI(index, row.status)">
+                                    <template v-if="getIgnoreUI(row.status)">
                                         <EditItem
                                         @click-item="ignoreArticleClick(true , row.rowNbr)"
-                                        :action="getIgnoreUI(index, row.status).action"
-                                        :icon="getIgnoreUI(index, row.status).icon"
+                                        :action="getIgnoreUI(row.status).action"
+                                        :icon="getIgnoreUI(row.status).icon"
                                         />
-                                        {{ getIgnoreUI(index, row.status).filler }}
+                                        {{ getIgnoreUI(row.status).filler }}
                                     </template>
-                                    <template v-if="getAddListUI(index, row.status)">
+                                    <template v-if="getAddListUI(row.status)">
                                         <EditItem
                                             @click-item="addedListClick(row.rowNbr)"
-                                            :action="getAddListUI(index, row.status).action"
-                                            :icon="getAddListUI(index, row.status).icon"
+                                            :action="getAddListUI(row.status).action"
+                                            :icon="getAddListUI(row.status).icon"
                                         />
-                                        {{ getAddListUI(index, row.status).filler }}
+                                        {{ getAddListUI(row.status).filler }}
                                     </template>
                                     <EditItem
                                         @click-item="hideRowClick(row.rowNbr)"
-                                        :action="getHideUI(index, row.hidden).action"
-                                        :icon="getHideUI(index, row.hidden).icon"
+                                        :action="getHideUI(row.hidden).action"
+                                        :icon="getHideUI(row.hidden).icon"
                                     />
                                 </template>
                             </td>
@@ -1221,6 +1271,11 @@ onMounted(() => {
             </div>
         </div>
     </div>
+    <Teleport to="#positionModals">
+        <ModalCheckDeleteSSearch v-if="showCheckDeleteSearch" @close="showCheckDeleteSearch = false"
+            @confirm="deleteSavedSearch()"
+            :deleteSearchId="toDeleteSearchId" />
+    </Teleport>
 </template>
 
 <style>

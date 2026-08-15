@@ -69,7 +69,7 @@ matchEntityToMetadata ()
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(entity, index) in userData.viewedArticles[props.idxViewed].ViewedArticleEntities">
+                        <tr v-for="(entity, index) in userData.viewedArticles[props.idxViewed].ViewedArticleEntities " :key="index">
                             <td>
                                 <div @change="processEntity(index)" class="checkbox">
                                     <input type="checkbox" v-model="entity[2]" />
