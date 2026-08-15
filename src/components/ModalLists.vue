@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
 const props = defineProps(['listPerson']);
-const emit = defineEmits(['link-list', 'close']);
+emit = defineEmits(['link-list', 'close']);
 //
 var disableLink = ref(true);
 const nameParts = props.listPerson.split(" ");
@@ -29,7 +29,7 @@ for (const list of userData.userLists) {
                 <div class="card">
                     <input v-model="linkList" list="datalistListDropDown" @change="disableLink = false" />
                     <datalist id="datalistListDropDown">
-                        <option v-for="option in filterListDropdown" :value="option"></option>
+                        <option v-for="option in filterListDropdown" :value="option" :key="option"></option>
                     </datalist>
                 </div>
                 <div class="card">

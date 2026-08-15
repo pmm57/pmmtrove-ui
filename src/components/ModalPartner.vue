@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 const props = defineProps(['chgRelations', 'partners']);
-const emit = defineEmits(['add-to-partner', 'close']);
+emit = defineEmits(['add-to-partner', 'close']);
 //
 let showLinkToPartner = ref(false);
 let addingChild = props.chgRelations[props.chgRelations.length - 1];
@@ -28,7 +28,7 @@ function selectOther(e) {
                 <div class="card">
                     Other Possible Parent/s
                     <select v-model="otherParent" @change="selectOther">
-                        <option v-for="option in partners" :value="option.readName">{{ option.readName }}</option>
+                        <option v-for="option in partners" :value="option.readName" :key="option.readName">{{ option.readName }}</option>
                     </select>
                 </div>
                 <div class="card">

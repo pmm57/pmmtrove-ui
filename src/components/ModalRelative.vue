@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue';
 import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
 const props = defineProps(['savedPerson', 'updatedPerson']);
-const emit = defineEmits(['add-relative', 'close']);
+emit = defineEmits(['add-relative', 'close']);
 //
 var disableAdd = ref(true);
 const relatedPerson = reactive({
@@ -57,13 +57,13 @@ function validateRelation() {
                     <input v-model="relatedPerson.relatedPerson" list="datalistPersonDropDown"
                         @change="validateRelation" />
                     <datalist id="datalistPersonDropDown">
-                        <option v-for="option in arrayRelationDropdown" :value="option"></option>
+                        <option v-for="option in arrayRelationDropdown" :value="option" :key="option"></option>
                     </datalist>
                 </div>
                 <div class="card">
                     Relationship Type
                     <select v-model="relatedPerson.relatedType" @change="validateRelation">
-                        <option v-for="option in ['ChildOf', 'ChildWith']" :value="option">{{ option }}</option>
+                        <option v-for="option in ['ChildOf', 'ChildWith']" :value="option" :key="option">{{ option }}</option>
                     </select>
                 </div>
                 <div class="card">
