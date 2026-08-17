@@ -805,7 +805,7 @@ function manageIgnoredArticle(action = 'remove') {
         }],
         reloadArticle: true
     };
-    console.log(`EditArticle/manageIgnoredArticle clicked Manage Ignored action %s - %s `, action, JSON.stringify(param));
+    console.log(`EditArticle/manageIgnoredArticle clicked Manage GIgnored action %s - %s `, action, JSON.stringify(param));
     //
     const options = {
         method: "post",
