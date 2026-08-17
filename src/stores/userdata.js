@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
+import { AuthUserState } from '@/components/AuthUserState.js';
 
 export const useUserDataStore = defineStore('userData', () => {
     const arrayMinedStatus = ref([])
@@ -8,7 +9,7 @@ export const useUserDataStore = defineStore('userData', () => {
     // authUserName
     // troveUserId
     // troveUserApiKey
-    const verifiedAuthUserName = ref(false)
+    // const verifiedAuthUserName = ref(false) Replaced authUserState
     const troveDetails = reactive({})
     // troveUserId
     // troveUserApiKey
@@ -54,7 +55,8 @@ export const useUserDataStore = defineStore('userData', () => {
     //   TroveListArticleMinedStatustext FROM listArticleMinedStatustext => 
     //   TroveListArticleNote FROM note => 
     //
-    const verifiedTroveUserName = ref(false) // Have a verified user
+    // const verifiedTroveUserName = ref(false) // Have a verified user
+    const authUserState = ref(AuthUserState.UNAUTHENTICATED)
     const userReloadList = ref(0)
     const userListsReady = ref(false)
     const reloadedViewedArticle = ref(0)
@@ -150,7 +152,8 @@ export const useUserDataStore = defineStore('userData', () => {
         this.loadedIndex = -1
         this.userLists = []
         this.userListArticles = []
-        this.verifiedTroveUserName = false
+        // this.verifiedTroveUserName = false
+        this.authUserState = AuthUserState.UNAUTHENTICATED
         this.userListsReady = false
         this.reloadedViewedArticle = 0
         this.updatingViewedArticleIdx = 0
@@ -317,7 +320,7 @@ export const useUserDataStore = defineStore('userData', () => {
     return { arrayMinedStatus,
         arrayMetadataTypes,
         authUserTroveIds,
-        verifiedAuthUserName,
+        // verifiedAuthUserName,
         troveDetails, 
         troveQueryTotal, 
         troveQueryArticleTotal, 
@@ -326,7 +329,8 @@ export const useUserDataStore = defineStore('userData', () => {
         userDuplicateListIds,
         loadedIndex,
         userLists,
-        verifiedTroveUserName,
+        // verifiedTroveUserName,
+        authUserState,
         userListsReady, 
         userReloadList,
         reloadedViewedArticle,

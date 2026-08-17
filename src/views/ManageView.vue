@@ -1,6 +1,7 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
 import { ref } from 'vue'
+import { AuthUserState } from '@/components/AuthUserState.js';
 import EditItem from '@/components/EditItem.vue'
 // import { useRouter } from 'vue-router';
 // const router = useRouter();
@@ -256,13 +257,13 @@ async function saveData() {
             Name Trove Lists - "Surname (nee MaidenName), GivenName/Initial., b.yyyy-d.yyyy <br>
             <h2>Manage User</h2>
         </div>
-        <div v-if="userData.verifiedTroveUserName">
+        <div v-if="userData.authUserState == AuthUserState.READY">
             This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}<br>
             <p v-if="userData.userLists.length > 0">There are {{ userData.userLists.length -
                 userData.userDuplicateListIds.length }}
                 Lists in Trove to manage in Trove Data Miner</p>
         </div>
-        <div v-if="userData.verifiedAuthUserName">
+        <div v-if="userData.authUserState != AuthUserState.UNAUTHENTICATED">
             <h2>User {{ localAuthUserTroveIds[0].authUserName }} Configuration</h2>
             <br>
             <p v-if="(localAuthUserTroveIds.length == 1) && (localAuthUserTroveIds[0].troveUserId.length == 0)">
