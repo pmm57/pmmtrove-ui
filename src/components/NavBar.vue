@@ -2,7 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter } from 'vue-router';
 const router = useRouter();
-import { resetServer } from '@/components/ResetUser.js';
+import { resetUser } from '@/components/ResetUser.js';
 import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
 import { useErrorsArrayStore } from '@/stores/errorsarray'
@@ -75,7 +75,7 @@ async function manualKeepAlive() {
     }
 }
 onMounted(async () => {
-    const auth = await useAuth()
+    const auth = useAuth()
     isAuthenticated.value = auth.isAuthenticated
     error.value = auth.error
     logout.value = auth.logout
@@ -96,7 +96,7 @@ onBeforeUnmount(() => {
 })
 
 const logoutUser = () => {
-    resetServer()
+    resetUser(false)
     if (shouldUseAuth0) {
         // Real Auth0 logout
         logout.value({
