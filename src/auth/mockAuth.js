@@ -28,7 +28,7 @@ export async function loadMockUsers() {
 }
 
 export function selectMockUser(name) {
-    console.log(`mockAuth/selectMockUser selectd:%s`, name)
+    console.log(`mockAuth/selectMockUser selected:%s`, name)
     user.value = {
         nickname: name
     }

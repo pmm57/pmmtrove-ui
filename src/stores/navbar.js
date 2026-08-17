@@ -2,7 +2,7 @@ import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useNavBarStore = defineStore('navBar', () => {
-  const disableHome = ref(false)
+  const disableHome = ref(true)
   const disableTroveLists = ref(true)
   const disableMetadataList = ref(true)
   const disablePersonList = ref(true)
@@ -20,13 +20,14 @@ export const useNavBarStore = defineStore('navBar', () => {
   const troveSearchName = ref("")
   const lastRenderFetchAt = ref(String(Date.now()))
   //
-  function clearNavBar() {
+  function clearNavBar(isAuthenticated = true) {
+    console.log(`navbar/clearNavBar isAuthenticated: %s`, isAuthenticated)
     this.disableHome = false
     this.disableTroveLists = true
     this.disableMetadataList = true
     this.disablePersonStory = true
     this.disableSearch = true
-    this.disableManage = false
+    this.disableManage = !isAuthenticated
     this.disablePersonList = true
     this.listTabTitle = "List"
     this.listId = 0
