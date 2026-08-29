@@ -56,7 +56,7 @@ matchEntityToMetadata ()
         <div class="container-fluid"  style="width: 25rem; max-height: 75vh">
             <div class="card">
                 <h5>Apply Metadata with Check / Uncheck
-                    <a @click="$emit('close')" href="#"><i class="bi-x-square"></i></a>
+                    <a @click="emit('close')" href="#"><i class="bi-x-square"></i></a>
                 </h5>
             </div>
             <div class="card pre-scrollable" style="max-height: 75vh">

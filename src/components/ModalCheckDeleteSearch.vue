@@ -1,6 +1,6 @@
 <script setup>
 const props = defineProps(['deleteSearchId']);
-defineEmits(['confirm', 'close']);
+const emit = defineEmits(['confirm', 'close']);
 //
 </script>
 <template>
@@ -12,11 +12,11 @@ defineEmits(['confirm', 'close']);
                     <p class="text-center"><b>Search Id:{{ props.deleteSearchId }}</b></p>
                 </div>
                 <div class="card">
-                    <button @click.prevent="$emit('confirm')"
+                    <button @click.prevent="emit('confirm')"
                         class="btn btn-danger">Confirm Delete</button>
                 </div>
                 <div class="card">
-                    <button @click.prevent="$emit('close')"
+                    <button @click.prevent="emit('close')"
                         class="btn btn-secondary">Keep Search</button>
                 </div>
             </div>

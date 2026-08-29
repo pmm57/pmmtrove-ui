@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
 const props = defineProps(['listPerson']);
-emit = defineEmits(['link-list', 'close']);
+const emit = defineEmits(['link-list', 'close']);
 //
 var disableLink = ref(true);
 const nameParts = props.listPerson.split(" ");
@@ -22,7 +22,7 @@ for (const list of userData.userLists) {
             <div class="card">
                 <div class="card">
                     <h5>Select List for
-                        <a @click.prevent="$emit('close')" href="#"><i class="bi-x-square"></i></a>
+                        <a @click.prevent="emit('close')" href="#"><i class="bi-x-square"></i></a>
                     </h5>
                     <p>{{ props.listPerson }}</p>
                 </div>
@@ -33,7 +33,7 @@ for (const list of userData.userLists) {
                     </datalist>
                 </div>
                 <div class="card">
-                    <button :class="{ disabled: disableLink }" @click.prevent="$emit('link-list', linkList)"
+                    <button :class="{ disabled: disableLink }" @click.prevent="emit('link-list', linkList)"
                         class="btn btn-primary">Link List (need to update)
                     </button>
                 </div>

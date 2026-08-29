@@ -2,7 +2,7 @@
 import { useUserDataStore } from '@/stores/userdata'
 const userData = useUserDataStore()
 const props = defineProps(['idxViewed'])
-defineEmits(['close'])
+const emit = defineEmits(['close'])
 console.log('ModalDuplicates:', props.idxViewed)
 //
 </script>
@@ -14,7 +14,7 @@ console.log('ModalDuplicates:', props.idxViewed)
                 <div class="modal-header">
                     <h4 class="modal-title">
                         Click to View an Article
-                        <a @click.prevent="$emit('close')" href="#"><i class="bi-x-square"></i></a>
+                        <a @click.prevent="emit('close')" href="#"><i class="bi-x-square"></i></a>
                     </h4>
                 </div>
                 <span v-for="duplicate in userData.viewedArticles[props.idxViewed].ViewedArticlePossibleDupArticle " :key="duplicate.TroveArticleId">
