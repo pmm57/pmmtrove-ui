@@ -35,10 +35,10 @@ function relationType(relation) {
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(relation, index) in props.arrayRelated">
+      <tr v-for="(relation, index) in props.arrayRelated" :key="relation.relatedPerson">
         <td>{{ relationType(relation) }}</td>
         <td v-if="relation.relatedIdxPerson > -1">
-          <a @click.prevent="$emit('load-person', relation.relatedIdxPerson)" href="#">
+          <a @click.prevent="emit('load-person', relation.relatedIdxPerson)" href="#">
             {{ relation.relatedPerson }}
           </a>
         </td>
@@ -47,7 +47,7 @@ function relationType(relation) {
         </td>
         <td>
           <EditItem v-show="(props.enableDel) && (relation.relatedAction != 'DEL')"
-            @click-item="$emit('del-relative', index)" action="Del" icon="bi-x-square" />
+            @click-item="emit('del-relative', index)" action="Del" icon="bi-x-square" />
           <span v-show="relation.relatedAction != 'READ'">- Click Apply to Update</span>
         </td>
       </tr>

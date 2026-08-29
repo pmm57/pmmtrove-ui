@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 const props = defineProps(['chgRelations', 'partners']);
-emit = defineEmits(['add-to-partner', 'close']);
+const emit = defineEmits(['add-to-partner', 'close']);
 //
 let showLinkToPartner = ref(false);
 let addingChild = props.chgRelations[props.chgRelations.length - 1];
@@ -21,7 +21,7 @@ function selectOther(e) {
             <div class="card">
                 <div class="card">
                     <h5>Select Other Parent For
-                        <a @click.prevent="$emit('close')" href="#"><i class="bi-x-square"></i></a>
+                        <a @click.prevent="emit('close')" href="#"><i class="bi-x-square"></i></a>
                         <br> {{ addingChild.relatedPerson }}
                     </h5>
                 </div>
@@ -33,12 +33,12 @@ function selectOther(e) {
                 </div>
                 <div class="card">
                     <button :class="{ disabled: !showLinkToPartner }"
-                        @click.prevent="$emit('add-to-partner', idxOtherParent)" class="btn btn-primary">Select Parent
+                        @click.prevent="emit('add-to-partner', idxOtherParent)" class="btn btn-primary">Select Parent
                         (need to update)
                     </button>
                 </div>
                 <div class="card">
-                    <button @click.prevent="$emit(('close'))" class="btn btn-primary">Not One of these
+                    <button @click.prevent="emit(('close'))" class="btn btn-primary">Not One of these
                     </button>
                 </div>
             </div>

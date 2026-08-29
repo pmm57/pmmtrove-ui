@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue';
 import { useUserDataStore } from '@/stores/userdata';
 const userData = useUserDataStore();
 const props = defineProps(['savedPerson', 'updatedPerson']);
-emit = defineEmits(['add-relative', 'close']);
+const emit = defineEmits(['add-relative', 'close']);
 //
 var disableAdd = ref(true);
 const relatedPerson = reactive({
@@ -48,7 +48,7 @@ function validateRelation() {
             <div class="card">
                 <div class="card">
                     <h5>Select Related Person and Type
-                        <a @click.prevent="$emit('close')" href="#"><i class="bi-x-square"></i></a>
+                        <a @click.prevent="emit('close')" href="#"><i class="bi-x-square"></i></a>
                     </h5>
                     <p>{{ props.savedPerson.readName }}</p>
                 </div>
@@ -67,7 +67,7 @@ function validateRelation() {
                     </select>
                 </div>
                 <div class="card">
-                    <button :class="{ disabled: disableAdd }" @click.prevent="$emit('add-relative', relatedPerson)"
+                    <button :class="{ disabled: disableAdd }" @click.prevent="emit('add-relative', relatedPerson)"
                         class="btn btn-primary">Select Related Person (need to update)
                     </button>
                 </div>
