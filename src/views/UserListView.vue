@@ -134,9 +134,9 @@ function openPersonList(personName) {
 }
 //
 function openArticle(articleId) {
-    console.log('UserListView/openArticle ', articleId)
     navStore.listId = userData.userLists[idxList].TroveListId;
     navStore.articleId = articleId;
+    console.log(`UserListView/openArticle listId:${navStore.listId} articleId:${articleId}`)
     router.push({ name: 'editArticle' });
 }
 //

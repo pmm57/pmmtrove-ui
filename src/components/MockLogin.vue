@@ -1,12 +1,12 @@
 <script setup>
-import { availableAuthUsers, loadMockUsers, selectMockUser } from '@/auth/mockAuth'
+import { isLoading, availableAuthUsers, loadMockUsers, selectMockUser, isAuthenticated } from '@/auth/mockAuth'
 import { onMounted } from 'vue'
 
 onMounted(() => loadMockUsers())
 </script>
 
 <template>
-    <div class="mock-login">
+    <div v-if="!(isAuthenticated || isLoading)" class="mock-login">
         <h3>Select a mock user</h3>
         <select @change="selectMockUser($event.target.value)">
             <option value="">-- choose user --</option>

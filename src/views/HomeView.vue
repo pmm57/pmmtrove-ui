@@ -243,7 +243,7 @@ async function verifyTroveUser(refresh) {
     }
     loadingTick();
     errorsStore.arrayErrors = [];
-    console.log('Verify User-', inUserId)
+    console.log(`Homeview/verifyTroveUser User:"%s" authUserState:%s`, inUserId, userData.authUserState)
     const options = {
         method: "post",
         mode: "cors",
@@ -314,9 +314,9 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
 <template>
     <div class="d-flex justify-content-center mt-5">
         <div style="max-width: 400px; width: 100%;">
-                <div v-if="loadingMsg.length > 0" class="card text-center">
-                    <p><b>{{ loadingMsg }}</b></p>
-                </div>
+            <div v-if="loadingMsg.length > 0" class="card text-center">
+                <p><b>{{ loadingMsg }}</b></p>
+            </div>
             <div v-if="userData.authUserState == AuthUserState.UNAUTHENTICATED" class="card text-center">
                 <MockLogin v-if="!shouldUseAuth0" />
                 <template v-else>
@@ -332,9 +332,6 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                 </template>
             </div>
             <div v-if="userData.authUserState == AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="card text-center">
-                <!-- <p v-if="userData?.troveDetails?.troveUserId">
-                    Change {{ userData?.troveDetails?.troveUserId }} to Manage Another
-                </p> -->
                 <p>Select a Trove User Id to Manage</p>
                 <!-- Trove User Id selection, fires watcher on selected UI -->
                 <select v-model="selectedTroveUserId">
@@ -344,48 +341,30 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                     </option>
                 </select>
             </div>
-            <!-- <div v-if="userData.authUserState == AuthUserState.UNVERIFIED" class="card text-center">
-                <p><b>{{ loadingMsg }}</b></p>
-            </div> -->
-            <!-- <div v-else> -->
-                <div v-if="(userData.authUserState.includes('LOAD')) || (userData.authUserState == AuthUserState.READY)" class="card text-center">
-                    <p>This is a Trove Data Miner for user {{ user?.nickname }}
-                        <br>Managing Trove User {{ userData?.troveDetails?.troveUserId }}</p>
-                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove
-                        <br v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches
-                        <br v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
-                        Duplicate List/s that will not be Loaded.
-                    </p>
-                    <div v-if="userData.authUserState == AuthUserState.READY">
-                        <p>There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
-                            {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
-                        <div>
-                            <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
-                                Your Trove Lists</button>
-                        </div>
-                        <div v-if="(savedAuthUserTroveIds?.length > 1)">
-                            <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
-                                User</button>
-                        </div>
+            <div v-if="(userData.authUserState.includes('LOAD')) || (userData.authUserState == AuthUserState.READY)" class="card text-center">
+                <p>This is a Trove Data Miner for user {{ user?.nickname }}
+                    <br>Managing Trove User {{ userData?.troveDetails?.troveUserId }}</p>
+                <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove
+                    <br v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches
+                    <br v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
+                    Duplicate List/s that will not be Loaded.
+                </p>
+                <div v-if="userData.authUserState == AuthUserState.READY">
+                    <p>There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
+                        {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
+                    <div>
+                        <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
+                            Your Trove Lists</button>
                     </div>
-                    <div v-else>
-                        <p>{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
+                    <div v-if="(savedAuthUserTroveIds?.length > 1)">
+                        <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
+                            User</button>
                     </div>
                 </div>
-                <!--  <div v-else class="card text-center">
-                    <p v-if="userData?.troveDetails?.troveUserId">
-                        Change {{ userData?.troveDetails?.troveUserId }} to Manage Another
-                    </p>
-                    <p v-else>Select a Trove User Id to Manage</p>
-                    Trove User Id selection, fires watcher on selected UI
-                    <select v-model="selectedTroveUserId">
-                        <option disabled value="">-- Select a Trove User Id --</option>
-                        <option v-for="u in savedAuthUserTroveIds  ?? []" :key="u.id" :value="u.troveUserId">
-                            {{ u.troveUserId }}
-                        </option>
-                    </select> 
-                </div>-->
-            <!-- </div> -->
+                <div v-else>
+                    <p>{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
+                </div>
+            </div>
             <div v-if="shouldUseAuth0 && error && error.message" class="alert alert-danger">
                 Authentication error: {{ error.message }}
             </div>
