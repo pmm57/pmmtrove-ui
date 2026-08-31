@@ -29,7 +29,7 @@ const troveArticleRef = ref(null);
 const idxViewed = ref(0)
 idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
 console.log(`EditArticle Start navStore.articleid:%s ListIdx:%s ListArticleIdx:%s ListArticleViewdIdx:%s  ViewedArticleId:%s`,
-   navStore.articleId, idxList.value, idxListArticle.value, idxViewed.value, userData.viewedArticles[idxViewed].ViewedArticleId )
+   navStore.articleId, idxList.value, idxListArticle.value, idxViewed.value, userData.viewedArticles[idxViewed.value].ViewedArticleId )
 // console.log(`userData.viewedArticles:%s`, userData.viewedArticles)
 const disableUpdate = ref(true)
 const showModalEntities = ref(false)

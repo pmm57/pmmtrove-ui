@@ -114,22 +114,7 @@ async function getArticleLinks(idxType, idxMetadataValue) {
         }
     };
     const data = await useDoFetch('metadatarticleLinks', url, options);
-    // const request = new Request(url, options);
-    // const fetchPromise = fetch(request);
-    // const response = await fetchPromise
-    //     .catch(error => {
-    //         errorsStore.arrayErrors.push({ msg: 'Server not available', param: '' });
-    //         console.log('UserMetadataListView: Error in event handler:', error);
-    //         return
-    //     });
-    // console.log (response);
-    // iterate over all headers
-    // for (let [key, value] of response.headers) {
-    // console.log(`${key} = ${value}`);
-    // }
-    // if (response.status == 200) {
     if (typeof data != 'boolean'){
-        // const data = await response.json();
         console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(data))
         // Update Dup-licate and Ignored modifier
         if (data.linkedArticleUrls.arrayArticleUrls.length > 0) {
@@ -137,14 +122,6 @@ async function getArticleLinks(idxType, idxMetadataValue) {
             console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue]))
         }
     }
-    // } else {
-    //     console.log('UserMetadataListView ', response)
-    //     if (response.hasOwnProperty('errors')) {
-    //         errorsStore.arrayErrors = response.errors
-    //     } else {
-    //         errorsStore.arrayErrors.push({ msg: response.statusText, param: response.status });
-    //     }
-    // }
 }
 //
 function flipStoryPrimaryEvent(idxValue) {

@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useDoFetch } from '@/components/DoFetch.js';
 
-export const isLoading = ref(false)   // mockAuth never loads asynchronously
+export const isLoading = ref(true)   // mockAuth never loads asynchronously
 export const error = ref(null)        // no errors by default
 export const isAuthenticated = ref(false)
 export const user = ref(null)
@@ -24,6 +24,7 @@ export async function loadMockUsers() {
     }
     // console.log(`mockAuth/loadMockUsers Load Success:%s`, JSON.stringify(data))
     availableAuthUsers.value = [...data]
+    isLoading.value = false;
     // console.log(`mockAuth/loadMockUsers availableAuthUsers:%s`, JSON.stringify(availableAuthUsers.value))
 }
 
