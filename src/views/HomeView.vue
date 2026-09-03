@@ -1,6 +1,5 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
-import { resetUser } from '@/components/ResetUser.js';
 import { AuthUserState } from '@/components/AuthUserState.js';
 import { ref, watch } from 'vue'
 import { useNavBarStore } from '@/stores/navbar'
@@ -68,7 +67,7 @@ const userData = useUserDataStore()
 // goto loading:
 //
 // User clicks Change User only available if more then one linked Trove User Id
-// Call server to clear session
+// Call server to clear Trove User Data
 // userData.clearStore
 // userData.authUserSate = AuthUserState.TROVE_ID_SELECTION_REQUIRED
 // goto :Select Trove User Id
@@ -120,7 +119,7 @@ const signup = () =>
         authorizationParams: { screen_hint: 'signup' }
     })
 
-watch(selectedTroveUserId, (troveUserId) => {
+watch(selectedTroveUserId, async (troveUserId) => {
     if (!troveUserId) return;
     console.log(`Watch selectedTroveUserId:"%s" authUserState:%s Current troveUserId:%s`, troveUserId, userData.authUserState, userData.troveDetails.troveUserId)
     // If already have a troveUserId and Select same Trover User Id as currently - then treat as a Refresh
@@ -129,7 +128,25 @@ watch(selectedTroveUserId, (troveUserId) => {
             refreshUserLists()
             return
         } else {
-            resetTroveUser()
+            console.log(`HomeView/changeTroveUser From:"%s" To:"%s"`, userData.troveDetails.troveUserId, troveUserId)
+            userData.authUserState = AuthUserState.UNVERIFIED
+            inUserId = ''
+            // Clear Old Trove User Data from Server and in Store
+            userData.clearStore()
+            const options = {
+                method: "post",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                //make sure to serialize your JSON body
+                body: JSON.stringify({
+                    clearTroveUserId: userData.troveDetails.troveUserId
+                })
+            };
+            await useDoFetch ('clearTroveUser', "/clearTroveUser", options);
         }
     }
     inUserId = troveUserId
@@ -298,16 +315,6 @@ function refreshUserLists() {
     verifyTroveUser(true)
 }
 //
-function resetTroveUser() {
-    console.log('HomeView/resetTroveUser')
-    // userData.verifiedTroveUserName = false
-    userData.authUserState = AuthUserState.UNVERIFIED
-    inUserId = ''
-    // Clear Trove User from Server
-    resetUser(true)
-    userData.userListsReady = false;
-}
-
 console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
 </script>
 
