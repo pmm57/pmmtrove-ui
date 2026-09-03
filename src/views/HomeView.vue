@@ -175,7 +175,6 @@ watch(
         if (!ready) return // Set to false userData.clearStore()
         clearTick()
         navBarStore.disableTroveLists = false;
-        // console.log(`HomeView Watch: Good TO Go - AuthUserState:%s UserName:%s`, userData.authUserState, userData.verifiedTroveUserName)
         userData.authUserState = AuthUserState.READY
         console.log(`HomeView Watch: Good TO Go - AuthUserState:%s`, userData.authUserState)
         // If this was a Browser Reload from Server - Check if the full load never completed
@@ -241,7 +240,6 @@ async function getUserTroveIds(authUserName) {
                 break
             case 1: // If only one then use that as Trove User Id
                 inUserId = savedAuthUserTroveIds.value[0].troveUserId
-                // userData.verifiedTroveUserName = true
                 userData.authUserState = AuthUserState.UNVERIFIED
                 console.log(`HomeView/getUserTroveIds Direct verifyTroveUser: %s `, inUserId)
                 verifyTroveUser(false)
@@ -284,7 +282,6 @@ async function verifyTroveUser(refresh) {
         console.log(`HomeView/verifyTroveUser Returned Logon:"%s" New:%s`, JSON.stringify(data.troveDetails), data.newLogon)
         userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
         navBarStore.disableSearch = false;
-        // userData.verifiedTroveUserName = true
         if (!data.newLogon) {
             // Previous cookie existed on server
             console.log(`HomeView/verifyTroveUser User Session Exists On Server - Trigger Server Reload`)

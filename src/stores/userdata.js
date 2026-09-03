@@ -152,7 +152,6 @@ export const useUserDataStore = defineStore('userData', () => {
         this.loadedIndex = -1
         this.userLists = []
         this.userListArticles = []
-        // this.verifiedTroveUserName = false
         this.authUserState = AuthUserState.UNAUTHENTICATED
         this.userListsReady = false
         this.reloadedViewedArticle = 0
