@@ -11,7 +11,7 @@ const flagMetadataType = ref([])
 const flagMetadataValue = ref([])
 var triggerGetArticleLinks = false
 var showMetdataTypeIdx = -1
-var showMetdataValueIdx = -1
+// var showMetdataValueIdx = -1
 const idxMetatypeEvent = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Event");
 const idxMetatypePerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
 //

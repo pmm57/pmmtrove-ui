@@ -1,6 +1,5 @@
 <script setup>
 import { useDoFetch } from '@/components/DoFetch.js';
-import { resetUser } from '@/components/ResetUser.js';
 import { AuthUserState } from '@/components/AuthUserState.js';
 import { ref, watch } from 'vue'
 import { useNavBarStore } from '@/stores/navbar'
@@ -68,7 +67,7 @@ const userData = useUserDataStore()
 // goto loading:
 //
 // User clicks Change User only available if more then one linked Trove User Id
-// Call server to clear session
+// Call server to clear Trove User Data
 // userData.clearStore
 // userData.authUserSate = AuthUserState.TROVE_ID_SELECTION_REQUIRED
 // goto :Select Trove User Id
@@ -120,7 +119,7 @@ const signup = () =>
         authorizationParams: { screen_hint: 'signup' }
     })
 
-watch(selectedTroveUserId, (troveUserId) => {
+watch(selectedTroveUserId, async (troveUserId) => {
     if (!troveUserId) return;
     console.log(`Watch selectedTroveUserId:"%s" authUserState:%s Current troveUserId:%s`, troveUserId, userData.authUserState, userData.troveDetails.troveUserId)
     // If already have a troveUserId and Select same Trover User Id as currently - then treat as a Refresh
@@ -129,7 +128,25 @@ watch(selectedTroveUserId, (troveUserId) => {
             refreshUserLists()
             return
         } else {
-            resetTroveUser()
+            console.log(`HomeView/changeTroveUser From:"%s" To:"%s"`, userData.troveDetails.troveUserId, troveUserId)
+            userData.authUserState = AuthUserState.UNVERIFIED
+            inUserId = ''
+            // Clear Old Trove User Data from Server and in Store
+            userData.clearStore()
+            const options = {
+                method: "post",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                //make sure to serialize your JSON body
+                body: JSON.stringify({
+                    clearTroveUserId: userData.troveDetails.troveUserId
+                })
+            };
+            await useDoFetch ('clearTroveUser', "/clearTroveUser", options);
         }
     }
     inUserId = troveUserId
@@ -158,7 +175,6 @@ watch(
         if (!ready) return // Set to false userData.clearStore()
         clearTick()
         navBarStore.disableTroveLists = false;
-        // console.log(`HomeView Watch: Good TO Go - AuthUserState:%s UserName:%s`, userData.authUserState, userData.verifiedTroveUserName)
         userData.authUserState = AuthUserState.READY
         console.log(`HomeView Watch: Good TO Go - AuthUserState:%s`, userData.authUserState)
         // If this was a Browser Reload from Server - Check if the full load never completed
@@ -224,7 +240,6 @@ async function getUserTroveIds(authUserName) {
                 break
             case 1: // If only one then use that as Trove User Id
                 inUserId = savedAuthUserTroveIds.value[0].troveUserId
-                // userData.verifiedTroveUserName = true
                 userData.authUserState = AuthUserState.UNVERIFIED
                 console.log(`HomeView/getUserTroveIds Direct verifyTroveUser: %s `, inUserId)
                 verifyTroveUser(false)
@@ -267,7 +282,6 @@ async function verifyTroveUser(refresh) {
         console.log(`HomeView/verifyTroveUser Returned Logon:"%s" New:%s`, JSON.stringify(data.troveDetails), data.newLogon)
         userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
         navBarStore.disableSearch = false;
-        // userData.verifiedTroveUserName = true
         if (!data.newLogon) {
             // Previous cookie existed on server
             console.log(`HomeView/verifyTroveUser User Session Exists On Server - Trigger Server Reload`)
@@ -298,16 +312,6 @@ function refreshUserLists() {
     verifyTroveUser(true)
 }
 //
-function resetTroveUser() {
-    console.log('HomeView/resetTroveUser')
-    // userData.verifiedTroveUserName = false
-    userData.authUserState = AuthUserState.UNVERIFIED
-    inUserId = ''
-    // Clear Trove User from Server
-    resetUser(true)
-    userData.userListsReady = false;
-}
-
 console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
 </script>
 
