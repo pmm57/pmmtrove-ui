@@ -2,10 +2,8 @@ import { useDoFetch } from '@/components/DoFetch.js';
 import { useNavBarStore } from '@/stores/navbar'
 import { useUserDataStore } from '@/stores/userdata'
 export async function resetUser(clearTroveUser) {
-    const navStore = useNavBarStore()
-    const userData = useUserDataStore()
     // Send reset to server
-    console.log('ResetUser - Reset Session')
+    console.log('ResetUser - Reset Server Session')
     const options = {
         method: "post",
         mode: "cors",
@@ -21,6 +19,9 @@ export async function resetUser(clearTroveUser) {
     };
     await useDoFetch ('resetUser', "/reset-session", options);
     // Clear all data
+    const navStore = useNavBarStore()
+    const userData = useUserDataStore()
+    console.log('ResetUser - Clear Browser Store')
     userData.clearStore()
     navStore.clearNavBar(false)
 }

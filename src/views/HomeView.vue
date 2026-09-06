@@ -72,6 +72,13 @@ const userData = useUserDataStore()
 // userData.authUserSate = AuthUserState.TROVE_ID_SELECTION_REQUIRED
 // goto :Select Trove User Id
 // 
+// User Clicks Logout
+// Calls NavBar/logoutUser
+// Call ResetUser
+// Send reset to server - clears session and browser 
+// userData.clearStore()
+// this.authUserState = AuthUserState.UNAUTHENTICATED
+// GoTo at Restart
 var userReloadLists = false // Browser restart - User Verified - Session On Server to reload from
 const authenticateAuthUserMsg = 'Authenticating .'
 const verifyTroveUserMsg = 'Verifying Trove User .'
@@ -91,7 +98,10 @@ console.log(`HomeView Start authUserState:%s, user:%s, isAuthenticated:%s`, user
 // const isAuthenticated = auth.isAuthenticated
 if (userData.authUserState == AuthUserState.UNAUTHENTICATED) {
     if (auth.isAuthenticated?.value) {
-        if (user?.value != null) userData.authUserState = AuthUserState.UNVERIFIED
+        if (user?.value != null) {
+            userData.authUserState = AuthUserState.UNVERIFIED
+            console.log(`HomeView Start No user, isAuthenticated set Unverified`)
+        }
     }
 }
 const loginWithRedirect = auth.loginWithRedirect
@@ -101,7 +111,7 @@ watch(user, async (u) => {
     console.log(`HomeView WATCH user:%s, authUserState:%s`, u?.nickname, userData.authUserState)
     if (!u?.nickname) {
         userData.authUserState = AuthUserState.UNAUTHENTICATED
-        console.log('HomeView WATCH - No authenticated user yet')
+        console.log('HomeView WATCH  user - No authenticated user yet')
         return
     }
     if (userData.authUserState == AuthUserState.UNAUTHENTICATED) {
