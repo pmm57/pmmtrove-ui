@@ -111,11 +111,18 @@ watch(user, async (u) => {
     console.log(`HomeView WATCH user:%s, authUserState:%s`, u?.nickname, userData.authUserState)
     if (!u?.nickname) {
         userData.authUserState = AuthUserState.UNAUTHENTICATED
-        console.log('HomeView WATCH  user - No authenticated user yet')
+        console.log('HomeView WATCH user - No authenticated user yet')
         return
     }
     if (userData.authUserState == AuthUserState.UNAUTHENTICATED) {
+        console.log('HomeView WATCH user -getUserTroveIds for user:', u.nickname)
         await getUserTroveIds(u.nickname)
+        return
+    }
+    if (userData.authUserState == AuthUserState.UNVERIFIED) {
+        console.log('HomeView WATCH user - verifyTroveUser for user:', u.nickname)
+        inUserId = u.nickname
+        verifyTroveUser(false)
     }
 }, { immediate: true })
 
