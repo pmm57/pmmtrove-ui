@@ -95,7 +95,7 @@ const auth = useAuth()
 const user = auth.user
 const error = auth.error
 console.log(`HomeView Start authUserState:%s, user:%s, isAuthenticated:%s`, userData.authUserState, JSON.stringify(user), auth.isAuthenticated?.value)
-// const isAuthenticated = auth.isAuthenticated
+//
 if (userData.authUserState == AuthUserState.UNAUTHENTICATED) {
     if (auth.isAuthenticated?.value) {
         if (user?.value != null) {
@@ -115,9 +115,9 @@ watch(user, async (u) => {
         return
     }
     if (userData.authUserState == AuthUserState.UNAUTHENTICATED) {
-        console.log('HomeView WATCH user AuthUserState.UNAUTHENTICATED -getUserTroveIds for user:', u.nickname)
-        await getUserTroveIds(u.nickname)
-        return
+        // Have u.nickname
+        console.log(`HomeView WATCH user Have u.nickname:%s - Change AuthUserState.UNAUTHENTICATED to UNVERIFIED`, u.nickname)
+        userData.authUserState = AuthUserState.UNVERIFIED
     }
     if (userData.authUserState == AuthUserState.UNVERIFIED) {
         console.log('HomeView WATCH user AuthUserState.UNVERIFIED - verifyTroveUser for user:', u.nickname)
