@@ -41,6 +41,7 @@ export function loginWithRedirect() {
 }
 
 export function logout() {
+    console.log('mockAuth/logout')
     isAuthenticated.value = false
     user.value = null
     error.value = null
