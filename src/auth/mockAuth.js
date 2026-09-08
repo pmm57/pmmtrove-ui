@@ -31,7 +31,8 @@ export async function loadMockUsers() {
 export function selectMockUser(name) {
     console.log(`mockAuth/selectMockUser selected:%s`, name)
     user.value = {
-        nickname: name
+        nickname: name,
+        mockAuth: true
     }
     isAuthenticated.value = true
 }
