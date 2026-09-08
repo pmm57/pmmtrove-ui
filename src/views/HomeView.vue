@@ -108,15 +108,15 @@ const loginWithRedirect = auth.loginWithRedirect
 
 console.log(`HomeView Start After isAuthenticated authUserState:%s, user:%s`, userData.authUserState, JSON.stringify(user))
 watch(user, async (u) => {
-    console.log(`HomeView WATCH user:%s, authUserState:%s`, u?.nickname, userData.authUserState)
+    console.log(`HomeView WATCH user:%s, authUserState:%s, u:%s`, u?.nickname, userData.authUserState, JSON.stringify(u))
     if (!u?.nickname) {
         userData.authUserState = AuthUserState.UNAUTHENTICATED
         console.log('HomeView WATCH user - No authenticated user yet')
         return
     }
-    if (userData.authUserState == AuthUserState.UNAUTHENTICATED) {
-        // Have u.nickname
-        console.log(`HomeView WATCH user Have u.nickname:%s - Change AuthUserState.UNAUTHENTICATED to UNVERIFIED`, u.nickname)
+    if (u?.mockAuth) {
+        // Have Mock User Logon
+        console.log(`HomeView WATCH user Have Mock User Set AuthUserState to UNVERIFIED`)
         userData.authUserState = AuthUserState.UNVERIFIED
     }
     if (userData.authUserState == AuthUserState.UNVERIFIED) {

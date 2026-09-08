@@ -81,7 +81,7 @@ function showMetadataValue(idxType, idxValue) {
     // Toggle: if already open, close it
     if (flagMetadataValue.value[idxValue]) {
         flagMetadataValue.value = Array(total).fill(false)
-        showMetdataValueIdx = -1
+        // showMetdataValueIdx = -1
         return
     }
     // Otherwise open the selected value (and close others)
@@ -89,7 +89,7 @@ function showMetadataValue(idxType, idxValue) {
     flagMetadataValue.value = Array.from({ length: total }, (_, i) => i === idxValue)
     console.log("showMetadataValue ", flagMetadataValue.value[idxValue])
     // Check if there are Articles that haven't been loaded into Viewed Articles
-    showMetdataValueIdx = idxValue
+    // showMetdataValueIdx = idxValue
     console.log('UserMetdataListView showMetadataValue', idxType, idxValue, JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray))
     const getLinks = userData
         .metadataTypeByMetadata[idxType]

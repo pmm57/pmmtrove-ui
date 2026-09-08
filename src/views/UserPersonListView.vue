@@ -17,7 +17,7 @@ import { useErrorsArrayStore } from '@/stores/errorsarray';
 const errorsStore = useErrorsArrayStore();
 //
 let sourceLoadPerson = null;
-let eventSourceReadArticles = null;
+let eventSourceReadProgress = null;
 let sourceLoadPersonStory = null;
 let loadingPerson = ref(false);
 let loadingPersonText = ref("");
@@ -547,14 +547,14 @@ function personStory() {
         personStoryText.value += ' .'
     }, 500);
     if (!!window.EventSource) {
-        //
-        var streamId = 'ReadArticles:' + userData.troveDetails.troveUserId
+        // This stream is to let user knwow progress of reading articles for the Person Story
+        var streamId = 'ReadProgress:' + userData.troveDetails.troveUserId
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
         console.log(`personStory ReadArticles %s`, streamName);
-        eventSourceReadArticles = new EventSource(streamName, { withCredentials: true });
-        eventSourceReadArticles.addEventListener('error', (e) => handleError(e), false);
-        eventSourceReadArticles.addEventListener(streamId, (e) => handleReadArticlesMessage(e), false);
-        //
+        eventSourceReadProgress = new EventSource(streamName, { withCredentials: true });
+        eventSourceReadProgress.addEventListener('error', (e) => handleError(e), false);
+        eventSourceReadProgress.addEventListener(streamId, (e) => handleProgressMessage(e), false);
+        // This stream is to get the result of the Person Story generation
         streamId = 'PersonStory:' + userData.troveDetails.troveUserId + ':' + navStore.savedPerson.personIndex
         streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
         // console.log(streamName);
@@ -572,7 +572,7 @@ function handleLoadStoryMessage(e, intervalLoadPersonStory, idxPerson) {
     var returnedData = JSON.parse(e.data);
     console.log('Return Load Person Story', JSON.stringify(returnedData), userData.troveDetails.troveUserId, idxPerson);
     personStoryText.value = 'Person Story'
-    // Check this message is for this Userr and Person
+    // Check this message is for this User and Person
     if ((returnedData.checkUserId != userData.troveDetails.troveUserId) || (returnedData.personIdx != idxPerson)) {
         console.log('UserPersonListView/handleLoadStoryMessage ERROR');
         navStore.savedPerson.personStoryStatus = 'ERROR'
@@ -584,14 +584,14 @@ function handleLoadStoryMessage(e, intervalLoadPersonStory, idxPerson) {
     userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[idxPerson].personStoryIdx = returnedData.personStoryIdx
     userData.storyEventsForPersons[returnedData.personStoryIdx] = returnedData.storyEvents
     sourceLoadPersonStory.close();
-    eventSourceReadArticles.close();
+    eventSourceReadProgress.close();
     clearInterval(intervalLoadPersonStory);
     editPersonStory();
 }
 //
-function handleReadArticlesMessage(e) {
+function handleProgressMessage(e) {
     var returnedData = JSON.parse(e.data);
-    console.log('Read Article Message', JSON.stringify(returnedData));
+    console.log('UserPersonListView/handleProgressMessage ', JSON.stringify(returnedData));
     personStoryText.value.replace('.', '')
     readArticlesText.value = returnedData.progressText
 }
