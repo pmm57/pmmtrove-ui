@@ -141,6 +141,22 @@ var toDeleteSearchId = 0;
 const showCheckDeleteSearch = ref(false);
 //
 const savedSearchesWithStats = computed(() => {
+    return userData.savedSearches.map(search => {
+        let known = 0;
+        let ignored = 0;
+        search.searchArticlesIdStatus?.forEach(item => {
+            if (item.articleStatus === 'Known') known++;
+            if (item.articleStatus?.includes('Ignored')) ignored++;
+        });
+        return {
+            ...search,
+            knownCount: known,
+            ignoredCount: ignored,
+            done: (known + ignored) === search.searchTotalFound
+        };
+    });
+});
+//
 const visibleRows = computed(() => {
   const startIndex = (visiblePageNbr.value - 1) * searchPageSize;
   const endIndex = startIndex + searchPageSize;
