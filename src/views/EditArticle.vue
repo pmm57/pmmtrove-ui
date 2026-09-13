@@ -796,10 +796,10 @@ function loadArticle(firstLoad) {
     useDoFetch('loadArticle', url, options)
 }
 //  Post Article Id to Ignore
-function manageIgnoredArticle(action = 'remove') {
+function manageIgnoredArticle(action = 'removeIgnore') {
     manageIgnoreDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
     var param = {
-        ignoreArticlesInfo: [{
+        actionedArticlesInfo: [{
             id: navStore.articleId,
             listId: navStore.listId,
             action: action
@@ -819,8 +819,8 @@ function manageIgnoredArticle(action = 'remove') {
         //make sure to serialize your JSON body
         body: JSON.stringify(param)
     };
-    useDoFetch('Manage Ignored Articles', "/searchTrove/updateIgnored", options)
-    if (action == 'add') troveArticleRef.value.click(); // Take user to Trove
+    useDoFetch('Manage Ignored Articles', "/searchTrove/updateActionedArticles", options)
+    if (action == 'addIgnore') troveArticleRef.value.click(); // Take user to Trove
 }
 //  Post updated data and wait for response in reloadArticle
 function saveData() {
@@ -1181,7 +1181,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                                     data-bs-toggle="tooltip" data-bs-placement="top"
                                                     title="View Article in Trove and remove from List OR Remove from Ignored">{{
                                                         manageRemoveIgnoreButtonText }}</button>
-                                                <button v-else @click.prevent="manageIgnoredArticle('add')"
+                                                <button v-else @click.prevent="manageIgnoredArticle('addIgnore')"
                                                     :disabled="manageIgnoreDisable" class="btn btn-primary"
                                                     data-bs-toggle="tooltip" data-bs-placement="top"
                                                     title="Add to Ignore List and View Article in Trove to remove from List">

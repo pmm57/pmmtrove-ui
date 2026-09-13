@@ -127,6 +127,7 @@ const searchPageCounts = reactive({
     nbrShown: 0,
     nbrNew: 0,
     nbrKnown: 0,
+    nbrKnownToStore: 0,
     nbrLessRelevant: 0,
     nbrToIgnore: 0,
     nbrIgnored: 0,
@@ -296,7 +297,9 @@ function addedListClick(rowNbr) {
             --searchPageCounts.nbrLessRelevant;
     }
     ++searchPageCounts.nbrKnown;
-    searchResults.value[rowNbr - 1].status = 'Known';
+    ++searchPageCounts.nbrKnownToStore;
+    searchResults.value[rowNbr - 1].status = 'KnownToStore';
+    updateActionButton()
 }
 // On clicking the ignore row
 // New => IgnoreArticle => Remove from TO Ignore
@@ -332,10 +335,15 @@ function ignoreArticleClick(doing, rowNbr) {
             searchResults.value[rowNbr - 1].status = 'IgnoreArticle';
             ++searchPageCounts.nbrToIgnore;
     }
-    if ((searchPageCounts.nbrToIgnore > 0) || (searchPageCounts.nbrToUnignore > 0)) {
+    updateActionButton() 
+}
+//
+function updateActionButton() {
+    if ((searchPageCounts.nbrToIgnore > 0) || (searchPageCounts.nbrToUnignore > 0) || (searchPageCounts.nbrKnownToStore > 0)) {
         actionButtonText.value = "Save "
         if (searchPageCounts.nbrToIgnore > 0) actionButtonText.value += searchPageCounts.nbrToIgnore + " Ignored "
         if (searchPageCounts.nbrToUnignore > 0) actionButtonText.value += searchPageCounts.nbrToUnignore + " Unignore"
+        if (searchPageCounts.nbrKnownToStore > 0) actionButtonText.value += searchPageCounts.nbrKnownToStore + " Known to Store"
         actionButtonText.value += " Articles"
         disableUpdateIgnored.value = false;
     } else {
@@ -482,6 +490,7 @@ function countSearchResults() {
     searchPageCounts.nbrIgnored = 0;
     searchPageCounts.nbrToIgnore = 0;
     searchPageCounts.nbrToUnignore = 0;
+    searchPageCounts.nbrKnownToStore = 0;
     searchPageCounts.nbrLessRelevant = 0;
     const start = (visiblePageNbr.value -1) * searchPageSize;
     const end = start + searchPageSize;
@@ -491,7 +500,7 @@ function countSearchResults() {
         //
         switch (element.status) {
             case 'Known':
-            case 'KnownStored':
+            case 'KnownToStore':
                 if (onPage) ++searchPageCounts.nbrKnown;
                 ++searchAllCounts.nbrKnown;
                 break;
@@ -620,7 +629,7 @@ function showResultRow(hidden, status) {
     // console.log ('showResult:', JSON.stringify(status))
     switch (status) {
         case 'Known':
-        case 'KnownStored':
+        case 'KnownToStore':
             if (toggleKnown.value) {
                 return true;
             } else {
@@ -656,19 +665,21 @@ function showResultRow(hidden, status) {
 //
 function haveListLink(listId) {
     let haveLink = userData.userListsReady
-    let idxList = userData.userLists.findIndex((item) => item.TroveListId == Number(listId));
-    if ((idxList > -1) && (userData.userLists[idxList].TroveListItemCount == 0)) haveLink = false;
-    if (userData.userDuplicateListIds.indexOf(Number(listId)) > -1) haveLink = false; // Disable Link if it is the list holding duplicate articles
+    if (listId > 0) {
+        const idxList = userData.userLists.findIndex((item) => item.TroveListId == Number(listId));
+        if ((idxList > -1) && (userData.userLists[idxList].TroveListItemCount == 0)) haveLink = false;
+        if (userData.userDuplicateListIds.indexOf(Number(listId)) > -1) haveLink = false; // Disable Link if it is the list holding duplicate article
+    }
     return haveLink
 }
 //
 function showStatus(status) {
-    // Setup for Show Known-KnownStored / GIgnored / QIgnored / AQIgnored/ New
+    // Setup for Show Known-KnownToStore / GIgnored / QIgnored / AQIgnored/ New
     switch (status) {
         case 'Duplicate':
             return "Duplicate";
         case 'Known':
-        case 'KnownStored':
+        case 'KnownToStore':
             return "Known";
         case 'QIgnored':
             return "Ignored (This Query)";
@@ -689,7 +700,7 @@ function getIgnoreUI(status) {
   // return null when the ignore action should not be shown
   switch (status) {
     case 'Known':
-    case 'KnownStored':
+    case 'KnownToStore':
       return null;
     case 'QIgnored':
     case 'GIgnored':
@@ -897,32 +908,84 @@ function openList(listLink) {
     navStore.listId = listLink;
     router.push({ name: 'userListPage' });
 }
-//  Post array of QIgnored Article Id's
-async function updateIgnoredArticles() {
+//
+function waitStoredArticles() {
+    if (!!window.EventSource) {
+        const sseName = userData.troveDetails.troveUserId + ':storedArticles';
+        var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/searchStoredArticles/' + sseName;
+        var source = new EventSource(streamName, { withCredentials: true });
+        source.addEventListener(sseName, function (e) {
+            var returnData = JSON.parse(e.data);
+            source.close();
+            console.log(`SearchTroveView/waitStoredArticles Return NumberReturned:%s`, returnData.storedArticlesResults.length);
+            for (const item of returnData.storedArticlesResults) {
+                const idx = searchResults.value.findIndex((el) => el.id === item.articleId);
+                if (idx == -1) {
+                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s not found in searchResults`, item.articleId);
+                    continue
+                }
+                if (item.listId != null) {
+                    searchResults.value[idx].dbListId = item.listId;
+                    console.log(`SearchTroveView/waitStoredArticles List:%s `, JSON.stringify(userData.userLists[3]));
+                    const idxList = userData.userLists.findIndex((list) => list.TroveListId == item.listId);
+                    console.log(`SearchTroveView/waitStoredArticles ListId:%s idxList:%s`, item.listId, idxList);
+                    if (idxList !== -1) searchResults.value[idx].listName = userData.userLists[idxList].TroveListName;
+                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s ListId:%s Name:%s`, item.articleId, item.listId, searchResults.value[idx].listName);
+                } else {
+                    searchResults.value[idx].dbListId = -100;
+                    searchResults.value[idx].listName = 'Not in a List';
+                    searchResults.value[idx].status = 'New';
+                    countSearchResults();
+                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s Not in List`, item.articleId);
+                }
+            }
+            //
+        }, false);
+        source.addEventListener('error', function (e) {
+            if (e.target.readyState == EventSource.CLOSED) {
+                console.log("Disconnected");
+            }
+            else if (e.target.readyState == EventSource.CONNECTING) {
+                console.log("Connecting...");
+            }
+        }, false);
+    } else {
+        console.log("Your browser doesn't support SSE")
+    }
+}
+//  Post array of Actioned Article Id's
+async function updateActionedArticles() {
     var items = [];
-    var action = ''
+    var action = '';
+    var setupStoredArticleSSE = false;
     searchResults.value.forEach((el, index) => {
         if (el.status == 'IgnoreArticle') {
             // console.log ('Ignore Article ', el)
             searchResults.value[index].status = 'QIgnored';
-            action = 'add'
+            action = 'addIgnore'
         }
         if (el.status == 'UnignoreArticle') {
             // console.log ('Ignore Article ', el)
             searchResults.value[index].status = 'New';
-            action = 'remove'
+            action = 'removeIgnore'
+        }
+        if (el.status == 'KnownToStore') {
+            // console.log ('Known to Store ', el)
+            searchResults.value[index].status = 'Known';
+            action = 'storeArticle'
+            setupStoredArticleSSE = true
         }
         if (action.length > 0) {
             items.push({ id: el.id, action: action });
             action = ''
         }
     });
-    const actionIgnores = {
+    const actionedArticles = {
         searchId: currentSearchId,
-        ignoreArticlesInfo: items,
+        actionedArticlesInfo: items,
         reloadArticle: false
     };
-    console.log("clicked Save Ignore actions " + JSON.stringify(actionIgnores));
+    console.log(`SearchTroveView/updateActionedArticles clicked Save Article actions:%s`, JSON.stringify(actionedArticles));
     //
     const options = {
         method: "post",
@@ -933,17 +996,18 @@ async function updateIgnoredArticles() {
             'Content-Type': 'application/json'
         },
         //make sure to serialize your JSON body
-        body: JSON.stringify(actionIgnores)
+        body: JSON.stringify(actionedArticles)
     };
     countSearchResults();
     disableUpdateIgnored.value = true;
     actionButtonText.value = '';
     lastActionSaved.value = "";
     waitUpdateIgnored.value = true
-    const data = await useDoFetch('Ignore Articles', "/searchTrove/updateIgnored", options)
+    const data = await useDoFetch('Actioned Articles', "/searchTrove/updateActionedArticles", options)
     if (typeof data == 'boolean') {
     }
     waitUpdateIgnored.value = false
+    if (setupStoredArticleSSE) waitStoredArticles()   
 }
 // Initialisation
 // Get passed Data
@@ -994,6 +1058,7 @@ onMounted(() => {
                                 <th>Search Parameters</th>
                                 <th>Search Id</th>
                                 <th>Nbr Articles</th>
+                                <th>Nbr Known</th>
                                 <th>Nbr Ignored</th>
                             </tr>
                         </thead>
@@ -1139,7 +1204,7 @@ onMounted(() => {
                         </button>
                     </div>
                     <div id="actionButtons">
-                        <button v-if="actionButtonText.length > 0" @click.prevent="updateIgnoredArticles()" type="button" class="btn btn-primary ms-2"
+                        <button v-if="actionButtonText.length > 0" @click.prevent="updateActionedArticles()" type="button" class="btn btn-primary ms-2"
                             :class="{ disabled: disableUpdateIgnored && !waitUpdateIgnored}"> {{ actionButtonText }}
                         </button>
                         <button v-if="lastActionSaved.length > 0" @click.prevent="undoLastAction" type="button" class="btn btn-primary ms-2"> {{ lastActionSaved }} 
@@ -1225,9 +1290,10 @@ onMounted(() => {
                             </td>
                             <td v-else-if="row.dbListId != 0">
                                 {{ row.id }}
-                                <!-- <router-link v-if="haveListLink(row.dbListId)" :to="'/userListPage/' + row.dbListId"
-                class="active link-primary">{{ row.listName }}</router-link> -->
-                                <a href="#" v-if="haveListLink(row.dbListId)"
+                                <p v-if="row.dbListId < 0">
+                                    {{ row.listName }}
+                                </p>
+                                <a href="#" v-else-if="haveListLink(row.dbListId)"
                                     @click.prevent="openList(row.dbListId)">
                                     <br>{{ row.listName }}
                                 </a>
