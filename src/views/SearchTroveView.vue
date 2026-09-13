@@ -140,6 +140,7 @@ let searchNextUrl = 'done'
 var toDeleteSearchId = 0;
 const showCheckDeleteSearch = ref(false);
 //
+const savedSearchesWithStats = computed(() => {
 const visibleRows = computed(() => {
   const startIndex = (visiblePageNbr.value - 1) * searchPageSize;
   const endIndex = startIndex + searchPageSize;
@@ -971,6 +972,7 @@ onMounted(() => {
                         <thead class="mbhead">
                             <tr class="mbrow">
                                 <th>Action</th>
+                                <th>Done</th>
                                 <th>Created</th>
                                 <th>Last Run</th>
                                 <th>Search Parameters</th>
@@ -980,7 +982,7 @@ onMounted(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, index) in userData.savedSearches" :key="index">
+                            <tr v-for="(row, index) in savedSearchesWithStats" :key="index">
                                 <!-- Action -->
                                 <td>
                                     <button class="btn btn-primary" 
@@ -989,6 +991,12 @@ onMounted(() => {
                                     <button class="btn btn-danger" 
                                     style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
                                     @click="checkDeleteSavedSearch(row.searchId)">Delete</button>
+                                </td>
+                                <!-- Done -->
+                                <td>
+                                    <i v-if="row.done"
+                                        class="bi bi-check-circle-fill text-success ms-2" title="All articles reviewed"
+                                    ></i>
                                 </td>
                                 <!-- Created -->
                                 <td>
@@ -1010,9 +1018,13 @@ onMounted(() => {
                                 <td>
                                     {{ row.searchTotalFound }}
                                 </td>
+                                <!-- Nbr Known -->
+                                <td>
+                                    {{ row.knownCount }}
+                                </td>
                                 <!-- Nbr Ignored -->
                                 <td>
-                                    {{ row.searchIgnoredArticleIds.length }}
+                                    {{ row.ignoredCount }}
                                 </td>
                             </tr>
                         </tbody>
