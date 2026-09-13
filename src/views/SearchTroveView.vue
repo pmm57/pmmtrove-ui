@@ -403,6 +403,8 @@ function loadSavedSearch(searchFields) {
     }
     limitYear.value = savedSearchFields.searchLimitYear;
     showSearchToggle.value = true;
+    // close the details section
+    this.showSavedSearchesToggle = false;
     changeSearch()
 }
 //
@@ -964,7 +966,7 @@ onMounted(() => {
             <summary>Show Saved Searches</summary>
             <div class="card-body">
                 <div v-if="userData.savedSearches.length == 0">No Saved Searches</div>
-                <div v-else class="card-body pre-scrollable" style="max-height: 65vh; line-height: 100%">
+                <div v-else class="card-body p-0" style="max-height: 45vh; overflow-y:auto; line-height: 100%">
                     <table id="tableSearches" class="table table-bordered">
                         <thead class="mbhead">
                             <tr class="mbrow">
@@ -1283,5 +1285,22 @@ onMounted(() => {
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 2px;
+}
+#tableSearches {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#tableSearches thead {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+#tableSearches thead th {
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1001;
 }
 </style>
