@@ -85,7 +85,6 @@ const verifyTroveUserMsg = 'Verifying Trove User .'
 const loadingTroveMsg = 'Loading from TROVE .'
 var currentLoadingMsg = ''
 const loadingMsg = ref('')
-const savedAuthUserTroveIds = ref([])
 const selectedTroveUserId = ref('')
 var inUserId = ''
 var intervalLoading = null
@@ -109,6 +108,10 @@ const loginWithRedirect = auth.loginWithRedirect
 console.log(`HomeView Start After isAuthenticated authUserState:%s, user:%s`, userData.authUserState, JSON.stringify(user))
 watch(user, async (u) => {
     console.log(`HomeView WATCH user:%s, authUserState:%s, u:%s`, u?.nickname, userData.authUserState, JSON.stringify(u))
+    if (userData.authUserState == AuthUserState.READY) {
+        console.log('HomeView WATCH user AuthUserState.READY - No action')
+        return
+    }
     if (!u?.nickname) {
         userData.authUserState = AuthUserState.UNAUTHENTICATED
         console.log('HomeView WATCH user - No authenticated user yet')
@@ -191,6 +194,7 @@ watch(
         if (!ready) return // Set to false userData.clearStore()
         clearTick()
         navBarStore.disableTroveLists = false;
+        navBarStore.disableSearch = false;
         userData.authUserState = AuthUserState.READY
         console.log(`HomeView Watch: Good TO Go - AuthUserState:%s`, userData.authUserState)
         // If this was a Browser Reload from Server - Check if the full load never completed
@@ -246,16 +250,16 @@ async function getUserTroveIds(authUserName) {
         navBarStore.disableManage = false
         console.log(`HomeView/getUserTroveIds Returned userData.authUserTroveIds: %s `, JSON.stringify(userData?.authUserTroveIds))
         // How many Trove User ID's are linked to this AuthUser
-        savedAuthUserTroveIds.value = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
-        console.log(`HomeView/getUserTroveIds Returned savedAuthUserTroveIds: %s `, JSON.stringify(savedAuthUserTroveIds?.value))
-        switch (savedAuthUserTroveIds.value.length) {
+        const savedAuthUserTroveIds = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
+        console.log(`HomeView/getUserTroveIds Returned savedAuthUserTroveIds: %s `, JSON.stringify(savedAuthUserTroveIds))
+        switch (savedAuthUserTroveIds.length) {
             case 0: // Ask User to link one in Manage
                 userData.authUserTroveIds[0].troveUserId = ''
                 userData.authUserTroveIds[0].troveUserApiKey = ''
                 router.push({ name: 'manage' })
                 break
             case 1: // If only one then use that as Trove User Id
-                inUserId = savedAuthUserTroveIds.value[0].troveUserId
+                inUserId = savedAuthUserTroveIds[0].troveUserId
                 userData.authUserState = AuthUserState.UNVERIFIED
                 console.log(`HomeView/getUserTroveIds Direct verifyTroveUser: %s `, inUserId)
                 verifyTroveUser(false)
@@ -297,7 +301,7 @@ async function verifyTroveUser(refresh) {
         // console.log(`HomeView/verifyTroveUser Returned data: %s `, JSON.stringify(data))
         console.log(`HomeView/verifyTroveUser Returned Logon:"%s" New:%s`, JSON.stringify(data.troveDetails), data.newLogon)
         userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
-        navBarStore.disableSearch = false;
+        // navBarStore.disableSearch = false;
         if (!data.newLogon) {
             // Previous cookie existed on server
             console.log(`HomeView/verifyTroveUser User Session Exists On Server - Trigger Server Reload`)
@@ -308,6 +312,7 @@ async function verifyTroveUser(refresh) {
         } else {
             userData.authUserState = AuthUserState.FIRST_LOAD
         }
+        console.log(`HomeView/verifyTroveUser AuthUserState:%s`, userData.authUserState)
         // Server will sseMetaData and sseUserLists - setting userData.userListsReady to trigger above Watch
         loadingMsg.value = loadingTroveMsg
         currentLoadingMsg = loadingTroveMsg
@@ -356,7 +361,7 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                 <!-- Trove User Id selection, fires watcher on selected UI -->
                 <select v-model="selectedTroveUserId">
                     <option disabled value="">-- Select a Trove User Id --</option>
-                    <option v-for="u in savedAuthUserTroveIds  ?? []" :key="u.id" :value="u.troveUserId">
+                    <option v-for="u in userData.authUserTroveIds ?? []" :key="u.id" :value="u.troveUserId">
                         {{ u.troveUserId }}
                     </option>
                 </select>
@@ -376,7 +381,7 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                         <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
                             Your Trove Lists</button>
                     </div>
-                    <div v-if="(savedAuthUserTroveIds?.length > 1)">
+                    <div v-if="(userData.authUserTroveIds?.length > 1)">
                         <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
                             User</button>
                     </div>
