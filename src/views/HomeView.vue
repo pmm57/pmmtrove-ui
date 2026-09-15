@@ -80,11 +80,10 @@ const userData = useUserDataStore()
 // this.authUserState = AuthUserState.UNAUTHENTICATED
 // GoTo at Restart
 var userReloadLists = false // Browser restart - User Verified - Session On Server to reload from
-const authenticateAuthUserMsg = 'Authenticating .'
-const verifyTroveUserMsg = 'Verifying Trove User .'
-const loadingTroveMsg = 'Loading from TROVE .'
-var currentLoadingMsg = ''
-const loadingMsg = ref('')
+const startMsgs = ['Authenticating .', 'Verifying Trove User .']
+var currentStartMsgIndex = 0
+var startMsg = ref('');
+const loadingMsg = ref()
 const selectedTroveUserId = ref('')
 var inUserId = ''
 var intervalLoading = null
@@ -172,19 +171,26 @@ watch(selectedTroveUserId, async (troveUserId) => {
     verifyTroveUser(false)
 });
 //
-function loadingTick() {
-    intervalLoading = setInterval(tick, 500);
+function loadingInterval(tickMsg) {
+    intervalLoading = setInterval(tickMsg, 500);
 }
-function tick() {
-    loadingMsg.value += '.';
-    if (loadingMsg.value.length > 40) {
-        loadingMsg.value = currentLoadingMsg
-    }
-}
-function clearTick() {
+function clearLoadingInterval() {
     loadingMsg.value = '';
+    startMsg.value = '';
     clearInterval(intervalLoading);
     intervalLoading = null;
+}
+function tickStarting() {
+    startMsg.value += '.';
+    if (startMsg.value.length > 40) {
+        startMsg.value = startMsgs[currentStartMsgIndex]
+    }
+}
+function tickLoading() {
+    if ((loadingMsg.value.length == 0) || (loadingMsg.value.length > 40)) {
+        loadingMsg.value = 'Loading from TROVE '
+    }
+    loadingMsg.value += '.';
 }
 // Asynch method in App.vue will set this
 watch(
@@ -192,7 +198,7 @@ watch(
     (ready) => {
         console.log(`HomeView Watch userListsRead:%s`, ready)
         if (!ready) return // Set to false userData.clearStore()
-        clearTick()
+        clearLoadingInterval()
         navBarStore.disableTroveLists = false;
         navBarStore.disableSearch = false;
         userData.authUserState = AuthUserState.READY
@@ -221,9 +227,9 @@ watch(
 //
 async function getUserTroveIds(authUserName) {
     // oauth will populate user
-    loadingMsg.value = authenticateAuthUserMsg
-    currentLoadingMsg = authenticateAuthUserMsg
-    loadingTick();
+    currentStartMsgIndex = 0
+    startMsg.value = startMsgs[currentStartMsgIndex]
+    loadingInterval(tickStarting);
     errorsStore.arrayErrors = [];
     console.log('HomeView/getUserTroveIds User-', authUserName)
     const options = {
@@ -240,7 +246,7 @@ async function getUserTroveIds(authUserName) {
         })
     };
     const data = await useDoFetch('getUserTroveIds', "/", options); // pmmtrove-servicelayer index\initTroveUser.authUserInitRouter
-    clearTick()
+    clearLoadingInterval()
     if (typeof data == 'boolean') {
         // Verification failed
     } else {
@@ -272,11 +278,13 @@ async function getUserTroveIds(authUserName) {
 // 
 async function verifyTroveUser(refresh) {
     selectedTroveUserId.value = ''
-    if (!refresh){
-        loadingMsg.value = verifyTroveUserMsg
-        currentLoadingMsg = verifyTroveUserMsg
+    if (refresh){
+        loadingInterval(tickLoading);
+    } else {
+        currentStartMsgIndex = 1
+        startMsg.value = startMsgs[currentStartMsgIndex]
+        loadingInterval(tickStarting);
     }
-    loadingTick();
     errorsStore.arrayErrors = [];
     console.log(`Homeview/verifyTroveUser User:"%s" authUserState:%s`, inUserId, userData.authUserState)
     const options = {
@@ -294,7 +302,7 @@ async function verifyTroveUser(refresh) {
         })
     };
     const data = await useDoFetch('verifyTroveUser', "/troveUser", options);
-    clearTick();
+    clearLoadingInterval();
     if (typeof data == 'boolean') {
         // Verification failed
     } else {
@@ -314,16 +322,12 @@ async function verifyTroveUser(refresh) {
         }
         console.log(`HomeView/verifyTroveUser AuthUserState:%s`, userData.authUserState)
         // Server will sseMetaData and sseUserLists - setting userData.userListsReady to trigger above Watch
-        loadingMsg.value = loadingTroveMsg
-        currentLoadingMsg = loadingTroveMsg
-        loadingTick();
+        loadingInterval(tickLoading);
     }
 }
 //
 function refreshUserLists() {
     console.log('HomeView/refreshUserLists Refresh User Trove Lists')
-    loadingMsg.value = loadingTroveMsg
-    currentLoadingMsg = loadingTroveMsg
     inUserId = userData.troveDetails.troveUserId
     // Doing a refresh not a reload
     userReloadLists = false;
@@ -339,55 +343,60 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
 <template>
     <div class="d-flex justify-content-center mt-5">
         <div style="max-width: 400px; width: 100%;">
-            <div v-if="loadingMsg.length > 0" class="card text-center">
-                <p><b>{{ loadingMsg }}</b></p>
+            <div v-if="startMsg.length > 0" class="card text-center">
+                <p><b>{{ startMsg }}</b></p>
             </div>
-            <div v-if="userData.authUserState == AuthUserState.UNAUTHENTICATED" class="card text-center">
-                <MockLogin v-if="!shouldUseAuth0" />
-                <template v-else>
-                    <br>
-                    <p>Please log in or sign up to continue</p>
-                    <button @click="login" class="btn btn-primary">Log in using Authentication User</button>
-                    <p>First time user please Signup
-                    </p>
-                    <p>NOTE: After signing up an Authenticated User name you can link multiple Trove User names to it in Manage
-                        User
-                    </p>
-                    <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
-                </template>
-            </div>
-            <div v-if="userData.authUserState == AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="card text-center">
-                <p>Select a Trove User Id to Manage</p>
-                <!-- Trove User Id selection, fires watcher on selected UI -->
-                <select v-model="selectedTroveUserId">
-                    <option disabled value="">-- Select a Trove User Id --</option>
-                    <option v-for="u in userData.authUserTroveIds ?? []" :key="u.id" :value="u.troveUserId">
-                        {{ u.troveUserId }}
-                    </option>
-                </select>
-            </div>
-            <div v-if="(userData.authUserState.includes('LOAD')) || (userData.authUserState == AuthUserState.READY)" class="card text-center">
-                <p>This is a Trove Data Miner for user {{ user?.nickname }}
-                    <br>Managing Trove User {{ userData?.troveDetails?.troveUserId }}</p>
-                <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove
-                    <br v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches
-                    <br v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
-                    Duplicate List/s that will not be Loaded.
-                </p>
-                <div v-if="userData.authUserState == AuthUserState.READY">
-                    <p>There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
-                        {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
-                    <div>
-                        <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
-                            Your Trove Lists</button>
-                    </div>
-                    <div v-if="(userData.authUserTroveIds?.length > 1)">
-                        <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
-                            User</button>
-                    </div>
+            <div v-else>
+                <div v-if="userData.authUserState == AuthUserState.UNAUTHENTICATED" class="card text-center">
+                    <MockLogin v-if="!shouldUseAuth0" />
+                    <template v-else>
+                        <br>
+                        <p>Please log in or sign up to continue</p>
+                        <button @click="login" class="btn btn-primary">Log in using Authentication User</button>
+                        <p>First time user please Signup
+                        </p>
+                        <p>NOTE: After signing up an Authenticated User name you can link multiple Trove User names to it in Manage
+                            User
+                        </p>
+                        <button @click="signup" class="btn btn-secondary mt-2">Signup an Authentication User Name</button>
+                    </template>
                 </div>
-                <div v-else>
-                    <p>{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
+                <div v-if="userData.authUserState == AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="card text-center">
+                    <p>Select a Trove User Id to Manage</p>
+                    <!-- Trove User Id selection, fires watcher on selected UI -->
+                    <select v-model="selectedTroveUserId">
+                        <option disabled value="">-- Select a Trove User Id --</option>
+                        <option v-for="u in userData.authUserTroveIds ?? []" :key="u.id" :value="u.troveUserId">
+                            {{ u.troveUserId }}
+                        </option>
+                    </select>
+                </div>
+                <div v-if="(userData.authUserState.includes('LOAD')) || (userData.authUserState == AuthUserState.READY)" class="card text-center">
+                    <div v-if="loadingMsg.length > 0" class="card text-center">
+                        <p><b>{{ loadingMsg }}</b></p>
+                    </div>
+                    <p>This is a Trove Data Miner for user {{ user?.nickname }}
+                        <br>Managing Trove User {{ userData?.troveDetails?.troveUserId }}</p>
+                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove
+                        <br v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches
+                        <br v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
+                        Duplicate List/s that will not be Loaded.
+                    </p>
+                    <div v-if="userData.authUserState == AuthUserState.READY">
+                        <p>There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
+                            {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
+                        <div>
+                            <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
+                                Your Trove Lists</button>
+                        </div>
+                        <div v-if="(userData.authUserTroveIds?.length > 1)">
+                            <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
+                                User</button>
+                        </div>
+                    </div>
+                    <div v-else>
+                        <p>{{ userData.loadedIndex + 1 }} Lists have been Loaded</p>
+                    </div>
                 </div>
             </div>
             <div v-if="shouldUseAuth0 && error && error.message" class="alert alert-danger">

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { AuthUserState } from '@/components/AuthUserState.js';
 
 export const useUserDataStore = defineStore('userData', () => {
@@ -124,7 +124,32 @@ export const useUserDataStore = defineStore('userData', () => {
     // searchDateTime
     // searchTotalFound
     // searchFields
-    // searchIgnoredArticleIds []
+    // searchArticlesIdStatus [articleId:, articleStatus:]
+    const savedSearchesWithStats = computed(() =>
+        savedSearches.value.map(search => {
+            const stats = search.searchArticlesIdStatus?.reduce(
+                (acc, item) => {    
+                    if (item.articleStatus === 'Known') acc.known++;
+                    if (item.articleStatus?.includes('Ignored')) acc.ignored++;
+                    return acc;
+                },
+                { known: 0, ignored: 0 }
+            );
+            const processed = stats.known + stats.ignored;
+            return {
+                ...search,
+                knownCount: stats.known,
+                ignoredCount: stats.ignored,
+                processedCount: processed,
+                remainingCount: search.searchTotalFound - processed,
+                done: processed >= search.searchTotalFound,
+                percentComplete:
+                    search.searchTotalFound > 0
+                        ? Math.round((processed / search.searchTotalFound) * 100)
+                        : 0
+            };
+        })
+    );
   //
     function clearCacheStore() {
         this.troveQueryTotal = 0
@@ -339,6 +364,7 @@ export const useUserDataStore = defineStore('userData', () => {
         metadataTypeByMetadata,
         storyEventsForPersons,        
         savedSearches,
+        savedSearchesWithStats,
         clearStore,
         clearCacheStore,
         updateAllLists,

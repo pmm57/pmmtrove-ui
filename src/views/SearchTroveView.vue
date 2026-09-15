@@ -141,22 +141,22 @@ let searchNextUrl = 'done'
 var toDeleteSearchId = 0;
 const showCheckDeleteSearch = ref(false);
 //
-const savedSearchesWithStats = computed(() => {
-    return userData.savedSearches.map(search => {
-        let known = 0;
-        let ignored = 0;
-        search.searchArticlesIdStatus?.forEach(item => {
-            if (item.articleStatus === 'Known') known++;
-            if (item.articleStatus?.includes('Ignored')) ignored++;
-        });
-        return {
-            ...search,
-            knownCount: known,
-            ignoredCount: ignored,
-            done: (known + ignored) === search.searchTotalFound
-        };
-    });
-});
+// const savedSearchesWithStats = computed(() => {
+//     return userData.savedSearches.map(search => {
+//         let known = 0;
+//         let ignored = 0;
+//         search.searchArticlesIdStatus?.forEach(item => {
+//             if (item.articleStatus === 'Known') known++;
+//             if (item.articleStatus?.includes('Ignored')) ignored++;
+//         });
+//         return {
+//             ...search,
+//             knownCount: known,
+//             ignoredCount: ignored,
+//             done: (known + ignored) === search.searchTotalFound
+//         };
+//     });
+// });
 //
 const visibleRows = computed(() => {
   const startIndex = (visiblePageNbr.value - 1) * searchPageSize;
@@ -238,6 +238,7 @@ function checkLimitDecade () {
     updateLimitYears()
     // limitYear.value = limitYears.value[0]
     console.log ("SearchTroveView/checkLimitDecade limitYears ", limitYears.value)
+    searchAllDecadeYears.value = true;
     showLimitYear.value = false
     changeSearch()
 }
@@ -429,7 +430,7 @@ function loadSavedSearch(searchFields) {
     limitYear.value = savedSearchFields.searchLimitYear;
     showSearchToggle.value = true;
     // close the details section
-    this.showSavedSearchesToggle = false;
+    showSavedSearchesToggle.value = false;
     changeSearch()
 }
 //
@@ -1063,7 +1064,7 @@ onMounted(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, index) in savedSearchesWithStats" :key="index">
+                            <tr v-for="(row, index) in userData.savedSearchesWithStats" :key="index">
                                 <!-- Action -->
                                 <td>
                                     <button class="btn btn-primary" 
