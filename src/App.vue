@@ -215,6 +215,15 @@ function handleMessage(e) {
             // console.log(`App/sseSavedSearches %s`, JSON.stringify(sseRetrieve))
             userData.savedSearches = sseRetrieve.cacheSavedSearches
             break
+        case 'sseSavedSearch':
+            console.log(`App/sseSavedSearch %s`, JSON.stringify(sseRetrieve))
+            var idxSavedSearch = userData.savedSearches.findIndex(search => search.searchId == sseRetrieve.cacheSavedSearch.searchId);
+            if (idxSavedSearch < 0) { // New Saved Search
+                // console.log('App/sseSavedSearch New Saved Search %s`, (sseRetrieve.cacheSavedSearch)
+                idxSavedSearch = userData.savedSearches.length;
+            }
+            userData.savedSearches.splice(idxSavedSearch, 1, reactive(sseRetrieve.cacheSavedSearch)); // Triggers Reactivity
+            break
         case 'sseServerError':
             errorsStore.arrayErrors.push({ msg: sseRetrieve.errorResponse.statusText, param: JSON.stringify(sseRetrieve.errorResponse) });
             break
