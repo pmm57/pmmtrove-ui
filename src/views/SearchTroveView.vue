@@ -113,13 +113,8 @@ let searchAllCounts = reactive({
 const searchMaxPageNbr = ref(0);
 const searchReadPageNbr = ref(0);
 let thisSearch = {searchId: 0,
-    searchString: '',
-    searchAllStates: true,
-    searchLimitState: '',
-    searchAllYears: true,
-    searchLimitDecade: '',
-    searchAllDecadeYears: true,
-    searchLimitYear: ''};
+        strSearchFields: '',
+        strSearchTrove: ''}
 const thisSearchId = ref('')
 const thisSearchText = ref('')
 const visiblePageNbr = ref(0);
@@ -141,22 +136,31 @@ let searchNextUrl = 'done'
 var toDeleteSearchId = 0;
 const showCheckDeleteSearch = ref(false);
 //
-// const savedSearchesWithStats = computed(() => {
-//     return userData.savedSearches.map(search => {
-//         let known = 0;
-//         let ignored = 0;
-//         search.searchArticlesIdStatus?.forEach(item => {
-//             if (item.articleStatus === 'Known') known++;
-//             if (item.articleStatus?.includes('Ignored')) ignored++;
-//         });
-//         return {
-//             ...search,
-//             knownCount: known,
-//             ignoredCount: ignored,
-//             done: (known + ignored) === search.searchTotalFound
-//         };
-//     });
-// });
+const savedSearchesWithStats = computed(() =>
+    userData.savedSearches.map(search => {
+        const stats = search.searchArticlesIdStatus?.reduce(
+            (acc, item) => {    
+                if (item.articleStatus === 'Known') acc.known++;
+                if (item.articleStatus?.includes('Ignored')) acc.ignored++;
+                return acc;
+            },
+            { known: 0, ignored: 0 }
+        );
+        const processed = stats.known + stats.ignored;
+        return {
+            ...search,
+            knownCount: stats.known,
+            ignoredCount: stats.ignored,
+            processedCount: processed,
+            remainingCount: search.searchTotalFound - processed,
+            done: processed >= search.searchTotalFound,
+            percentComplete:
+                search.searchTotalFound > 0
+                    ? Math.round((processed / search.searchTotalFound) * 100)
+                    : 0
+        };
+    })
+);
 //
 const visibleRows = computed(() => {
   const startIndex = (visiblePageNbr.value - 1) * searchPageSize;
@@ -358,8 +362,13 @@ function updateActionButton() {
 function getSearch() {
     visiblePageNbr.value = 0
     searchMaxPageNbr.value = 0
-    var aSearch = {
+    const aSearch = {
         searchId: 0,
+        strInSearchWords: searchFor.value,
+        strSearchFields: '',
+        strSearchTrove: ''}
+    // Generate String of in Search details for saving in NEO4J
+    const inSearch = {
         searchString: searchFor.value,
         searchAllStates: allStates.value,
         searchLimitState: '',
@@ -368,32 +377,50 @@ function getSearch() {
         searchAllDecadeYears: searchAllDecadeYears.value,
         searchLimitYear: ''
     }
-    if (!aSearch.searchAllStates) {
-        aSearch.searchLimitState = limitState.value;
+    if (!inSearch.searchAllStates) {
+        inSearch.searchLimitState = limitState.value;
     }
-    if (!aSearch.searchAllYears) {
-        aSearch.searchLimitDecade = limitDecade.value;
-        if (!aSearch.searchAllDecadeYears) aSearch.searchLimitYear = limitYear.value;
+    if (!inSearch.searchAllYears) {
+        inSearch.searchLimitDecade = limitDecade.value;
+        if (!inSearch.searchAllDecadeYears) inSearch.searchLimitYear = limitYear.value;
+    }
+    aSearch.strSearchFields = JSON.stringify(inSearch);
+    // Generate Trove Search String
+    aSearch.strSearchTrove = encodeURI(inSearch.searchString);
+    if (!(inSearch.searchAllStates)) {
+        const arrayStateCode = ['ACT','NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'];
+        const arrayStateLimit = ['&l-state=Australia%20Capital%20Territory', '&l-state=New%20South%20Wales',
+        '&l-state=Northern%20Territory', '&l-state=Queensland', '&l-state=South%20Australia', '&l-state=Tasmania',
+        '&l-state=Victoria', '&l-state=Western%20Australia'];
+        const indexState = arrayStateCode.indexOf(inSearch.searchLimitState);
+        aSearch.strSearchTrove += arrayStateLimit[indexState];
+    }
+    if (!(inSearch.searchAllYears)) {
+        aSearch.strSearchTrove += '&l-decade=' + inSearch.searchLimitDecade;
+        // Limit by Year
+        if (inSearch.searchLimitYear > '') {
+            aSearch.strSearchTrove += '&l-year=' + inSearch.searchLimitYear;
+        }
     }
     // Generate SearchId
-    var strSearchFields = JSON.stringify(aSearch);
-    [...strSearchFields].forEach((aChar, index) => {
+    var strFields = JSON.stringify(aSearch);
+    [...strFields].forEach((aChar, index) => {
         aSearch.searchId = aSearch.searchId + (aChar.codePointAt(0) * index)
     });
-    console.log (`SearchTroveView/getSearch %s strSearchFields:%s `, strSearchFields.length, strSearchFields)
+    // console.log (`SearchTroveView/getSearch %s strSearchFields:%s `, strFields.length, strFields)
     return aSearch;
 }
 //
 function textSearchString (searchFields) {
     // console.log (`SearchTroveView/textSearchString In:%s`, searchFields)
-    const savedSearchFields = JSON.parse(searchFields);
-    // console.log (`SearchTroveView/textSearchString Fields:%s`, JSON.stringify(savedSearchFields));
-    let textSearch = savedSearchFields.searchString;
-    textSearch += savedSearchFields.searchAllStates ? ' (All States)' : ` (State:${savedSearchFields.searchLimitState})`;
-    if (savedSearchFields.searchAllYears) {
+    // const savedSearchFields = JSON.parse(searchFields);
+    // console.log (`SearchTroveView/textSearchString Fields:%s`, JSON.stringify(searchFields));
+    let textSearch = searchFields.searchString;
+    textSearch += searchFields.searchAllStates ? ' (All States)' : ` (State:${searchFields.searchLimitState})`;
+    if (searchFields.searchAllYears) {
         textSearch += ' (All Years)' 
     } else {
-        textSearch += !savedSearchFields.searchAllDecadeYears ? ` (Year:${savedSearchFields.searchLimitYear})` : ' (Limited to Decade:' + savedSearchFields.searchLimitDecade + '0s)';
+        textSearch += !searchFields.searchAllDecadeYears ? ` (Year:${searchFields.searchLimitYear})` : ' (Limited to Decade:' + searchFields.searchLimitDecade + '0s)';
     }
     // console.log (`SearchTroveView/textSearchString Out:%s`, textSearch) 
     return textSearch;
@@ -411,23 +438,23 @@ function textSearchDate (searchDateTime) {
 }
 //
 function loadSavedSearch(searchFields) {
-    const savedSearchFields = JSON.parse(searchFields);
-    console.log (`SearchTroveView/loadSavedSearch %s`, JSON.stringify(savedSearchFields));
-    searchFor.value = savedSearchFields.searchString;
-    allStates.value = savedSearchFields.searchAllStates;
-    limitState.value = savedSearchFields.searchLimitState;
-    allYears.value = savedSearchFields.searchAllYears;
-    showLimitToDecade.value = !savedSearchFields.searchAllYears;
-    limitDecade.value = savedSearchFields.searchLimitDecade;
-    searchAllDecadeYears.value = savedSearchFields.searchAllDecadeYears;
-    if ((searchAllDecadeYears.value) || (savedSearchFields.searchLimitYear > 0)) {
+    // const savedSearchFields = JSON.parse(searchFields);
+    console.log (`SearchTroveView/loadSavedSearch %s`, JSON.stringify(searchFields));
+    searchFor.value = searchFields.searchString;
+    allStates.value = searchFields.searchAllStates;
+    limitState.value = searchFields.searchLimitState;
+    allYears.value = searchFields.searchAllYears;
+    showLimitToDecade.value = !searchFields.searchAllYears;
+    limitDecade.value = searchFields.searchLimitDecade;
+    searchAllDecadeYears.value = searchFields.searchAllDecadeYears;
+    if ((searchAllDecadeYears.value) || (searchFields.searchLimitYear > 0)) {
         updateLimitYears()
         showLimitToYear.value = true;
         showLimitYear.value = true;
      } else {
         showLimitToYear.value = false;
     }
-    limitYear.value = savedSearchFields.searchLimitYear;
+    limitYear.value = searchFields.searchLimitYear;
     showSearchToggle.value = true;
     // close the details section
     showSavedSearchesToggle.value = false;
@@ -569,7 +596,7 @@ function countSearchResults() {
         ++searchCountDecade.value[decadeIndex].nbrFound;
         //
         // Only Count Years if a Decade Limit has been done
-        if (!(thisSearch.searchAllYears)) {
+        if (!(allYears.value)) {
             var resYear = element.date.slice(0, 4);
             var yearIndex = searchCountYear.value.findIndex(item => item.label == resYear);
             if (yearIndex == -1) { // Sort Insert
@@ -843,10 +870,10 @@ function waitSearch(started) {
 function postSearch() {
     //
     thisSearch = getSearch();
-    thisSearchText.value = ` String:${thisSearch.searchString}`
-    if (!thisSearch.searchAllStates) thisSearchText.value += `, Limited to State:${thisSearch.searchLimitState}`
-    if (!thisSearch.searchAllYears) thisSearchText.value += `, Limited to Decade:${thisSearch.searchLimitDecade}`
-    if (!thisSearch.searchAllDecadeYears) thisSearchText.value += `, Limited to Year:${thisSearch.searchLimitYear}`
+    thisSearchText.value = ` String:${searchFor.value}`
+    if (!allStates.value) thisSearchText.value += `, Limited to State:${limitState.value}`
+    if (!allYears.value) thisSearchText.value += `, Limited to Decade:${limitDecade.value}`
+    if (!searchAllDecadeYears.value) thisSearchText.value += `, Limited to Year:${limitYear.value}`
     currentSearchId = thisSearch.searchId
     //
     disableSearch.value = true;
@@ -884,9 +911,10 @@ function chgVisiblePage(by) {
     if ((by == 1) && (searchNextUrl != 'done') && (((visiblePageNbr.value + 1) * searchPageSize) > searchResults.value.length)) {
         const nextPage = {
             searchId: currentSearchId,
-            searchNextUrl: searchNextUrl
+            strInSearchWords: searchFor.value,
+            strSearchTrove: searchNextUrl
         }
-        console.log(`chgVisiblePage Post this Search:%s`, JSON.stringify(nextPage));
+        // console.log(`chgVisiblePage Post this Search:%s`, JSON.stringify(nextPage));
         const options = {
             method: "post",
             mode: "cors",
@@ -927,7 +955,7 @@ function waitStoredArticles() {
                 }
                 if (item.listId != null) {
                     searchResults.value[idx].dbListId = item.listId;
-                    console.log(`SearchTroveView/waitStoredArticles List:%s `, JSON.stringify(userData.userLists[3]));
+                    // console.log(`SearchTroveView/waitStoredArticles List:%s `, JSON.stringify(userData.userLists[3]));
                     const idxList = userData.userLists.findIndex((list) => list.TroveListId == item.listId);
                     console.log(`SearchTroveView/waitStoredArticles ListId:%s idxList:%s`, item.listId, idxList);
                     if (idxList !== -1) searchResults.value[idx].listName = userData.userLists[idxList].TroveListName;
@@ -986,7 +1014,7 @@ async function updateActionedArticles() {
         actionedArticlesInfo: items,
         reloadArticle: false
     };
-    console.log(`SearchTroveView/updateActionedArticles clicked Save Article actions:%s`, JSON.stringify(actionedArticles));
+    // console.log(`SearchTroveView/updateActionedArticles clicked Save Article actions:%s`, JSON.stringify(actionedArticles));
     //
     const options = {
         method: "post",
@@ -1064,7 +1092,7 @@ onMounted(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, index) in userData.savedSearchesWithStats" :key="index">
+                            <tr v-for="(row, index) in savedSearchesWithStats" :key="index">
                                 <!-- Action -->
                                 <td>
                                     <button class="btn btn-primary" 
