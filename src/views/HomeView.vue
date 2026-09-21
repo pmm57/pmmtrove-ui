@@ -50,18 +50,26 @@ const userData = useUserDataStore()
 // loading: Loading Trove User Data
 // Server will sse MetaData, savedSearches and sseUserLists
 // SSE are handled by App.vue
+// userData.userListsReady true - All user Trove Lists LoadedBut not Article Information (sseUserLists)
+// userReloadListData true - A Full Reload of User Lists has been triggered as Browser restart - User Verified - Session On Server to reload from
+// userData.userListsArticlesReady true - Asyncronous load of Article in User Lists has loaded (sseUserListArticles and All Loaded)
 // userData.loadedIndex increments in App.vue and is displayed below
-// When all lists are loaded in App.vue - sseUserListArticles checks (userData.loadedIndex == userData.troveQueryTotal) userData.userListsReady = true to trigger above Watch
+// When all lists are loaded in App.vue - sseUserListArticles checks (userData.loadedIndex == userData.troveQueryTotal) userData.userListsReady = true to trigger this Watch
 // Watch on userData.userListsReady triggers 
 // - userData.authUserSate = AuthUserState.READY
 // - if Linked Trove User Id's > 1, Change User Button Visible
-// - Refresh Lists Button visible 
+// - Refresh Lists Button NOT visible 
 // - if AuthUserState.REFRESH_LOAD true check if some lists needed to be refreshed
+//
+// When all Lists Articles are loaded using sseUserListArticles in App.vue userData.userListsArticlesReady = true
+// - Refresh Lists Button visible 
+// - if Linked Trove User Id's > 1, Change User Button Visible
 //
 // User Clicks Refresh Lists
 // userData.authUserSate = AuthUserState.REFRESH_LOAD
-//// userReloadLists = false, - replaced by userData.authUserSate = AuthUserState.REFRESH_LOAD
 // userData.userListsReady = false
+// userReloadListData false 
+// userData.userListsArticlesReady false
 // userData.loadedIndex = -1
 // refresh true sent to server
 // goto loading:
@@ -79,11 +87,11 @@ const userData = useUserDataStore()
 // userData.clearStore()
 // this.authUserState = AuthUserState.UNAUTHENTICATED
 // GoTo at Restart
-var userReloadLists = false // Browser restart - User Verified - Session On Server to reload from
+var userReloadListData = false // Browser restart - User Verified - Session On Server to reload from
 const startMsgs = ['Authenticating .', 'Verifying Trove User .']
 var currentStartMsgIndex = 0
 var startMsg = ref('');
-const loadingMsg = ref()
+const loadingMsg = ref('')
 const selectedTroveUserId = ref('')
 var inUserId = ''
 var intervalLoading = null
@@ -98,7 +106,7 @@ if (userData.authUserState == AuthUserState.UNAUTHENTICATED) {
     if (auth.isAuthenticated?.value) {
         if (user?.value != null) {
             userData.authUserState = AuthUserState.UNVERIFIED
-            console.log(`HomeView Start No user, isAuthenticated set Unverified`)
+            console.log(`HomeView Start - Authorised User isAuthenticated but needs to be verified - set AuthUserState Unverified`)
         }
     }
 }
@@ -115,6 +123,9 @@ watch(user, async (u) => {
         userData.authUserState = AuthUserState.UNAUTHENTICATED
         console.log('HomeView WATCH user - No authenticated user yet')
         return
+    }
+    if (userData.authUserState === AuthUserState.UNAUTHENTICATED) {
+        userData.authUserState = AuthUserState.UNVERIFIED
     }
     if (u?.mockAuth) {
         // Have Mock User Logon
@@ -206,8 +217,8 @@ watch(
         // If this was a Browser Reload from Server - Check if the full load never completed
         // Indicated by last list that is not a duplicate having a count > 0 but no artices in its Article Array
         //  force a refresh
-        if (userReloadLists) {
-            userReloadLists = false;
+        if (userReloadListData) {
+            userReloadListData = false;
             for (let i = (userData.userLists.length - 1); i >= 0; --i) {
                 console.log(`HomeView Reload: Duplicate List Id %s, Check Id %s, Count %s, Length %s`,
                     userData.userDuplicateListIds, userData.userLists[i].TroveListId, userData.userLists[i].TroveListItemCount, userData.userListArticles[i].length)
@@ -312,11 +323,11 @@ async function verifyTroveUser(refresh) {
         // navBarStore.disableSearch = false;
         if (!data.newLogon) {
             // Previous cookie existed on server
-            console.log(`HomeView/verifyTroveUser User Session Exists On Server - Trigger Server Reload`)
+            console.log(`HomeView/verifyTroveUser User Session Exists On Server - Triggered Server Reload`)
             // Server will sseMetaData and sseUserLists - setting userData.userListsReady to trigger above Watch
-            // Doing a server reload reload
-            userData.authUserState = AuthUserState.REFRESH_LOAD
-            // userReloadLists = true;
+            // Doing a server reload not a User List Refresh
+            // userData.authUserState = AuthUserState.REFRESH_LOAD
+            userReloadListData = true;
         } else {
             userData.authUserState = AuthUserState.FIRST_LOAD
         }
@@ -328,9 +339,10 @@ async function verifyTroveUser(refresh) {
 //
 function refreshUserLists() {
     console.log('HomeView/refreshUserLists Refresh User Trove Lists')
+    userData.authUserState = AuthUserState.REFRESH_LOAD
     inUserId = userData.troveDetails.troveUserId
     // Doing a refresh not a reload
-    userReloadLists = false;
+    userReloadListData = false;
     userData.userListsReady = false;
     // as this is a reload  reset the users cached data
     userData.clearCacheStore()
@@ -377,21 +389,24 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                     </div>
                     <p>This is a Trove Data Miner for user {{ user?.nickname }}
                         <br>Managing Trove User {{ userData?.troveDetails?.troveUserId }}</p>
-                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove
+                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove with {{ userData.troveQueryArticleTotal }} Articles
                         <br v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches
                         <br v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
                         Duplicate List/s that will not be Loaded.
                     </p>
                     <div v-if="userData.authUserState == AuthUserState.READY">
-                        <p>There are {{ userData.troveQueryArticleTotal }} Articles to Manage<br>
-                            {{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
-                        <div>
-                            <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
-                                Your Trove Lists</button>
-                        </div>
-                        <div v-if="(userData.authUserTroveIds?.length > 1)">
-                            <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
-                                User</button>
+                        <p>There are {{ userData.troveQueryArticleTotal }} Articles to Manage</p>
+                        <p v-if="userData.troveDetails.cacheAllArticles">{{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
+                        <p v-else>No List Articles have beeen Cached</p>
+                        <div v-if="userData.userListsArticlesReady">
+                            <div>
+                                <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
+                                    Your Trove Lists and Articles</button>
+                            </div>
+                            <div v-if="(userData.authUserTroveIds?.length > 1)">
+                                <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
+                                    User</button>
+                            </div>
                         </div>
                     </div>
                     <div v-else>

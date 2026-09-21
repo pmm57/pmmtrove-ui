@@ -255,7 +255,7 @@ async function saveData() {
             This is a node javascript ui and server that is design to manage the data in TROVE lists.<br>
             Organisation of data works best when Trove Lists have names that identify the primary reference person.<br>
             Name Trove Lists - "Surname (nee MaidenName), GivenName/Initial., b.yyyy-d.yyyy <br>
-            <h2>Manage User</h2>
+            <h2>Manage Authorised User</h2>
         </div>
         <div v-if="userData.authUserState == AuthUserState.READY">
             This is a Trove Data Miner for user {{ userData.troveDetails.troveUserId }}<br>
@@ -264,7 +264,7 @@ async function saveData() {
                 Lists in Trove to manage in Trove Data Miner</p>
         </div>
         <div v-if="userData.authUserState != AuthUserState.UNAUTHENTICATED">
-            <h2>User {{ localAuthUserTroveIds[0].authUserName }} Configuration</h2>
+            <h3>Authorised User {{ localAuthUserTroveIds[0].authUserName }} Configuration</h3>
             <br>
             <p v-if="(localAuthUserTroveIds.length == 1) && (localAuthUserTroveIds[0].troveUserId.length == 0)">
                 Link a Trove User Id to this Authorised User to access Trove Data
@@ -274,12 +274,14 @@ async function saveData() {
                 <table class="table table-bordered trove-table">
                 <colgroup>
                     <col style="width: 30%">
+                    <col style="width: 20%">
                     <col style="width: 50%">
                     <col style="width: 20%">
                 </colgroup>
                     <thead class="mbhead">
                         <tr class="mbrow">
                             <th>Trove Id</th>
+                            <th>Cache Articles</th>
                             <th>Trove Api Key</th>
                             <th>Actions</th>
                         </tr>
@@ -307,6 +309,7 @@ async function saveData() {
                                 </template>
                                 <template v-else>
                                     <td>{{ troveId.troveUserId }}</td>
+                                    <td>{{ troveId.cacheAllArticles }}</td>
                                     <td>{{ troveId.troveUserApiKey }}</td>
                                     <td>
                                     </td>
@@ -318,6 +321,7 @@ async function saveData() {
                                         popoverEditErrors[0][index]
                                         }}</span>
                                 </td>
+                                <td>{{ troveId.cacheAllArticles }}</td>
                                 <td :style="{ 'background-color': notifyEditErrors[1][index] }">{{ troveId.troveUserApiKey
                                     }}
                                     <span v-if="popoverEditErrors[1][index].length > 0" class="tooltiptext">{{

@@ -78,7 +78,6 @@ async function loadListArticles(firstLoad) {
         ) {userData.userListArticles[idxList][expected - 1].TroveListArticleMinedStatus = 0
     }
     if (userData.userListArticles?.[idxList][expected - 1]?.TroveListArticleMinedStatus == 0) loadingVisible.value = true
-    userData.userReloadList = navStore.listId;
     const url = "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
     const options = {
         method: "get",

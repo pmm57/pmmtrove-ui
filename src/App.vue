@@ -40,7 +40,7 @@ function handleMessage(e) {
     const sseRetrieve = JSON.parse(e.data);
     var listIdx = 0
     var articleIdx = 0
-    // console.log('App.vue SSE tiggered: ', userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
+    console.log('App.vue SSE tiggered: ', userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
     if (sseRetrieve.sseUser != userData.troveDetails.troveUserId) {
         console.log(`App.vue/handleMessge UNMATCHED USER: %s - %s - %s`, sseRetrieve.event, userData.troveDetails.troveUserId, sseRetrieve.sseUser);
         return;
@@ -63,7 +63,8 @@ function handleMessage(e) {
                 console.log('App/sseUserLists - Viewed Articles Length', userData.viewedArticles.length)
                 // console.log('App/sseUserLists - Viewed Articles ', JSON.stringify(sseRetrieve.cacheViewedArticles))
             }
-            if (sseRetrieve.request == 'Reload') userData.userListsReady = true
+            userData.userListsReady = true
+            if (sseRetrieve.request == 'Reload') userData.userListsArticlesReady = true
             break
         case 'sseRemoveUserList':
             // console.log (JSON.stringify(sseRetrieve)) 
@@ -125,13 +126,10 @@ function handleMessage(e) {
                 // console.log('App/sseUserListsArticles Update List Articles %s', userData.userListArticles.length, userData.userListArticles[sseRetrieve.updatedListIndex].length)
             }
             // Check if loading all lists
-            if (!userData.userListsReady) {
-                // Check if have loaded all
-                // console.log(`App/sseUserListsArticles Check userListsReady loadedIndex:%s, NbrDupLists:%s, troveTotal:%s`, userData.loadedIndex, userData.userDuplicateListIds.length, userData.troveQueryTotal)
-                if ((userData.loadedIndex + 1 + userData.userDuplicateListIds.length) >= userData.troveQueryTotal) {
-                    console.log('App/sseUserListsArticles Set userListsReady true')
-                    userData.userListsReady = true
-                }
+            // console.log(`App/sseUserListsArticles Check userListsReady loadedIndex:%s, NbrDupLists:%s, troveTotal:%s`, userData.loadedIndex, userData.userDuplicateListIds.length, userData.troveQueryTotal)
+            if ((userData.loadedIndex + 1 + userData.userDuplicateListIds.length) >= userData.troveQueryTotal) {
+                console.log('App/sseUserListsArticles Set userListsArticlesReady true')
+                userData.userListsArticlesReady = true
             }
             break
         case 'sseUserListsCounts':
