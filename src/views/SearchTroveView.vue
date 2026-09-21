@@ -1182,17 +1182,19 @@ onMounted(() => {
                         <label class="form-check-label form-nowrap" :for="'radioDecade' + decade">{{ decade }}</label>
                     </div>
                 </div>
-                <div v-show="showLimitToYear">
+                <div v-show="showLimitToYear" class="d-flex align-items-center flex-nowrap">
                     <input type="checkbox" class="form-check-input  form-check-inline" v-model="searchAllDecadeYears" @change="checkLimitYear()"
                         id="checkboxAllDecadeYears">
                     <label class="form-check-label" for="checkboxAllDecadeYears">Include All Decade Years&nbsp;</label>
                     <!--Radio group of Years to Limit Search -->
-                    <div v-show="showLimitYear" v-for="year in limitYears" :key="year" @change="changeSearch()" class="form-check form-check-inline">
-                        <input type="radio" class="form-check-input" name=yearLimit :id="'radioYear' + year"
-                            :value="year" v-model="limitYear">
-                        <label class="form-check-label form-nowrap" :for="'radioYear' + year">{{ year
-                            }}</label>
-                    </div>
+                    <div v-show="showLimitYear"> | Only Year &nbsp;
+                        <div v-for="year in limitYears" :key="year" @change="changeSearch()" class="form-check form-check-inline">
+                            <input type="radio" class="form-check-input" name=yearLimit :id="'radioYear' + year"
+                                :value="year" v-model="limitYear">
+                            <label class="form-check-label form-nowrap" :for="'radioYear' + year">{{ year
+                                }}</label>
+                        </div>
+                    </div> 
                 </div>
                 <div class="form-group">
                     <input @click.prevent="postSearch()" :class="{ disabled: disableSearch }"
