@@ -11,7 +11,7 @@ import { shouldUseAuth0 } from '@/auth/authMode'
 import MockLogin from '@/components/MockLogin.vue'
 
 const router = useRouter();
-const navBarStore = useNavBarStore()
+const navStore = useNavBarStore()
 const errorsStore = useErrorsArrayStore()
 const userData = useUserDataStore()
 //
@@ -210,8 +210,7 @@ watch(
         console.log(`HomeView Watch userListsRead:%s`, ready)
         if (!ready) return // Set to false userData.clearStore()
         clearLoadingInterval()
-        navBarStore.disableTroveLists = false;
-        navBarStore.disableSearch = false;
+        navStore.disableTroveLists = false;
         userData.authUserState = AuthUserState.READY
         console.log(`HomeView Watch: Good TO Go - AuthUserState:%s`, userData.authUserState)
         // If this was a Browser Reload from Server - Check if the full load never completed
@@ -263,8 +262,8 @@ async function getUserTroveIds(authUserName) {
     } else {
         userData.authUserTroveIds = [...data]
         // userData.verifiedAuthUserName = true
-        navBarStore.clearNavBar()
-        navBarStore.disableManage = false
+        navStore.clearNavBar()
+        navStore.disableManage = false
         console.log(`HomeView/getUserTroveIds Returned userData.authUserTroveIds: %s `, JSON.stringify(userData?.authUserTroveIds))
         // How many Trove User ID's are linked to this AuthUser
         const savedAuthUserTroveIds = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
@@ -320,7 +319,7 @@ async function verifyTroveUser(refresh) {
         // console.log(`HomeView/verifyTroveUser Returned data: %s `, JSON.stringify(data))
         console.log(`HomeView/verifyTroveUser Returned Logon:"%s" New:%s`, JSON.stringify(data.troveDetails), data.newLogon)
         userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
-        // navBarStore.disableSearch = false;
+        // navStore.disableSearch = false;
         if (!data.newLogon) {
             // Previous cookie existed on server
             console.log(`HomeView/verifyTroveUser User Session Exists On Server - Triggered Server Reload`)
@@ -387,15 +386,15 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                     <div v-if="loadingMsg.length > 0" class="card text-center">
                         <p><b>{{ loadingMsg }}</b></p>
                     </div>
-                    <p>This is a Trove Data Miner for user {{ user?.nickname }}
+                    <p>This is a Trove Data Miner for Auth User {{ user?.nickname }}
                         <br>Managing Trove User {{ userData?.troveDetails?.troveUserId }}</p>
-                    <p v-if="userData?.userLists?.length > 0">There are {{ userData.troveQueryTotal }} Lists in Trove with {{ userData.troveQueryArticleTotal }} Articles
-                        <br v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches
-                        <br v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
-                        Duplicate List/s that will not be Loaded.
-                    </p>
+                    <div v-if="userData?.userLists?.length > 0">
+                        <p>There are {{ userData.troveQueryTotal }} Lists in Trove with {{ userData.troveQueryArticleTotal }} Articles</p>
+                        <p v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches</p>
+                        <p v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
+                        Duplicate List/s that will not be Loaded.</p>
+                    </div>
                     <div v-if="userData.authUserState == AuthUserState.READY">
-                        <p>There are {{ userData.troveQueryArticleTotal }} Articles to Manage</p>
                         <p v-if="userData.troveDetails.cacheAllArticles">{{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
                         <p v-else>No List Articles have beeen Cached</p>
                         <div v-if="userData.userListsArticlesReady">

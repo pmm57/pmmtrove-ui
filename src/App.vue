@@ -212,6 +212,7 @@ function handleMessage(e) {
         case 'sseSavedSearches':
             // console.log(`App/sseSavedSearches %s`, JSON.stringify(sseRetrieve))
             userData.savedSearches = sseRetrieve.cacheSavedSearches
+            navStore.disableSearch = false;
             break
         case 'sseSavedSearch':
             console.log(`App/sseSavedSearch %s`, JSON.stringify(sseRetrieve))
