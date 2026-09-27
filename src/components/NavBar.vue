@@ -97,7 +97,7 @@ onBeforeUnmount(() => {
 
 const logoutUser = () => {
     console.log('NavBAr/logoutUser')
-    resetUser(false)
+    resetUser()
     console.log('NavBAr/logoutUser after resetUser')
     if (shouldUseAuth0) {
         // Real Auth0 logout

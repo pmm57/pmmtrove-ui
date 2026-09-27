@@ -40,22 +40,22 @@ function handleMessage(e) {
     const sseRetrieve = JSON.parse(e.data);
     var listIdx = 0
     var articleIdx = 0
-    console.log('App.vue SSE tiggered: ', userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
+    console.log(`App.vue SSE tiggered troveUserId:%s, sseUser:%s, event:%s`, userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
     if (sseRetrieve.sseUser != userData.troveDetails.troveUserId) {
-        console.log(`App.vue/handleMessge UNMATCHED USER: %s - %s - %s`, sseRetrieve.event, userData.troveDetails.troveUserId, sseRetrieve.sseUser);
+        console.log(`App.vue/handleMessge UNMATCHED USER`);
         return;
     }
     //
     switch (sseRetrieve.event) {
         case 'sseUserLists':
-            // console.log(sseRetrieve.event);
-            // console.log (JSON.stringify(sseRetrieve))
-            userData.clearCacheStore()
+            console.log (`App/sseUserLists request:%s`, sseRetrieve.request)
+            if ((sseRetrieve.request == 'Initial') || (sseRetrieve.request == 'Reload')) userData.clearTroveUserCacheStore()
             userData.troveQueryTotal = sseRetrieve.cacheTroveQueryTotal
             userData.troveQueryArticleTotal = sseRetrieve.cacheTroveQueryArticleTotal
             userData.userDuplicateListIds = sseRetrieve.cacheUserDuplicateListIds
             userData.nbrUserDupArticles = sseRetrieve.cacheNbrDup
             userData.nbrUserIgnoredArticles = sseRetrieve.cacheNbrIgnored
+            userData.nbrUserKnownArticles = sseRetrieve.cacheNbrKnown
             // In UI have split Articles from the List - so do split
             userData.updateAllLists(sseRetrieve.cacheUserLists)
             if (sseRetrieve.cacheViewedArticles.length > 0) {
@@ -266,6 +266,8 @@ function handleError(e) {
     }
 }
 function setupUserSse() {
+    eventSourceUserCache?.close();
+    eventSourceUserCache = null;
     if (!!window.EventSource) {
         var streamId = 'userSSE' + userData.troveDetails.troveUserId
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;

@@ -76,7 +76,7 @@ const userData = useUserDataStore()
 //
 // User clicks Change User only available if more then one linked Trove User Id
 // Call server to clear Trove User Data
-// userData.clearStore
+// userData.clearTroveUserStore
 // userData.authUserSate = AuthUserState.TROVE_ID_SELECTION_REQUIRED
 // goto :Select Trove User Id
 // 
@@ -84,7 +84,7 @@ const userData = useUserDataStore()
 // Calls NavBar/logoutUser
 // Call ResetUser
 // Send reset to server - clears session and browser 
-// userData.clearStore()
+// userData.clearTroveUserStore()
 // this.authUserState = AuthUserState.UNAUTHENTICATED
 // GoTo at Restart
 var userReloadListData = false // Browser restart - User Verified - Session On Server to reload from
@@ -95,8 +95,6 @@ const loadingMsg = ref('')
 const selectedTroveUserId = ref('')
 var inUserId = ''
 var intervalLoading = null
-// const verifyChgPrompt = 'Verify Changed User'
-
 const auth = useAuth()
 const user = auth.user
 const error = auth.error
@@ -124,6 +122,7 @@ watch(user, async (u) => {
         console.log('HomeView WATCH user - No authenticated user yet')
         return
     }
+    userData.authorisedUser = u.nickname
     if (userData.authUserState === AuthUserState.UNAUTHENTICATED) {
         userData.authUserState = AuthUserState.UNVERIFIED
     }
@@ -133,8 +132,8 @@ watch(user, async (u) => {
         userData.authUserState = AuthUserState.UNVERIFIED
     }
     if (userData.authUserState == AuthUserState.UNVERIFIED) {
-        console.log('HomeView WATCH user AuthUserState.UNVERIFIED - verifyTroveUser for user:', u.nickname)
-        await getUserTroveIds(u.nickname)
+        console.log('HomeView WATCH user AuthUserState.UNVERIFIED - verifyTroveUser for user:', userData.authorisedUser)
+        await getUserTroveIds(userData.authorisedUser)
     }
 }, { immediate: true })
 
@@ -150,18 +149,19 @@ const signup = () =>
 
 watch(selectedTroveUserId, async (troveUserId) => {
     if (!troveUserId) return;
-    console.log(`Watch selectedTroveUserId:"%s" authUserState:%s Current troveUserId:%s`, troveUserId, userData.authUserState, userData.troveDetails.troveUserId)
+    console.log(`Homeview Watch AuthUser:"%s" selectedTroveUserId:"%s" authUserState:%s Current troveUserId:%s`, 
+        userData.authorisedUser, troveUserId, userData.authUserState, userData.troveDetails.troveUserId)
     // If already have a troveUserId and Select same Trover User Id as currently - then treat as a Refresh
     if (userData?.troveDetails?.troveUserId?.length > 0) {
         if (troveUserId == userData.troveDetails.troveUserId) {
             refreshUserLists()
             return
         } else {
-            console.log(`HomeView/changeTroveUser From:"%s" To:"%s"`, userData.troveDetails.troveUserId, troveUserId)
-            userData.authUserState = AuthUserState.UNVERIFIED
+            console.log(`HomeView/changeTroveUser For AuthUser:"%s" From:"%s" To:"%s"`, userData.authorisedUser, userData.troveDetails.troveUserId, troveUserId)
             inUserId = ''
             // Clear Old Trove User Data from Server and in Store
-            userData.clearStore()
+            const oldTroveUserId = userData.troveDetails.troveUserId
+            userData.clearTroveUserStore()
             const options = {
                 method: "post",
                 mode: "cors",
@@ -172,10 +172,12 @@ watch(selectedTroveUserId, async (troveUserId) => {
                 },
                 //make sure to serialize your JSON body
                 body: JSON.stringify({
-                    clearTroveUserId: userData.troveDetails.troveUserId
+                    authUserName: userData.authorisedUser,
+                    clearTroveUserId: oldTroveUserId
                 })
             };
-            await useDoFetch ('clearTroveUser', "/clearTroveUser", options);
+            const response = await useDoFetch ('clearTroveUser', "/clearTroveUser", options);
+            console.log(`HomeView/changeTroveUser After clearTroveUser AuthUser:"%s" :"%s"`, userData.authorisedUser, response)
         }
     }
     inUserId = troveUserId
@@ -208,7 +210,7 @@ watch(
     () => userData.userListsReady,
     (ready) => {
         console.log(`HomeView Watch userListsRead:%s`, ready)
-        if (!ready) return // Set to false userData.clearStore()
+        if (!ready) return // Set to false userData.clearTroveUserStore()
         clearLoadingInterval()
         navStore.disableTroveLists = false;
         userData.authUserState = AuthUserState.READY
@@ -344,7 +346,7 @@ function refreshUserLists() {
     userReloadListData = false;
     userData.userListsReady = false;
     // as this is a reload  reset the users cached data
-    userData.clearCacheStore()
+    userData.clearTroveUserCacheStore()
     verifyTroveUser(true)
 }
 //
@@ -386,26 +388,27 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                     <div v-if="loadingMsg.length > 0" class="card text-center">
                         <p><b>{{ loadingMsg }}</b></p>
                     </div>
-                    <p>This is a Trove Data Miner for Auth User {{ user?.nickname }}
+                    <p>This is a Trove Data Miner for Auth User {{ userData.authorisedUser }}
                         <br>Managing Trove User {{ userData?.troveDetails?.troveUserId }}</p>
                     <div v-if="userData?.userLists?.length > 0">
-                        <p>There are {{ userData.troveQueryTotal }} Lists in Trove with {{ userData.troveQueryArticleTotal }} Articles</p>
-                        <p v-if="userData?.savedSearches?.length > 0">There are {{ userData?.savedSearches?.length ?? 0 }} Saved Searches</p>
-                        <p v-if="userData?.userDuplicateListIds?.length > 0">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
-                        Duplicate List/s that will not be Loaded.</p>
+                        <p>
+                            There are {{ userData.troveQueryTotal }} Lists in Trove with {{ userData.troveQueryArticleTotal }} Articles
+                            <template v-if="userData?.nbrUserKnownArticles > 0"><br aria-hidden="true">There are {{ userData?.nbrUserKnownArticles }} Known Articles</template>
+                            <template v-if="userData?.savedSearches?.length > 0"><br aria-hidden="true">There are {{ userData?.savedSearches?.length }} Saved Searches</template>
+                            <template v-if="userData?.userDuplicateListIds?.length > 0"><br aria-hidden="true">There are {{ userData?.userDuplicateListIds?.length ?? 0 }}
+                            Duplicate List/s that will not be Loaded.</template>
+                        </p>
                     </div>
                     <div v-if="userData.authUserState == AuthUserState.READY">
                         <p v-if="userData.troveDetails.cacheAllArticles">{{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
                         <p v-else>No List Articles have beeen Cached</p>
                         <div v-if="userData.userListsArticlesReady">
-                            <div>
-                                <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
-                                    Your Trove Lists and Articles</button>
-                            </div>
-                            <div v-if="(userData.authUserTroveIds?.length > 1)">
-                                <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
-                                    User</button>
-                            </div>
+                            <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
+                                Your Trove Lists and Articles</button>
+                        </div>
+                        <div v-if="(userData.authUserTroveIds?.length > 1)">
+                            <button @click.prevent="userData.authUserState = AuthUserState.TROVE_ID_SELECTION_REQUIRED" class="btn btn-primary">Change
+                                User</button>
                         </div>
                     </div>
                     <div v-else>
