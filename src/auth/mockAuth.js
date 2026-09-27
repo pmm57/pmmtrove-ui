@@ -8,6 +8,7 @@ export const user = ref(null)
 export const availableAuthUsers = ref([])
 
 export async function loadMockUsers() {
+    console.log(`mockAuth/loadMockUsers Started`)
     const options = {
         method: "get",
         mode: "cors",
@@ -22,7 +23,7 @@ export async function loadMockUsers() {
         console.log(`mockAuth/loadMockUsers Load Failed:%s`, JSON.stringify(data))
         return
     }
-    // console.log(`mockAuth/loadMockUsers Load Success:%s`, JSON.stringify(data))
+    console.log(`mockAuth/loadMockUsers Load Success:%s`, JSON.stringify(data))
     availableAuthUsers.value = [...data]
     isLoading.value = false;
     // console.log(`mockAuth/loadMockUsers availableAuthUsers:%s`, JSON.stringify(availableAuthUsers.value))

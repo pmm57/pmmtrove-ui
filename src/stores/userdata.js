@@ -5,11 +5,12 @@ import { AuthUserState } from '@/components/AuthUserState.js';
 export const useUserDataStore = defineStore('userData', () => {
     const arrayMinedStatus = ref([])
     const arrayMetadataTypes = ref([])
+    const authorisedUser = ref('')
+    const authUserState = ref(AuthUserState.UNAUTHENTICATED)
     const authUserTroveIds = ref([])
     // authUserName
     // troveUserId
     // troveUserApiKey
-    // const verifiedAuthUserName = ref(false) Replaced authUserState
     const troveDetails = reactive({})
     // troveUserId
     // troveUserApiKey
@@ -18,6 +19,7 @@ export const useUserDataStore = defineStore('userData', () => {
     const troveQueryArticleTotal = ref(0)
     const nbrUserIgnoredArticles = ref(0)
     const nbrUserDupArticles = ref(0)
+    const nbrUserKnownArticles = ref(0)
     const userDuplicateListIds = ref([])
     const loadedIndex = ref(-1)
     const userLists = ref([])
@@ -38,7 +40,6 @@ export const useUserDataStore = defineStore('userData', () => {
     // listItem.TroveListLinkedPerson
     // listItem.TroveListArticleMinedStatusCounts
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const userListArticles = ref([])
     // A 2 dimensional array - First index is same as listItem
     //   TroveListArticleViewedIdx 
@@ -56,7 +57,6 @@ export const useUserDataStore = defineStore('userData', () => {
     //   TroveListArticleNote FROM note => 
     //
     // const verifiedTroveUserName = ref(false) // Have a verified user
-    const authUserState = ref(AuthUserState.UNAUTHENTICATED)
     // const userReloadList = ref(0)
     const userListsReady = ref(false)
     const userListsArticlesReady = ref(false)
@@ -127,42 +127,41 @@ export const useUserDataStore = defineStore('userData', () => {
     // searchFields
     // searchArticlesIdStatus [articleId:, articleStatus:]
   //
-    function clearCacheStore() {
-        this.troveQueryTotal = 0
-        this.troveQueryArticleTotal = 0
-        this.loadedIndex = -1
-        this.userDuplicateListIds = []
-        this.userLists = []
-        this.userListArticles = []
-        this.reloadedViewedArticle = 0
-        this.updatingViewedArticleIdx = 0
-        this.viewedArticles = []
-        this.metadataValueTotal = 0
-        this.metadataTypeByMetadata = []
-        this.storyEventsForPersons = []
-        this.savedSearches = []
+    function clearTroveUserCacheStore() {
+        console.log ('userDataData/clearTroveUserCacheStore')
+        troveQueryTotal.value = 0
+        troveQueryArticleTotal.value = 0
+        loadedIndex.value = -1
+        userDuplicateListIds.value = []
+        userLists.value = []
+        userListArticles.value = []
+        userListsReady.value = false
+        userListsArticlesReady.value = false
+        nbrUserIgnoredArticles.value = 0
+        nbrUserDupArticles.value = 0
+        nbrUserKnownArticles.value = 0
+        reloadedViewedArticle.value = 0
+        updatingViewedArticleIdx.value = 0
+        viewedArticles.value = []
+        metadataValueTotal.value = 0
+        metadataTypeByMetadata.value = []
+        storyEventsForPersons.value = []
+        savedSearches.value = []
     }
     //
-    function clearStore() {
-        this.troveDetails = {}
-        this.troveQueryTotal = 0
-        this.troveQueryArticleTotal = 0
-        this.nbrUserIgnoredArticles = 0
-        this.nbrUserDupArticles = 0
-        this.userDuplicateListIds = []
-        this.loadedIndex = -1
-        this.userLists = []
-        this.userListArticles = []
-        this.authUserState = AuthUserState.UNAUTHENTICATED
-        this.userListsReady = false
-        this.userListsArticlesReady = false
-        this.reloadedViewedArticle = 0
-        this.updatingViewedArticleIdx = 0
-        this.viewedArticles = []
-        this.metadataValueTotal = 0
-        this.metadataTypeByMetadata = []
-        this.storyEventsForPersons = []
-        this.savedSearches = []
+    function clearTroveUserStore() {
+        clearTroveUserCacheStore()
+        console.log ('userDataData/clearTroveUserStore')
+        troveDetails.value = {}
+        authUserState.value = AuthUserState.UNVERIFIED
+    }
+    //
+    function clearAuthUserStore() {
+        clearTroveUserStore()
+        console.log ('userDataData/clearAuthUserStore')
+        authorisedUser.value = ''
+        authUserTroveIds.value = []
+        authUserState.value = AuthUserState.UNAUTHENTICATED
     }
     //
     function normalizeUserList(list) {
@@ -320,13 +319,14 @@ export const useUserDataStore = defineStore('userData', () => {
     //
     return { arrayMinedStatus,
         arrayMetadataTypes,
+        authorisedUser,
         authUserTroveIds,
-        // verifiedAuthUserName,
         troveDetails, 
         troveQueryTotal, 
         troveQueryArticleTotal, 
         nbrUserDupArticles,
         nbrUserIgnoredArticles,
+        nbrUserKnownArticles,
         userDuplicateListIds,
         loadedIndex,
         userLists,
@@ -342,9 +342,9 @@ export const useUserDataStore = defineStore('userData', () => {
         metadataTypeByMetadata,
         storyEventsForPersons,        
         savedSearches,
-        // savedSearchesWithStats,
-        clearStore,
-        clearCacheStore,
+        clearAuthUserStore,
+        clearTroveUserStore,
+        clearTroveUserCacheStore,
         updateAllLists,
         updMetadataTypeArticleLinks,
         updateListItemStatusCount,

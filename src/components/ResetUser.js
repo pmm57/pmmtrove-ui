@@ -1,7 +1,7 @@
 import { useDoFetch } from '@/components/DoFetch.js';
 import { useNavBarStore } from '@/stores/navbar'
 import { useUserDataStore } from '@/stores/userdata'
-export async function resetUser(clearTroveUser) {
+export async function resetUser() {
     // Send reset to server
     console.log('ResetUser - Reset Server Session')
     const options = {
@@ -13,15 +13,15 @@ export async function resetUser(clearTroveUser) {
             'Content-Type': 'application/json'
         },
         //make sure to serialize your JSON body
-        body: JSON.stringify({
-            clearTroveUser: clearTroveUser
-        })
+        // body: JSON.stringify({
+        //     clearTroveUser: clearTroveUser
+        // })
     };
     await useDoFetch ('resetUser', "/reset-session", options);
     // Clear all data
     const navStore = useNavBarStore()
     const userData = useUserDataStore()
     console.log('ResetUser - Clear Browser Store')
-    userData.clearStore()
+    userData.clearAuthUserStore()
     navStore.clearNavBar(false)
 }
