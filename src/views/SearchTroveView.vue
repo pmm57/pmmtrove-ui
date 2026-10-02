@@ -4,7 +4,7 @@ import ArticleUrls from '@/components/ArticleUrls.vue'
 import EditItem from '@/components/EditItem.vue'
 import { useDoFetch } from '@/components/DoFetch.js';
 import { unstringifyName } from '@/components/UnstringifyName.js';
-import ModalCheckDeleteSSearch from '@/components/ModalCheckDeleteSearch.vue';
+import ModalCheckDeleteSearch from '@/components/ModalCheckDeleteSearch.vue';
 import { useUserDataStore } from '@/stores/userdata';
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -1399,7 +1399,7 @@ onMounted(() => {
         </div>
     </div>
     <Teleport to="#positionModals">
-        <ModalCheckDeleteSSearch v-if="showCheckDeleteSearch" @close="showCheckDeleteSearch = false"
+        <ModalCheckDeleteSearch v-if="showCheckDeleteSearch" @close="showCheckDeleteSearch = false"
             @confirm="deleteSavedSearch()"
             :deleteSearchId="toDeleteSearchId" />
     </Teleport>

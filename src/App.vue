@@ -150,6 +150,7 @@ function handleMessage(e) {
             break
         case 'sseUserViewedArticle':
             // console.log(`App/sseUserViewedArticle %s`, JSON.stringify(sseRetrieve))
+            userData.nbrUserKnownArticles = sseRetrieve.cacheNbrKnown
             // cacheListIdIdx - index into userData.userLists
             // cacheListArticleIdx - index into userData.userListArticles[cacheListIdIdx]
             // cacheViewedArticleIdx - Index of new or updated Viewed Article in userData.viewedArticles
