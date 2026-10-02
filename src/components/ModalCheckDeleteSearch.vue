@@ -10,6 +10,7 @@ const emit = defineEmits(['confirm', 'close']);
                 <div class="card">
                     <h5 class="position-relative text-center">Confirm Delete</h5>
                     <p class="text-center"><b>Search Id:{{ props.deleteSearchId }}</b></p>
+                    <p class="text-center">Ignored Articles will be added to General Ignore List</p>
                 </div>
                 <div class="card">
                     <button @click.prevent="emit('confirm')"
