@@ -191,10 +191,12 @@ const sortedSearches = computed(() => {
         if (aVal == null) return 1
         if (bVal == null) return -1
         // Handle dates
-        if (['createdAt', 'lastRunDateTime'].includes(sortColumn.value)) {
+        if (['createdAt', 'searchDateTime'].includes(sortColumn.value)) {
             aVal = new Date(aVal)
             bVal = new Date(bVal)
+            // console.log ("SearchTroveView/sortedSearches Dates:", sortColumn.value, aVal, bVal)
         } else {
+            // console.log ("SearchTroveView/sortedSearches Other:", sortColumn.value, aVal, bVal)
             aVal = textSearchString(aVal)
             bVal = textSearchString(bVal)
         }
@@ -855,14 +857,6 @@ function waitSearch(started) {
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/loadSearch/' + searchName;
         // console.log(streamName);
         var source = new EventSource(streamName, { withCredentials: true });
-        // Close if still open when window closed
-        // $(window).bind('beforeunload', function(){
-        //   if (source.readyState != EventSource.CLOSED) {
-        //     // console.log('stop ' + streamName);
-        //     source.close();
-        //   }
-        // });
-        //console.log('start ' + streamName);
         source.addEventListener(searchName, function (e) {
             clearInterval(intervalLoading);
             var returnData = JSON.parse(e.data);
@@ -1139,9 +1133,9 @@ onMounted(() => {
                                     Created
                                     <i :class="getSortIcon('createdAt')" class="ms-1"></i>
                                 </th>
-                                <th @click="sortBy('lastRunDateTime')" style="cursor:pointer" class="sortable">
+                                <th @click="sortBy('searchDateTime')" style="cursor:pointer" class="sortable">
                                     Last Run
-                                    <i :class="getSortIcon('lastRunDateTime')" class="ms-1"></i>
+                                    <i :class="getSortIcon('searchDateTime')" class="ms-1"></i>
                                 </th>
                                 <th @click="sortBy('searchFields')" style="cursor:pointer" class="sortable">
                                     Search Parameters
