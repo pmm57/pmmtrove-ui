@@ -216,7 +216,7 @@ function handleMessage(e) {
             navStore.disableSearch = false;
             break
         case 'sseSavedSearch':
-            console.log(`App/sseSavedSearch %s`, JSON.stringify(sseRetrieve))
+            // console.log(`App/sseSavedSearch %s`, JSON.stringify(sseRetrieve))
             var idxSavedSearch = userData.savedSearches.findIndex(search => search.searchId == sseRetrieve.cacheSavedSearch.searchId);
             if (idxSavedSearch < 0) { // New Saved Search
                 // console.log('App/sseSavedSearch New Saved Search %s`, (sseRetrieve.cacheSavedSearch)
@@ -273,12 +273,12 @@ function setupUserSse() {
         var streamId = 'userSSE' + userData.troveDetails.troveUserId
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
         eventSourceUserCache = new EventSource(streamName, { withCredentials: true });
-        // console.log('Appvue start ' + streamName);
+        console.log('Appvue/setupUserSse start ' + streamName);
         eventSourceUserCache.addEventListener(streamId, (e) => handleMessage(e), false);
         eventSourceUserCache.addEventListener('error', (e) => handleError(e), false);
     } else {
         errorsStore.arrayErrors.push({ msg: `Your browser doesn't support SSE`, param: '' });
-        console.log("Your browser doesn't support SSE")
+        console.log("Appvue/setupUserSse Your browser doesn't support SSE")
     }
 }
 //

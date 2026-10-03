@@ -71,11 +71,11 @@ let updatePerson = reactive({
 //   personStoryIdx: 0,
 //   arrayRelated: []
 // };
-console.log('Passed Person: ', JSON.stringify(navStore.savedPerson));
+console.log('UserPersonListView Passed Person: ', JSON.stringify(navStore.savedPerson));
 const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
 if (idxMetadataPerson < 0){
     errorsStore.arrayErrors.push({ msg: `Internal memory error for Metadata Type Person`, param: '' });
-    console.log("Internal memory error for Metadata Type Person");
+    console.log("UserPersonListView Internal memory error for Metadata Type Person");
 }
 const popoverPersonMetadata = 'Enter as Familyname (nee Maidenname), GivenName Initial As N. b.9999-d.9999';
 popoverForMetadata.value = popoverPersonMetadata;
@@ -110,7 +110,7 @@ function setPersonNameActions(showActions) {
             showActions += ' delete';
         };
     };
-    console.log('setPersonNameAction ' + showActions);
+    console.log('UserPersonListView/setPersonNameAction ' + showActions);
     if (showActions.includes("start")) {
         showDefaultPersonAction.value = true
     } else {
@@ -158,7 +158,7 @@ function setPersonNameActions(showActions) {
 //
 function handleLoadPersonMessage(e, intervalApersonData) {
     var returnedData = JSON.parse(e.data);
-    console.log('Return Loadperson', JSON.stringify(returnedData));
+    console.log('UserPersonListView/handleLoadPersonMessage Return Loadperson', JSON.stringify(returnedData));
     navStore.savedPerson.readName = returnedData.readPerson;
     navStore.savedPerson.readRefInfo = ''
     if (returnedData.hasOwnProperty("referenceInformation")) {
@@ -179,11 +179,11 @@ function handleLoadPersonMessage(e, intervalApersonData) {
     navStore.savedPerson.arrayRelated = returnedData.arrayRelated;
     navStore.savedPerson.personIndex = returnedData.personIndex;
     navStore.savedPerson.action = "LOAD";
-    // console.log('Return Savedperson', JSON.stringify(navStore.savedPerson));
+    // console.log('UserPersonListView/handleLoadPersonMessage Return Savedperson', JSON.stringify(navStore.savedPerson));
     // Updated Linked Article URLS
     if ((navStore.savedPerson.personStoryStatus == 'None') && (userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.length > 0))
         navStore.savedPerson.personStoryStatus = 'Create'
-    // console.log('Return Linked Article URLs ', JSON.stringify(userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray));
+    // console.log('UserPersonListView/handleLoadPersonMessage Return Linked Article URLs ', JSON.stringify(userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray));
     sourceLoadPerson.close();
     clearInterval(intervalApersonData);
     initPersonScreen()
@@ -191,7 +191,7 @@ function handleLoadPersonMessage(e, intervalApersonData) {
 //
 function handleLoadPartnerMessage(e, intervalApersonData, idxPartner) {
     var returnedData = JSON.parse(e.data);
-    // console.log('Return Load Partner', JSON.stringify(returnedData));
+    // console.log('UserPersonListView/handleLoadPartnerMessage Return Load Partner', JSON.stringify(returnedData));
     partners.value[idxPartner].readName = returnedData.readPerson;
     partners.value[idxPartner].personIndex = returnedData.personIndex;
     for (var relation of returnedData.arrayRelated) {
@@ -199,17 +199,17 @@ function handleLoadPartnerMessage(e, intervalApersonData, idxPartner) {
         relation.relatedIdxPerson = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == relation.relatedPerson);
     }
     partners.value[idxPartner].arrayRelated = returnedData.arrayRelated;
-    // console.log('Return Load Partner', JSON.stringify(partners.value[idxPartner]));
+    // console.log('UserPersonListView/handleLoadPartnerMessage Return Load Partner', JSON.stringify(partners.value[idxPartner]));
     sourceLoadPerson.close();
     clearInterval(intervalApersonData);
 }
 //
 function handleError(e) {
     if (e.target.readyState == EventSource.CLOSED) {
-        console.log("Disconnected sourceUserCache");
+        console.log("UserPersonListView/handleError Disconnected sourceUserCache");
     }
     else if (e.target.readyState == EventSource.CONNECTING) {
-        console.log("Connecting sourceUserCache...");
+        console.log("UserPersonListView/handleError Connecting sourceUserCache...");
     }
 }
 //
@@ -244,7 +244,7 @@ function loadPerson(idxValue, idxPartner) {
         // });
     } else {
         errorsStore.arrayErrors.push({ msg: `Your browser doesn't support SSE`, param: '' });
-        console.log("Your browser doesn't support SSE");
+        console.log("UserPersonListView/loadPerson handleError Your browser doesn't support SSE");
     }
 }
 //
@@ -283,7 +283,7 @@ function editPersonClick() {
 // Set editPersonName editable
 function editRefInfoClick() {
     if (buttonRefInfo.value == refInfoUpdate) {
-        console.log('editRefInfoClick Update');
+        console.log('UserPersonListView/editRefInfoClick Update');
         buttonRefInfo.value = refInfoEdit
         navStore.savedPerson.action = 'CHG';
         setPersonNameActions('restore');
@@ -359,7 +359,7 @@ function delPerson(deletePerson, emptyPerson) {
 function linkListToPerson(linkList) {
     linkListText.value = "Link to List " + linkList;
     updatePerson.chgLinkedListId = parseInt(linkList.split("|")[0].trim());
-    console.log('Link List ', updatePerson.chgLinkedListId, linkList);
+    console.log('UserPersonListView/linkListToPerson Link List ', updatePerson.chgLinkedListId, linkList);
     showModalLists.value = false;
     linkedListIdx.value = userData.userLists.findIndex((item) => item.TroveListId === updatePerson.chgLinkedListId);
     setPersonActions("chg");
@@ -369,7 +369,7 @@ function linkListToPerson(linkList) {
 //
 function unlinkListToPerson() {
     updatePerson.chgLinkedListId = 0;
-    console.log('UnLink List ', updatePerson.chgLinkedListId);
+    console.log('UserPersonListView/unlinkListToPerson UnLink List ', updatePerson.chgLinkedListId);
     setPersonActions("chg");
     setPersonNameActions('link relatives restore');
     navStore.savedPerson.action = 'CHG';
@@ -382,7 +382,7 @@ function troveSearch() {
 }
 //
 function addRelatedPerson(relatedPerson) {
-    console.log('Add Relative ', JSON.stringify(relatedPerson));
+    console.log('UserPersonListView/addRelatedPerson Add Relative ', JSON.stringify(relatedPerson));
     showModalRelative.value = false;
     updatePerson.chgRelated.push(relatedPerson);
     // If partners
@@ -398,7 +398,7 @@ function addRelatedPerson(relatedPerson) {
                 }
             }
             if (childWithPartner == -1) {
-                console.log('UserPersonListView addRelatedPerson No Partner');
+                console.log('UserPersonListView/addRelatedPerson No Partner');
                 showModalPartner.value = true;
             }
         }
@@ -409,7 +409,7 @@ function addRelatedPerson(relatedPerson) {
 }
 //
 function addToRelatedPartner(idxOtherParent) {
-    console.log('UserPersonListView addToRelatedPartner ', idxOtherParent, partners.value[idxOtherParent]);
+    console.log('UserPersonListView/addToRelatedPartner ', idxOtherParent, partners.value[idxOtherParent]);
     partners.value[idxOtherParent].action = 'CHG';
     partners.value[idxOtherParent].arrayRelated.push(updatePerson.chgRelated[updatePerson.chgRelated.length - 1]);
     showModalPartner.value = false;
@@ -419,7 +419,7 @@ function delRelativeClick(idxRelation) {
     // Find if in Partners
     let idxPartner = -1;
     let idxPartnerRelation = -1;
-    console.log('UserPersonListView delRelativeClick:', updatePerson.chgRelated[idxRelation].relatedPerson);
+    console.log('UserPersonListView/delRelativeClick:', updatePerson.chgRelated[idxRelation].relatedPerson);
     for (let idxP = 0; idxP < partners.value.length; ++idxP) {
         idxPartnerRelation = partners.value[idxP].arrayRelated.findIndex((related) => related.relatedPerson === updatePerson.chgRelated[idxRelation].relatedPerson);
         if (idxPartnerRelation > -1) {
@@ -427,7 +427,7 @@ function delRelativeClick(idxRelation) {
             break;
         }
     }
-    console.log('UserPersonListView delRelativeClick found:', idxPartner, idxPartnerRelation);
+    console.log('UserPersonListView/delRelativeClick found:', idxPartner, idxPartnerRelation);
     //
     if (updatePerson.chgRelated[idxRelation].relatedAction == 'ADD') {
         // Not updated yet - so remove from array
@@ -455,12 +455,12 @@ function delRelativeClick(idxRelation) {
 //
 function chgPerson(preChgDetails, chgDetails, firstCall) {
     // Could be ADD or CHG
-    console.log('chgPerson Pre-Change ', JSON.stringify(preChgDetails));
-    console.log('chgPerson Changed ', JSON.stringify(chgDetails));
+    console.log('UserPersonListView/chgPerson Pre-Change ', JSON.stringify(preChgDetails));
+    console.log('UserPersonListView/chgPerson Changed ', JSON.stringify(chgDetails));
     //
     if ((firstCall) && (partners.value.length > 0)) {
         // Check Partners Array for any changes
-        console.log('chgPerson  Check Partners', JSON.stringify(partners.value));
+        console.log('UserPersonListView/chgPerson  Check Partners', JSON.stringify(partners.value));
         for (const partner of partners.value) {
             if (partner.action == 'CHG') {
                 let partnerChange = {
@@ -502,7 +502,7 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
             }
             break;
         default:
-            console.log(`chgPerson - Invalid Action for Update - %s`, preChgDetails.action);
+            console.log(`UserPersonListView/chgPerson - Invalid Action for Update - %s`, preChgDetails.action);
             return;
     }
     //
@@ -542,7 +542,7 @@ function personStory() {
     console.log(`UserPersonLstView/personStory %s`, JSON.stringify(storyPerson));
     useSavePersonData('Person Story', storyPerson, {})
     //
-    console.log('Set SSE Person Story:', navStore.savedPerson.personIndex);
+    console.log('UserPersonListView/personStory Set SSE Person Story:', navStore.savedPerson.personIndex);
     var intervalLoadPersonStory = setInterval(function () {
         personStoryText.value += ' .'
     }, 500);
@@ -550,7 +550,7 @@ function personStory() {
         // This stream is to let user knwow progress of reading articles for the Person Story
         var streamId = 'ReadProgress:' + userData.troveDetails.troveUserId
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
-        console.log(`personStory ReadArticles %s`, streamName);
+        console.log(`UserPersonListView/personStory ReadArticles %s`, streamName);
         eventSourceReadProgress = new EventSource(streamName, { withCredentials: true });
         eventSourceReadProgress.addEventListener('error', (e) => handleError(e), false);
         eventSourceReadProgress.addEventListener(streamId, (e) => handleProgressMessage(e), false);
@@ -563,14 +563,14 @@ function personStory() {
         sourceLoadPersonStory.addEventListener(streamId, (e) => handleLoadStoryMessage(e, intervalLoadPersonStory, navStore.savedPerson.personIndex), false);
     } else {
         errorsStore.arrayErrors.push({ msg: `Your browser doesn't support SSE`, param: '' });
-        console.log("Your browser doesn't support SSE");
+        console.log("UserPersonListView/ Your browser doesn't support SSE");
     }
 }
 //
 function handleLoadStoryMessage(e, intervalLoadPersonStory, idxPerson) {
     readArticlesText.value = ''
     var returnedData = JSON.parse(e.data);
-    console.log('Return Load Person Story', JSON.stringify(returnedData), userData.troveDetails.troveUserId, idxPerson);
+    console.log('UserPersonListView/handleLoadStoryMessage Return Load Person Story', JSON.stringify(returnedData), userData.troveDetails.troveUserId, idxPerson);
     personStoryText.value = 'Person Story'
     // Check this message is for this User and Person
     if ((returnedData.checkUserId != userData.troveDetails.troveUserId) || (returnedData.personIdx != idxPerson)) {
@@ -599,9 +599,9 @@ function handleProgressMessage(e) {
 function editPersonStory() {
     navStore.savedPerson.personStoryStatus = "Editing"
     navStore.disablePersonStory = false
-    console.log(`UserPersonListView/personStory - Person - %s Events %s`,
+    console.log(`UserPersonListView/editPersonStory - Person - %s Events %s`,
         JSON.stringify(navStore.savedPerson), JSON.stringify(userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx]));
-    console.log(`storyShowWhat %s`, navStore.savedPerson.storyShowWhat)
+    console.log(`UserPersonListView/editPersonStory storyShowWhat %s`, navStore.savedPerson.storyShowWhat)
     router.push({ name: 'userPersonStory' });
 }
 //
