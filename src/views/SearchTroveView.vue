@@ -59,6 +59,9 @@ whenever(
 const loading = ref(false);
 const loadingText = ref("");
 const showSavedSearchesToggle = ref(false);
+const showAllSearches = ref(false)
+const sortColumn = ref('createdAt')
+const sortDirection = ref('desc')
 const showSearchToggle = ref(true);
 const searchBlock = ref(false);
 const searchFor = ref("");
@@ -161,6 +164,48 @@ const savedSearchesWithStats = computed(() =>
         };
     })
 );
+//
+function sortBy(column) {
+    if (sortColumn.value === column) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+    } else {
+        sortColumn.value = column
+        sortDirection.value = 'asc'
+    }
+}
+//
+function getSortIcon(column) {
+    if (sortColumn.value !== column) {
+        return 'bi bi-chevron-expand'
+    }
+    return sortDirection.value === 'asc'
+        ? 'bi bi-chevron-up'
+        : 'bi bi-chevron-down'
+}
+//
+const sortedSearches = computed(() => {
+    const rows = [...savedSearchesWithStats.value]
+    rows.sort((a, b) => {
+        let aVal = a[sortColumn.value]
+        let bVal = b[sortColumn.value]
+        if (aVal == null) return 1
+        if (bVal == null) return -1
+        // Handle dates
+        if (['createdAt', 'lastRunDateTime'].includes(sortColumn.value)) {
+            aVal = new Date(aVal)
+            bVal = new Date(bVal)
+        } else {
+            aVal = textSearchString(aVal)
+            bVal = textSearchString(bVal)
+        }
+        if (aVal < bVal)
+            return sortDirection.value === 'asc' ? -1 : 1
+        if (aVal > bVal)
+            return sortDirection.value === 'asc' ? 1 : -1
+        return 0
+    })
+    return rows
+})
 //
 const visibleRows = computed(() => {
   const startIndex = (visiblePageNbr.value - 1) * searchPageSize;
@@ -849,9 +894,10 @@ function waitSearch(started) {
             //
             searchNextUrl = returnData.searchNextUrl
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
+                console.log(`SearchTroveView/waitSearch source closed:%s`, streamName);
                 source.close();
             }
-            console.log(`SearchTroveView/waitSearch searchNextUrl:`, searchNextUrl);
+            console.log(`SearchTroveView/waitSearch searchNextUrl:%s`, searchNextUrl);
             countSearchResults();
         }, false);
         source.addEventListener('error', function (e) {
@@ -945,6 +991,7 @@ function waitStoredArticles() {
         var source = new EventSource(streamName, { withCredentials: true });
         source.addEventListener(sseName, function (e) {
             var returnData = JSON.parse(e.data);
+            console.log(`SearchTroveView/waitStoredArticles source closed:%s`, streamName);
             source.close();
             console.log(`SearchTroveView/waitStoredArticles Return NumberReturned:%s`, returnData.storedArticlesResults.length);
             for (const item of returnData.storedArticlesResults) {
@@ -1075,16 +1122,31 @@ onMounted(() => {
         <details :open="showSavedSearchesToggle" @toggle="onSavedSearchesToggle">
             <summary>Show Saved Searches</summary>
             <div class="card-body">
+                <div class="form-check form-check-inline">
+                    <input type="checkbox" class="form-check-input" v-model="showAllSearches"
+                        id="checkboxShowAllSearches">
+                    <label class="form-check-label" for="checkboxShowAllSearches">Show All Searches</label>
+                </div>
+            </div>
+            <div class="card-body">
                 <div v-if="userData.savedSearches.length == 0">No Saved Searches</div>
                 <div v-else class="card-body p-0" style="max-height: 45vh; overflow-y:auto; line-height: 100%">
                     <table id="tableSearches" class="table table-bordered">
                         <thead class="mbhead">
                             <tr class="mbrow">
                                 <th>Action</th>
-                                <th>Done</th>
-                                <th>Created</th>
-                                <th>Last Run</th>
-                                <th>Search Parameters</th>
+                                <th>Done</th><th @click="sortBy('createdAt')" style="cursor:pointer" class="sortable">
+                                    Created
+                                    <i :class="getSortIcon('createdAt')" class="ms-1"></i>
+                                </th>
+                                <th @click="sortBy('lastRunDateTime')" style="cursor:pointer" class="sortable">
+                                    Last Run
+                                    <i :class="getSortIcon('lastRunDateTime')" class="ms-1"></i>
+                                </th>
+                                <th @click="sortBy('searchFields')" style="cursor:pointer" class="sortable">
+                                    Search Parameters
+                                    <i :class="getSortIcon('searchFields')" class="ms-1"></i>
+                                </th>
                                 <th>Search Id</th>
                                 <th>Nbr Articles</th>
                                 <th>Nbr Known</th>
@@ -1092,50 +1154,52 @@ onMounted(() => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(row, index) in savedSearchesWithStats" :key="index">
-                                <!-- Action -->
-                                <td>
-                                    <button class="btn btn-primary" 
-                                    style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
-                                    @click="loadSavedSearch(row.searchFields)">Load</button>
-                                    <button class="btn btn-danger" 
-                                    style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
-                                    @click="checkDeleteSavedSearch(row.searchId)">Delete</button>
-                                </td>
-                                <!-- Done -->
-                                <td>
-                                    <i v-if="row.done"
-                                        class="bi bi-check-circle-fill text-success ms-2" title="All articles reviewed"
-                                    ></i>
-                                </td>
-                                <!-- Created -->
-                                <td>
-                                    {{ textSearchDate(row.createdAt) }}
-                                </td>
-                                <!-- Last Run -->
-                                <td>
-                                    {{ textSearchDate(row.searchDateTime) }}
-                                </td>
-                                <!-- Search Parameters -->
-                                <td>
-                                    {{ textSearchString(row.searchFields) }}
-                                </td>
-                                <!-- Search Id -->
-                                <td>
-                                    {{ row.searchId }}
-                                </td>
-                                <!-- Nbr Articles -->
-                                <td>
-                                    {{ row.searchTotalFound }}
-                                </td>
-                                <!-- Nbr Known -->
-                                <td>
-                                    {{ row.knownCount }}
-                                </td>
-                                <!-- Nbr Ignored -->
-                                <td>
-                                    {{ row.ignoredCount }}
-                                </td>
+                            <tr v-for="(row, index) in sortedSearches" :key="index">
+                                <template v-if="!row.done || (row.done && showAllSearches)">
+                                    <!-- Action -->
+                                    <td>
+                                        <button class="btn btn-primary" 
+                                        style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
+                                        @click="loadSavedSearch(row.searchFields)">Load</button>
+                                        <button class="btn btn-danger" 
+                                        style="padding:0 6px; line-height:1; height:20px; font-size:12px;"
+                                        @click="checkDeleteSavedSearch(row.searchId)">Delete</button>
+                                    </td>
+                                    <!-- Done -->
+                                    <td>
+                                        <i v-if="row.done"
+                                            class="bi bi-check-circle-fill text-success ms-2" title="All articles reviewed"
+                                        ></i>
+                                    </td>
+                                    <!-- Created -->
+                                    <td>
+                                        {{ textSearchDate(row.createdAt) }}
+                                    </td>
+                                    <!-- Last Run -->
+                                    <td>
+                                        {{ textSearchDate(row.searchDateTime) }}
+                                    </td>
+                                    <!-- Search Parameters -->
+                                    <td>
+                                        {{ textSearchString(row.searchFields) }}
+                                    </td>
+                                    <!-- Search Id -->
+                                    <td>
+                                        {{ row.searchId }}
+                                    </td>
+                                    <!-- Nbr Articles -->
+                                    <td>
+                                        {{ row.searchTotalFound }}
+                                    </td>
+                                    <!-- Nbr Known -->
+                                    <td>
+                                        {{ row.knownCount }}
+                                    </td>
+                                    <!-- Nbr Ignored -->
+                                    <td>
+                                        {{ row.ignoredCount }}
+                                    </td>
+                                </template>
                             </tr>
                         </tbody>
                     </table>
@@ -1427,5 +1491,14 @@ onMounted(() => {
     position: sticky;
     top: 0;
     z-index: 1001;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: #f8f9fa;
 }
 </style>

@@ -177,7 +177,7 @@ watch(selectedTroveUserId, async (troveUserId) => {
                 })
             };
             const response = await useDoFetch ('clearTroveUser', "/clearTroveUser", options);
-            console.log(`HomeView/changeTroveUser After clearTroveUser AuthUser:"%s" :"%s"`, userData.authorisedUser, response)
+            console.log(`HomeView/changeTroveUser After clearTroveUser AuthUser:"%s" :"%s"`, userData.authorisedUser, JSON.stringify(response))
         }
     }
     inUserId = troveUserId
