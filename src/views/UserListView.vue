@@ -101,8 +101,16 @@ function getArticleTitle(article) {
         // console.log('Article Title - SUmmary Text ', viewedArticle.ViewedArticleSummaryText)
         return viewedArticle.ViewedArticleSummaryText
     }
+    if ((viewedArticle.hasOwnProperty("ViewedArticleNote")) && (viewedArticle.ViewedArticleNote.length > 0)) {
+        // console.log('Article Title - Note ', viewedArticle.ViewedArticleNote)
+        return viewedArticle.ViewedArticleNote
+    }
+    if ((article.hasOwnProperty("TroveListArticleNote")) && (article.TroveListArticleNote.length > 0)) {
+        // console.log('Article Title - Article Note:', article.TroveListArticleNote)
+        return article.TroveListArticleNote
+    }
     //
-    // console.log('Artilcle Title - Event ', JSON.stringify(viewedArticle.ViewedArticleMetadata))
+    // console.log('Article Title - Event ', JSON.stringify(viewedArticle.ViewedArticleMetadata))
     const idxEvent = viewedArticle.ViewedArticleMetadata.findIndex((item) => item[0] == "Event");
     if (idxEvent < 0) return article.TroveListArticleHeading;
     return viewedArticle.ViewedArticleMetadata[idxEvent][1];
@@ -165,7 +173,7 @@ loadListArticles('true')
                     </a>
                 </span>
                 <span v-if="loadingVisible">
-                    <b>Loading this List's {{ userData.userLists[idxList].TroveListItemCount }} Articles</b>
+                    <b>Loading this List's Articles</b>
                 </span>
             </div>
             <div class=" row">
@@ -182,17 +190,11 @@ loadListArticles('true')
                             Trove</a>
                     </div>
                 </div>
-                <!-- <div class="col">
-                    <div class="card">
-                        <a @click.prevent="ignoreArticles()" class="btn btn-primary" role="button">Ignore All
-                            Articles</a>
-                    </div>
-                </div> -->
             </div>
         </div>
     </div>
     <br>
-    <div class="card">
+    <div v-if="userData.userListArticles[idxList].length > 0" class="card">
         <div class="card-body w-100">
             <table>
                 <thead>

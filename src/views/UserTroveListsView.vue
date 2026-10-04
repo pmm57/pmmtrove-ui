@@ -95,7 +95,7 @@ function openList(listLink) {
               <td>{{ list.TroveListDescription }}</td>
               <td style="text-align:right">{{ list.TroveListId }}({{ list.TroveListItemCount }})</td>
               <td style="text-align:center" class="text-nowrap">
-                <template v-for="(count, index) in list.TroveListArticleMinedStatusCounts">
+                <template v-for='(count, index) in list.TroveListArticleMinedStatusCounts' :key="index">
                   <span :class="statusBadge(index, count)">{{ count > 0 ? count : '-' }}</span>
                 </template>
               </td>
