@@ -173,7 +173,10 @@ loadListArticles('true')
                     </a>
                 </span>
                 <span v-if="loadingVisible">
-                    <b>Loading this List's Articles</b>
+                    <b>Loading this List's Articles .. </b>
+                    <div class="spinner-border text-dark spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </span>
             </div>
             <div class=" row">
@@ -222,7 +225,7 @@ loadListArticles('true')
                         <td><span :class="statusColour(article.TroveListArticleMinedStatus)">{{
                             article.TroveListArticleMinedStatustext }}</span>
                         </td>
-                        <td>{{ getArticleTitle(article) }}</td>
+                        <td v-html="getArticleTitle(article)"></td>
                         <td>{{ article.TroveListArticleSource }}</td>
                         <td><a :href="article.TroveListArticleViewUrl" target="_blank">Trove Link</a></td>
                     </tr>
