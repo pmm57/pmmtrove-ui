@@ -63,7 +63,7 @@ const snipedText = ref([])
 const showToolbar = ref(false)
 var manageAddIgnoreButtonText = 'Ignore Article'
 var manageRemoveIgnoreButtonText = 'Remove Article from Ignore List'
-const manageIgnoreDisable = ref(false)
+const processingArticleActionDisable = ref(false)
 const snipCancelDisabled = ref(true)
 const snipDropDisabled = ref(true)
 const snipUpdateDisabled = ref(true)
@@ -774,7 +774,7 @@ function deleteSelectedText() {
 }
 //
 function openTroveArticle() {
-    if (manageIgnoreDisable.value) return
+    if (processingArticleActionDisable.value) return
     const url = userData.viewedArticles[idxViewed.value].ViewedArticleViewUrl
     window.open(url, "_blank")
 }
@@ -782,6 +782,7 @@ function openTroveArticle() {
 // load of An Article - they will be SSE'd to App.vue
 //
 function loadArticle(firstLoad) {
+    if (!firstLoad) processingArticleActionDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
     const url = "/dispArticle/newspaper/" + navStore.articleId + "/"
         + navStore.listId + "/" + !firstLoad;
     const options = {
@@ -797,7 +798,7 @@ function loadArticle(firstLoad) {
 }
 //  Post Article Id to Ignore
 function manageIgnoredArticle(action = 'removeIgnore') {
-    manageIgnoreDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
+    processingArticleActionDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
     var param = {
         actionedArticlesInfo: [{
             id: navStore.articleId,
@@ -883,7 +884,7 @@ watch(editMetadata, (newEditMetadata) => {
 watch(() => userData.viewedArticles[idxViewed.value], () => {
     console.log('Change ViewedArticleSelectedText ', idxViewed.value)
     disableUpdate.value = false
-    manageIgnoreDisable.value = false
+    processingArticleActionDisable.value = false
     if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
 })
 //  reloaded
@@ -1154,7 +1155,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         <div class="col">
                                             <div class="card">
                                                 <button class="btn btn-primary" ref="troveArticleRef"
-                                                    :disabled="manageIgnoreDisable" @click="openTroveArticle">
+                                                    :disabled="processingArticleActionDisable" @click="openTroveArticle">
                                                     View Trove Article
                                                 </button>
                                             </div>
@@ -1162,7 +1163,7 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                         <div class="col">
                                             <div class="card">
                                                 <button @click.prevent="loadArticle(false)"
-                                                    :disabled="manageIgnoreDisable" class="btn btn-primary">Refresh
+                                                    :disabled="processingArticleActionDisable" class="btn btn-primary">Refresh
                                                     Trove Article</button>
                                             </div>
                                         </div>
@@ -1170,19 +1171,19 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                     <div class="row">
                                         <div class="col">
                                             <div class="card">
-                                                <button v-if="manageIgnoreDisable" :disabled="manageIgnoreDisable"
+                                                <button v-if="processingArticleActionDisable" :disabled="processingArticleActionDisable"
                                                     class="btn btn-primary" data-bs-toggle="tooltip"
                                                     data-bs-placement="top"
                                                     title="Wait for Screen Refresh">Processing</button>
                                                 <button
                                                     v-else-if="userData.viewedArticles[idxViewed].ViewedArticleIgnored"
-                                                    :disabled="manageIgnoreDisable"
+                                                    :disabled="processingArticleActionDisable"
                                                     @click.prevent="manageIgnoredArticle()" class="btn btn-primary"
                                                     data-bs-toggle="tooltip" data-bs-placement="top"
                                                     title="View Article in Trove and remove from List OR Remove from Ignored">{{
                                                         manageRemoveIgnoreButtonText }}</button>
                                                 <button v-else @click.prevent="manageIgnoredArticle('addIgnore')"
-                                                    :disabled="manageIgnoreDisable" class="btn btn-primary"
+                                                    :disabled="processingArticleActionDisable" class="btn btn-primary"
                                                     data-bs-toggle="tooltip" data-bs-placement="top"
                                                     title="Add to Ignore List and View Article in Trove to remove from List">
                                                     {{ manageAddIgnoreButtonText }}</button>
@@ -1278,10 +1279,9 @@ if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 
                                 Trove Note Data
                             </div>
                             <div class="card">
-                                <div class="card-body pre-scrollable" style="max-height: 35vh" id="troveNote">{{
-                                    userData.viewedArticles[idxViewed].ViewedArticleNote ?
-                                        userData.viewedArticles[idxViewed].ViewedArticleNote : 'No Trove Note for Article'
-                                }}</div>
+                                <div class="card-body pre-scrollable" style="max-height: 35vh" id="troveNote"
+                                    v-html="userData.viewedArticles[idxViewed].ViewedArticleNote || 'No Trove Note for Article'">
+                                </div>
                             </div>
                         </div>
                         <div class="col-sm-6">
