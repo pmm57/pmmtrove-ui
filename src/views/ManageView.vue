@@ -26,6 +26,7 @@ var savedTroveId = {}
 // var changeDefaultApiKey = ref(false)
 // var disableChangeDefaultApiKey = ref(false)
 var disableUpdate = ref(true)
+var actioningUpdate = ref(false)
 var localAuthUserTroveIds = ref([])
 var chgAuthUserTroveIds = []
 //    [{
@@ -110,8 +111,8 @@ async function validateInput(action, index) {
             savedTroveId = '';
             const newAuthUser = {
                 authUserName: localAuthUserTroveIds.value[0].authUserName,
-                // troveApiKey: localAuthUserTroveIds.value[0].troveApiKey,
                 troveUserId: '',
+                cacheAllArticles: false,
                 troveUserApiKey: ''
             }
             localAuthUserTroveIds.value.push(newAuthUser);
@@ -125,7 +126,6 @@ async function validateInput(action, index) {
         default:
             break;
     }
-    // if (!disableUpdate.value) disableChangeDefaultApiKey.value = false
 }
 //
 //  Check if troveUserId is valid and not linked to another authUserName
@@ -183,6 +183,12 @@ function checkUpdate() {
             console.log(`ManageView/checkUpdate Change troveUserApiKey tmp-%s chk-%s`, JSON.stringify(tmpAuthUserTroveIds), JSON.stringify(chkAuthUserTroveIds))
             continue
         }
+        if (userData.authUserTroveIds[i].cacheAllArticles != chkAuthUserTroveIds[idxTroveId].cacheAllArticles) { // Update cacheAllArticles flag
+            tmpAuthUserTroveIds.push({ index: i, ...chkAuthUserTroveIds[idxTroveId], action: 'CHG' })
+            chkAuthUserTroveIds.splice(idxTroveId, 1)
+            console.log(`ManageView/checkUpdate Change cacheAllArticles tmp-%s chk-%s`, JSON.stringify(tmpAuthUserTroveIds), JSON.stringify(chkAuthUserTroveIds))
+            continue
+        }
         // Unchanged - remove from Check Array - what's left are adds
         chkAuthUserTroveIds.splice(idxTroveId, 1)
     }
@@ -193,10 +199,11 @@ function checkUpdate() {
     return true;
 }
 //
-//  Post updated AuthUser TroveIds
+//  Post updated AuthUser TroveIds cacheAllArticles
 async function saveData() {
     console.log("ManageView/saveData updateData ", JSON.stringify(chgAuthUserTroveIds))
-
+    disableUpdate.value = true
+    actioningUpdate.value = true
     // Only Send ones that have changed
     var updatedData = {
         'chgAuthUserTroveIds': chgAuthUserTroveIds
@@ -229,7 +236,7 @@ async function saveData() {
                     idxErrorCol = 0
                     break
                 case 'authUserApiKey':
-                    idxErrorCol = 1
+                    idxErrorCol = 2
                     break
             }
             if (idxErrorCol < 9) {
@@ -241,8 +248,8 @@ async function saveData() {
     localAuthUserTroveIds.value = JSON.parse(JSON.stringify(authUserInf.authUsers))
     userData.authUserTroveIds = JSON.parse(JSON.stringify(localAuthUserTroveIds.value))
     //
-    disableUpdate.value = true
-    // disableChangeDefaultApiKey.value = false
+    
+    actioningUpdate.value = false
     chgAuthUserTroveIds = []
 }
 </script>
@@ -296,6 +303,11 @@ async function saveData() {
                                             <span v-if="popoverForCheckTroveIdError.length > 0" class="tooltiptext">{{ popoverForCheckTroveIdError }}</span>
                                         </div>
                                     </td>
+                                    <td> <!-- Cache All Articles -->
+                                        <div>
+                                            <input class="form-check-input" type="checkbox" v-model="troveId.cacheAllArticles" placeholder="Flip Cache All Articles">
+                                        </div>
+                                    </td>
                                     <td :style="{ 'background-color': notifyCheckApiKeyError }"> <!-- troveUserApiKey -->
                                         <input v-model="troveId.troveUserApiKey" placeholder="Enter a Trove API Key" />
                                             <span v-if="popoverForCheckApiKeyError.length > 0" class="tooltiptext">{{ popoverForCheckApiKeyError }}</span>
@@ -342,8 +354,9 @@ async function saveData() {
                     </tbody>
                 </table>
                 <div class="card">
-                    <button :disabled="disableUpdate" @click.prevent="saveData()" class="btn btn-primary">Update
-                        Trove Id Data</button>
+                    <button :disabled="disableUpdate" @click.prevent="saveData()" class="btn btn-primary">Update Trove Id Data
+                        <span v-if="actioningUpdate" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                    </button>
                 </div>
             </div>
         </div>
