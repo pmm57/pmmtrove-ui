@@ -488,12 +488,14 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
                     if ((chgDetails.chgRelated[i].relatedAction == "DEL")) chgDetails.chgNumberRelated -= 1;
                 }
             }
-            if ((clnRelated.length == 0) && (chgDetails.chgName == preChgDetails.readName) && (chgDetails.chgLinkedListId == preChgDetails.linkListId)) {
+            if ((clnRelated.length == 0) && (chgDetails.chgName == preChgDetails.readName) && (chgDetails.chgLinkedListId == preChgDetails.linkedListId)) {
                 // Nothing Changed
                 return;
             }
             chgDetails.chgRelated = clnRelated;
-            if (chgDetails.chgLinkedListId != preChgDetails.linkListId) {
+            console.log('UserPersonListView/chgPerson Pre-Change ', JSON.stringify(preChgDetails));
+            console.log('UserPersonListView/chgPerson Changed Details', JSON.stringify(chgDetails));
+            if (chgDetails.chgLinkedListId != preChgDetails.linkedListId) {
                 if (chgDetails.chgLinkedListId == 0) {
                     userData.userLists[linkedListIdx.value].TroveListLinkedPerson = ''
                 } else {

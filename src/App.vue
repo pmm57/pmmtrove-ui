@@ -89,8 +89,8 @@ function handleMessage(e) {
             // Only One List
             userData.loadedIndex = sseRetrieve.updatedListIndex
             const cacheListArticles = sseRetrieve.cacheUserLists.TroveListArticles
-            // Update List Details
             delete sseRetrieve.cacheUserLists.TroveListArticles
+            // Update List Details
             // console.log('App/sseUserListsArticles Update List Index %s Load State %s %s',
             //   sseRetrieve.updatedListIndex, userData.userLists[sseRetrieve.updatedListIndex].TroveListLoadState, sseRetrieve.cacheUserLists.TroveListLoadState)
             userData.userLists.splice(sseRetrieve.updatedListIndex, 1, sseRetrieve.cacheUserLists) // Triggers Reactivity
@@ -99,28 +99,32 @@ function handleMessage(e) {
             // cacheListArticles is the sor so if it is shorter truncate userListArticles to the same length
             if (userData.userListArticles[sseRetrieve.updatedListIndex].length > 0) {
                 var targetList = userData.userListArticles[sseRetrieve.updatedListIndex]
-                if (cacheListArticles.length < targetList.length) {
-                    // Trim userListArticles
-                    targetList.splice(cacheListArticles.length - 1)
-                }
-                // console.log('App/sseUserListsArticles Update List Count %s Articles %s Cache %s', userData.userLists[sseRetrieve.updatedListIndex].TroveListItemCount,
-                //   userData.userListArticles[sseRetrieve.updatedListIndex].length, cacheListArticles.length)
-                var idxChange = -1;
-                for (let i = 0; i < cacheListArticles.length; i++) {
-                    const obj1 = cacheListArticles[i] || {};
-                    const obj2 = targetList[i] || {};
-                    const diffProps = getObjDiff(obj1, obj2);
-                    // console.log('App/sseUserListsArticles %s Cache %s Old %s', i, JSON.stringify(obj1), JSON.stringify(obj2))
-                    if (diffProps.length > 0) { // Article has changed
-                        console.log('App/sseUserListsArticles %s Diff %s - %s', i, diffProps.length, diffProps)
-                        idxChange = i;
-                        break;
+                if (cacheListArticles.length == 0) {
+                    targetList = []
+                } else {
+                    if (cacheListArticles.length < targetList.length) {
+                        // Trim userListArticles
+                        targetList.splice(cacheListArticles.length - 1)
+                    }
+                    // console.log('App/sseUserListsArticles Update List Count %s Articles %s Cache %s', userData.userLists[sseRetrieve.updatedListIndex].TroveListItemCount,
+                    //   userData.userListArticles[sseRetrieve.updatedListIndex].length, cacheListArticles.length)
+                    var idxChange = -1;
+                    for (let i = 0; i < cacheListArticles.length; i++) {
+                        const obj1 = cacheListArticles[i] || {};
+                        const obj2 = targetList[i] || {};
+                        const diffProps = getObjDiff(obj1, obj2);
+                        // console.log('App/sseUserListsArticles %s Cache %s Old %s', i, JSON.stringify(obj1), JSON.stringify(obj2))
+                        if (diffProps.length > 0) { // Article has changed
+                            console.log('App/sseUserListsArticles %s Diff %s - %s', i, diffProps.length, diffProps)
+                            idxChange = i;
+                            break;
+                        };
                     };
-                };
-                // Slice the tail from cacheListArticles starting at idxChange
-                const newTail = cacheListArticles.slice(idxChange)
-                // Replace the tail in targetList starting at idxChange
-                targetList.splice(idxChange, targetList.length - idxChange, ...newTail)
+                    // Slice the tail from cacheListArticles starting at idxChange
+                    const newTail = cacheListArticles.slice(idxChange)
+                    // Replace the tail in targetList starting at idxChange
+                    targetList.splice(idxChange, targetList.length - idxChange, ...newTail)
+                }
             } else {
                 userData.userListArticles[sseRetrieve.updatedListIndex] = cacheListArticles;
                 // console.log('App/sseUserListsArticles Update List Articles %s', userData.userListArticles.length, userData.userListArticles[sseRetrieve.updatedListIndex].length)

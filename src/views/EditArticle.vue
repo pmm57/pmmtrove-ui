@@ -891,8 +891,23 @@ watch(() => userData.viewedArticles[idxViewed.value], () => {
 watch(() => userData.reloadedViewedArticle, () => {
     console.log('EditAticle/Watch reloadedViewedArticle')
     disableUpdate.value = false
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleNote.length > 0) useViewedArticleNote ()
 })
-
+//
+function useViewedArticleNote () {
+    // Transfer ViwedArticleNote to if ViewedArticleSummaryText is blank
+    // console.log (`EditArticle Load ViewedArticleNote:%s ViewedArticleSummaryText:%s`, 
+    //     userData.viewedArticles[idxViewed.value].ViewedArticleNote.length,
+    //     userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText.length)
+    if ((userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText.length == 0)
+    || (userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText.startsWith("[Auto"))) {
+        userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText = userData.viewedArticles[idxViewed.value].ViewedArticleNote
+        showTroveText.value = false;
+        showSelectedText.value = false;
+        showSummaryText.value = true;
+        changeMinedStatus('Query')
+    }
+}
 //
 function setupEditedFields(index) {
     popoverForMetadata.value = ''
@@ -1122,10 +1137,11 @@ loadArticle(true)
 //
 if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
     showTroveText.value = false;
+    showSelectedText.value = false;
     showSummaryText.value = true;
     deleteSelectedTextDisabled.value = false;
 }
-//
+if (userData.viewedArticles[idxViewed.value].ViewedArticleNote.length > 0) useViewedArticleNote ()
 </script>
 <template>
     <div class="container-fluid">
