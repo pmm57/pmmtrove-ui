@@ -83,8 +83,6 @@ function openList(listLink) {
           <tbody>
             <tr v-for="list in userData.userLists" :key="list.TroveListId" class="align-top">
               <td class="text-nowrap">
-                <!-- <router-link v-if="haveListLink(list)" :to="'/userListPage/' + list.TroveListId"
-                  class="active link-primary">{{ list.TroveListName }}</router-link> -->
                 <a v-if="haveListLink(list)" href="#" @click.prevent="openList(list.TroveListId)">
                   {{ list.TroveListName }}
                 </a>

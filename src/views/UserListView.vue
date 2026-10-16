@@ -24,9 +24,13 @@ watch(
     ],
     ([expected, lastLoadedStatus]) => {
         console.log (`UserListView/watch expected:${expected} lastLoadedStatus:${lastLoadedStatus}`)
-        if (expected > 0 && lastLoadedStatus > 0) {
-            loadingVisible.value = false
-            console.log (`UserListView/watch visible:${loadingVisible.value}`)
+        if (expected == 0 && lastLoadedStatus == 0) {
+            // Just Started to load
+        }else {
+            if (expected > 0 && lastLoadedStatus > 0) { // Finished Load
+                loadingVisible.value = false
+                console.log (`UserListView/watch visible:${loadingVisible.value}`)
+            }
         }
     },
     { immediate: true }
