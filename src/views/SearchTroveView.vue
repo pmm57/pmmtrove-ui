@@ -86,6 +86,7 @@ const showReturnedStates = ref(false);
 const showReturnedDecades = ref(false);
 const showReturnedYears = ref(false);
 const disableSearch = ref(true);
+const loadingNextPage = ref(false);
 const disablePrev = computed(() => {
   return (
     visiblePageNbr.value < 2
@@ -93,6 +94,7 @@ const disablePrev = computed(() => {
 });
 const disableNext = computed(() => {
   return (
+    loadingNextPage.value ||
     visiblePageNbr.value === searchMaxPageNbr.value ||
     visiblePageNbr.value === searchReadPageNbr.value
   )
@@ -852,17 +854,21 @@ function waitSearch(started) {
     let intervalLoading = setInterval(function () {
         loadingText.value += '.';
     }, 500);
+    const mySearchId = currentSearchId
     if (!!window.EventSource) {
         var searchName = userData.troveDetails.troveUserId + ':searchNbr' + thisSearch.searchId;
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/loadSearch/' + searchName;
         // console.log(streamName);
         var source = new EventSource(streamName, { withCredentials: true });
         source.addEventListener(searchName, function (e) {
+            if (mySearchId !== currentSearchId) { source.close(); return; }
             clearInterval(intervalLoading);
+            loadingNextPage.value = false;
             var returnData = JSON.parse(e.data);
             console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, started, returnData.searchId, returnData.searchResults.length);
             thisSearchId.value = returnData.searchId;
             const results = returnData.searchResults.map(item => ({...item, hidden: false}));
+            searchNextUrl = returnData.searchNextUrl
             if (started){
                 searchAllCounts.nbrFound = returnData.searchTotalFound;
                 searchMaxPageNbr.value = Math.ceil(searchAllCounts.nbrFound / searchPageSize);
@@ -886,7 +892,6 @@ function waitSearch(started) {
                 ++searchReadPageNbr.value
             }
             //
-            searchNextUrl = returnData.searchNextUrl
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
                 console.log(`SearchTroveView/waitSearch source closed:%s`, streamName);
                 source.close();
@@ -895,7 +900,10 @@ function waitSearch(started) {
             countSearchResults();
         }, false);
         source.addEventListener('error', function (e) {
+            if (mySearchId !== currentSearchId) { source.close(); return; }
             if (e.target.readyState == EventSource.CLOSED) {
+                clearInterval(intervalLoading);
+                loadingNextPage.value = false;
                 console.log("Disconnected");
             }
             else if (e.target.readyState == EventSource.CONNECTING) {
@@ -909,6 +917,8 @@ function waitSearch(started) {
 //
 function postSearch() {
     //
+    searchNextUrl = 'done';
+    loadingNextPage.value = false;
     thisSearch = getSearch();
     thisSearchText.value = ` String:${searchFor.value}`
     if (!allStates.value) thisSearchText.value += `, Limited to State:${limitState.value}`
@@ -941,6 +951,7 @@ function postSearch() {
 }
 //
 function chgVisiblePage(by) {
+    if (by === 1 && loadingNextPage.value) return;
     visiblePageNbr.value = Math.min(
         searchMaxPageNbr.value,
         Math.max(1, visiblePageNbr.value + by)
@@ -949,6 +960,7 @@ function chgVisiblePage(by) {
     console.log (`SearchTroveView/chgVisiblePage by:%s now:%s`, by, visiblePageNbr.value)
         // Check if Next Page + 1 needs to be read
     if ((by == 1) && (searchNextUrl != 'done') && (((visiblePageNbr.value + 1) * searchPageSize) > searchResults.value.length)) {
+        loadingNextPage.value = true;
         const nextPage = {
             searchId: currentSearchId,
             strInSearchWords: searchFor.value,
