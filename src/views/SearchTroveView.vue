@@ -60,6 +60,8 @@ const loading = ref(false);
 const loadingText = ref("");
 const showSavedSearchesToggle = ref(false);
 const showAllSearches = ref(false)
+// Tracks the decadeSearch currently being combined (drives the button spinner)
+const combiningDecade = ref('');
 const sortColumn = ref('createdAt')
 const sortDirection = ref('desc')
 const showSearchToggle = ref(true);
@@ -86,6 +88,7 @@ const showReturnedStates = ref(false);
 const showReturnedDecades = ref(false);
 const showReturnedYears = ref(false);
 const disableSearch = ref(true);
+const loadingNextPage = ref(false);
 const disablePrev = computed(() => {
   return (
     visiblePageNbr.value < 2
@@ -93,6 +96,7 @@ const disablePrev = computed(() => {
 });
 const disableNext = computed(() => {
   return (
+    loadingNextPage.value ||
     visiblePageNbr.value === searchMaxPageNbr.value ||
     visiblePageNbr.value === searchReadPageNbr.value
   )
@@ -138,6 +142,102 @@ const searchCountYear = ref([])
 let searchNextUrl = 'done'
 var toDeleteSearchId = 0;
 const showCheckDeleteSearch = ref(false);
+//
+// Process saved searches for done = true and searchAllYears = false,
+//  collate Search Fields, searchLimitYears
+//  if there are 10 (covering a decade) then return the decade
+const completedDecades = computed(() => {
+    const decades = {};
+    // Collate saved search limit years by decade (first three digits)
+    for (const row of savedSearchesWithStats.value) {
+        if (!row.done) continue;
+        if (row.searchFields?.searchAllYears) continue;
+        // console.log(`SearchTroveView/completedDecades: Processing row: %s`, JSON.stringify(row.searchFields));
+        const searchString = JSON.stringify(row.searchFields, ['searchString', 'searchAllStates', 'searchLimitState', 'searchLimitDecade'])
+        const year = row.searchFields.searchLimitYear;
+        // console.log(`SearchTroveView/completedDecades: Processing SearchString:%s, Year: %s`, searchString, year);
+        (decades[searchString] ??= new Set()).add(year);
+        // console.log(
+        // `SearchTroveView/completedDecades: Processing Decades:%o`,
+        // Object.fromEntries(Object.entries(decades).map(([d, s]) => [d, [...s]]))
+        // );
+    }
+    // Keep only decades covering all 10 years and format for display
+    // console.log(`SearchTroveView/completedDecades: Decades before filtering: %o`, JSON.stringify(decades));
+    return Object.entries(decades)
+        .filter(([, years]) => years.size === 10)
+        .map(([searchString]) => searchString);
+});
+// 
+// Provide a buttton text to act on completed decades
+function btnCompletedDecade(decadeSearch) {
+    const searchFields = JSON.parse(decadeSearch);
+    return `Combine ${searchFields.searchLimitDecade}0s\n"${searchFields.searchString}" Searches`;
+}
+// Combine the per-year saved searches covering this decade into one decade search, merging their results
+async function searchCompletedDecade(decadeSearch) {
+    const searchFields = JSON.parse(decadeSearch);
+    console.log(`SearchTroveView/searchCompletedDecade: Combining searches for decade ${searchFields.searchLimitDecade}0s`);
+    // Populate screen search fields with values from decadeSearch and invoke getSearch to get a single search object
+    searchFor.value = searchFields.searchString;
+    allStates.value = searchFields.searchAllStates;
+    limitState.value = searchFields.searchAllStates ? '' : searchFields.searchLimitState;
+    allYears.value = false;
+    limitDecade.value = searchFields.searchLimitDecade;
+    searchAllDecadeYears.value = true;
+    showLimitToDecade.value = true;
+    showLimitToYear.value = true;
+    showLimitYear.value = false;
+    limitYear.value = '';
+    const thisDecadeSearch = getSearch();
+    console.log(`SearchTroveView/searchCompletedDecade: thisDecadeSearch: %o`, thisDecadeSearch);
+    // Merge article results from all the year searches
+    // Each search covers a single year, so no article can appear in more than one search - no de-duplication needed
+    const decadeSearches = savedSearchesWithStats.value.filter(row => {
+        if (!row.done) return false;
+        if (row.searchFields?.searchAllYears) return false;
+        const rowKey = JSON.stringify(row.searchFields, ['searchString', 'searchAllStates', 'searchLimitState', 'searchLimitDecade']);
+        return rowKey === decadeSearch;
+    });
+    console.log(`SearchTroveView/searchCompletedDecade: decadeSearches: %o`, decadeSearches);
+    // Merge article results from all the year searches
+    // Each search covers a single year, so no article can appear in more than one search - no de-duplication needed
+    const mergedArticles = decadeSearches.flatMap(row => row.searchArticlesIdStatus ?? []);
+    // extract from decadeSearches the searchId from each search
+    const mergedSearchIds = decadeSearches.map(row => row.searchId);
+    const savedDecadeSearch = {
+        searchId: thisDecadeSearch.searchId,
+        searchFields : thisDecadeSearch.strSearchFields,
+        searchTotalFound: mergedArticles.length,
+        searchArticlesIdStatus: mergedArticles
+    }
+    console.log(`SearchTroveView/searchCompletedDecade: Saved Decade Search: %s %o %s %o Nbr articles:%s`,
+    savedDecadeSearch.searchId, JSON.stringify(savedDecadeSearch.searchFields), savedDecadeSearch.searchTotalFound, 
+    JSON.stringify(mergedSearchIds), savedDecadeSearch.searchArticlesIdStatus.length);
+    //
+    const options = {
+        method: "post",
+        mode: "cors",
+        credentials: "include", // to send HTTP only cookies
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        //make sure to serialize your JSON body
+        body: JSON.stringify({
+            combinedDecadeSearch: savedDecadeSearch,
+            deleteSearchIds: mergedSearchIds
+        })
+    };
+    combiningDecade.value = decadeSearch;
+    const data = await useDoFetch('Save Combined Search', "/searchTrove/saveCombinedSearch", options);
+    if (typeof data == 'boolean') {
+        // Error response - leave spinner active
+        return;
+    }
+    // 200 response - clear spinner
+    combiningDecade.value = '';
+}
 //
 const savedSearchesWithStats = computed(() =>
     userData.savedSearches.map(search => {
@@ -694,6 +794,13 @@ function countSearchResults() {
     }
     //
     loading.value = false;
+    //
+    if (searchAllCounts.nbrFound === (searchAllCounts.nbrKnown + searchAllCounts.nbrIgnored)) {
+        // console.log(`SearchTroveView/countSearchResults: completedDecades:%o`, JSON.stringify(completedDecades.value));
+        if (completedDecades.value.length > 0) {
+            console.log(`SearchTroveView/countSearchResults: All decades completed.`);
+        }
+    }
 }
 //
 function showResultRow(hidden, status) {
@@ -852,17 +959,21 @@ function waitSearch(started) {
     let intervalLoading = setInterval(function () {
         loadingText.value += '.';
     }, 500);
+    const mySearchId = currentSearchId
     if (!!window.EventSource) {
         var searchName = userData.troveDetails.troveUserId + ':searchNbr' + thisSearch.searchId;
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/loadSearch/' + searchName;
         // console.log(streamName);
         var source = new EventSource(streamName, { withCredentials: true });
         source.addEventListener(searchName, function (e) {
+            if (mySearchId !== currentSearchId) { source.close(); return; }
             clearInterval(intervalLoading);
+            loadingNextPage.value = false;
             var returnData = JSON.parse(e.data);
             console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, started, returnData.searchId, returnData.searchResults.length);
             thisSearchId.value = returnData.searchId;
             const results = returnData.searchResults.map(item => ({...item, hidden: false}));
+            searchNextUrl = returnData.searchNextUrl
             if (started){
                 searchAllCounts.nbrFound = returnData.searchTotalFound;
                 searchMaxPageNbr.value = Math.ceil(searchAllCounts.nbrFound / searchPageSize);
@@ -886,7 +997,6 @@ function waitSearch(started) {
                 ++searchReadPageNbr.value
             }
             //
-            searchNextUrl = returnData.searchNextUrl
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
                 console.log(`SearchTroveView/waitSearch source closed:%s`, streamName);
                 source.close();
@@ -895,7 +1005,10 @@ function waitSearch(started) {
             countSearchResults();
         }, false);
         source.addEventListener('error', function (e) {
+            if (mySearchId !== currentSearchId) { source.close(); return; }
             if (e.target.readyState == EventSource.CLOSED) {
+                clearInterval(intervalLoading);
+                loadingNextPage.value = false;
                 console.log("Disconnected");
             }
             else if (e.target.readyState == EventSource.CONNECTING) {
@@ -909,6 +1022,8 @@ function waitSearch(started) {
 //
 function postSearch() {
     //
+    searchNextUrl = 'done';
+    loadingNextPage.value = false;
     thisSearch = getSearch();
     thisSearchText.value = ` String:${searchFor.value}`
     if (!allStates.value) thisSearchText.value += `, Limited to State:${limitState.value}`
@@ -941,6 +1056,7 @@ function postSearch() {
 }
 //
 function chgVisiblePage(by) {
+    if (by === 1 && loadingNextPage.value) return;
     visiblePageNbr.value = Math.min(
         searchMaxPageNbr.value,
         Math.max(1, visiblePageNbr.value + by)
@@ -949,6 +1065,7 @@ function chgVisiblePage(by) {
     console.log (`SearchTroveView/chgVisiblePage by:%s now:%s`, by, visiblePageNbr.value)
         // Check if Next Page + 1 needs to be read
     if ((by == 1) && (searchNextUrl != 'done') && (((visiblePageNbr.value + 1) * searchPageSize) > searchResults.value.length)) {
+        loadingNextPage.value = true;
         const nextPage = {
             searchId: currentSearchId,
             strInSearchWords: searchFor.value,
@@ -1079,6 +1196,10 @@ async function updateActionedArticles() {
     waitUpdateIgnored.value = false
     if (setupStoredArticleSSE) waitStoredArticles()   
 }
+//
+// if (completedDecades.value.length > 0) {
+//     console.log(`SearchTroveView: completedDecades:%o`, JSON.stringify(completedDecades.value));
+// }
 // Initialisation
 // Get passed Data
 // console.log ('Passed Person: ', navStore.troveSearchName);
@@ -1115,11 +1236,22 @@ onMounted(() => {
     <div class="card">
         <details :open="showSavedSearchesToggle" @toggle="onSavedSearchesToggle">
             <summary>Show Saved Searches</summary>
-            <div class="card-body">
+            <div class="card-body d-flex flex-wrap align-items-center">
                 <div class="form-check form-check-inline">
                     <input type="checkbox" class="form-check-input" v-model="showAllSearches"
                         id="checkboxShowAllSearches">
                     <label class="form-check-label" for="checkboxShowAllSearches">Show All Searches</label>
+                </div>
+                <div v-if="completedDecades.length > 0" class="d-inline-flex flex-wrap align-items-center">
+                    <template v-for="(decadeSearch, index) in completedDecades" :key="index">
+                        <button @click.prevent="searchCompletedDecade(decadeSearch)" type="button"
+                            class="btn btn-primary btn-sm ms-2" style="font-size:12px; padding:2px 6px; line-height:1.3; white-space:pre-line;"
+                            :disabled="combiningDecade === decadeSearch">
+                            <span v-if="combiningDecade === decadeSearch" class="spinner-border spinner-border-sm me-1"
+                                role="status" aria-hidden="true"></span>
+                            {{ btnCompletedDecade(decadeSearch) }}
+                        </button>
+                    </template>
                 </div>
             </div>
             <div class="card-body">
@@ -1129,7 +1261,8 @@ onMounted(() => {
                         <thead class="mbhead">
                             <tr class="mbrow">
                                 <th>Action</th>
-                                <th>Done</th><th @click="sortBy('createdAt')" style="cursor:pointer" class="sortable">
+                                <th>Done</th>
+                                <th @click="sortBy('createdAt')" style="cursor:pointer" class="sortable">
                                     Created
                                     <i :class="getSortIcon('createdAt')" class="ms-1"></i>
                                 </th>
