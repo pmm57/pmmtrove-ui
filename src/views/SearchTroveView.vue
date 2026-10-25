@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import ArticleUrls from '@/components/ArticleUrls.vue'
 import EditItem from '@/components/EditItem.vue'
 import { useDoFetch } from '@/components/DoFetch.js';
@@ -7,6 +7,8 @@ import { unstringifyName } from '@/components/UnstringifyName.js';
 import ModalCheckDeleteSearch from '@/components/ModalCheckDeleteSearch.vue';
 import { useUserDataStore } from '@/stores/userdata';
 import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
+const toast = useToast();
 const router = useRouter();
 import { useNavBarStore } from '@/stores/navbar';
 const navStore = useNavBarStore();
@@ -89,6 +91,7 @@ const showReturnedDecades = ref(false);
 const showReturnedYears = ref(false);
 const disableSearch = ref(true);
 const loadingNextPage = ref(false);
+const autoNextPage = ref(false);
 const disablePrev = computed(() => {
   return (
     visiblePageNbr.value < 2
@@ -142,6 +145,20 @@ const searchCountYear = ref([])
 let searchNextUrl = 'done'
 var toDeleteSearchId = 0;
 const showCheckDeleteSearch = ref(false);
+// Page fully reviewed and saved, and the next page is available to show
+const readyForAutoNext = computed(() =>
+    autoNextPage.value &&
+    !disableNext.value &&
+    !waitUpdateIgnored.value &&
+    disableUpdateIgnored.value &&
+    searchPageCounts.nbrShown > 0 &&
+    searchPageCounts.nbrShown === searchPageCounts.nbrKnown + searchPageCounts.nbrIgnored
+)
+watch(readyForAutoNext, (ready) => {
+    if (!ready) return
+    toast.info(`Auto Advancing to Page ${visiblePageNbr.value + 1}`)
+    chgVisiblePage(1)
+})
 //
 // Process saved searches for done = true and searchAllYears = false,
 //  collate Search Fields, searchLimitYears
@@ -1424,6 +1441,11 @@ onMounted(() => {
                         <button @click.prevent="chgVisiblePage(1)" type="button" :disabled="disableNext"
                             class="btn btn-primary ms-2">Next Page
                         </button>
+                        <div class="form-check form-check-inline ms-2">
+                            <input type="checkbox" class="form-check-input" v-model="autoNextPage"
+                                id="checkboxAutoNextPage">
+                            <label class="form-check-label" for="checkboxAutoNextPage">Auto Next Page</label>
+                        </div>
                     </div>
                     <div id="actionButtons">
                         <button v-if="actionButtonText.length > 0" @click.prevent="updateActionedArticles()" type="button" class="btn btn-primary ms-2"
