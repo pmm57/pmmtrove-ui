@@ -27,7 +27,7 @@ whenever(
     logicAnd(logicOr(i,u), notTyping),
     () => {
         if (firstVisibleRow.value) {
-            ignoreArticleClick(true, firstVisibleRow.value.rowNbr)
+            ignoreArticleClick(firstVisibleRow.value.rowNbr)
         }
     }
 )
@@ -54,7 +54,7 @@ whenever(
   logicAnd(t, notTyping),
   () => {
     const row = firstVisibleRow.value
-    if (row) window.open(row.troveUrl, '_blank')
+    if (row) openTroveLinks(row)
   }
 )
 //
@@ -82,7 +82,7 @@ const searchAllDecadeYears = ref(false);
 const showLimitYear = ref(false);
 const limitYears = ref([]);
 const limitYear = ref("");
-const lastActionIdx = ref(-1)
+const lastActionRowsBefore = ref([])
 const lastActionSaved = ref("")
 const ignoreAction = ref('');
 const ignoreIcon = ref('');
@@ -436,13 +436,19 @@ function checkLimitYear () {
     }
 }
 //
-function saveAction (action, articleId) {
-    lastActionIdx.value = articleId
+// rowsBefore is an array of { row, before } where before holds the row's previous values, e.g. { status } or { hidden }
+function saveAction (action, rowsBefore) {
+    lastActionRowsBefore.value = rowsBefore
     lastActionSaved.value = action 
 }
 function undoLastAction () {
-    if (lastActionSaved.value == "Undo Last Ignore") ignoreArticleClick(false, lastActionIdx.value)
-    if (lastActionSaved.value == "Undo Last Hide") hideRowClick(lastActionIdx.value)
+    if (lastActionSaved.value == "Undo Last Ignore") {
+        lastActionRowsBefore.value.forEach(({ row, before }) => setIgnoreStatus(row, before.status))
+        updateActionButton()
+    }
+    if (lastActionSaved.value == "Undo Last Hide") {
+        lastActionRowsBefore.value.forEach(({ row, before }) => { row.hidden = before.hidden })
+    }
     lastActionSaved.value = ""
 }
 // On clicking the hide row icon - flip  hidden flag
@@ -451,7 +457,7 @@ function hideRowClick(rowNbr) {
     if (searchResults.value[rowNbr - 1].hidden) { // Currently Hidden so show
         searchResults.value[rowNbr - 1].hidden = false
     } else {
-        saveAction ("Undo Last Hide", rowNbr);
+        saveAction ("Undo Last Hide", [{ row: searchResults.value[rowNbr - 1], before: { hidden: false } }]);
         searchResults.value[rowNbr - 1].hidden = true
     }
 }
@@ -471,38 +477,54 @@ function addedListClick(rowNbr) {
     updateActionButton()
 }
 // On clicking the ignore row
-// New => IgnoreArticle => Remove from TO Ignore
-//                      => OR Save => QIgnored
-// GIgnored => UnignoreArticle
-//
-function ignoreArticleClick(doing, rowNbr) {
-    console.log (`ignoreArticleClick doing:%s, idx:%s, row:%s`, doing, rowNbr, JSON.stringify(searchResults.value[rowNbr - 1]));
-    if (doing) saveAction ("Undo Last Ignore", rowNbr)
-    switch (searchResults.value[rowNbr - 1].status) { // Current Status
-        case 'QIgnored':
-        case 'GIgnored': // Is in DB IgnoredArticles List - Unignore It
-            searchResults.value[rowNbr - 1].status = 'UnignoreArticle';
-            ++searchPageCounts.nbrToUnignore;
-            ignoreAction.value = "UnIgnore";
-            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-            break;
-        case 'UnignoreArticle': // Is in DB IgnoredArticles List Was to be Unignored - changed mind
-            searchResults.value[rowNbr - 1].status = 'QIgnored';
-            --searchPageCounts.nbrToUnignore;
-            ignoreAction.value = "UnIgnore";
-            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-            break;
-        case 'IgnoreArticle': // Was set to be QIgnored - changed mind
-            searchResults.value[rowNbr - 1].status = 'New';
-            ignoreAction.value = "Add to Ignore List";
-            ignoreIcon.value = "bi bi-file-earmark-arrow-down";
-            --searchPageCounts.nbrToIgnore;
-            break;
-        default: // Was new - Now To be QIgnored
+// New / AQIgnored / GIgnored => IgnoreArticle => Remove from TO Ignore (back to previous status)
+//                                             => OR Save => QIgnored
+// QIgnored => UnignoreArticle => changed mind => QIgnored
+// The same action is applied to the whole set of duplicate articles
+function setIgnoreStatus(row, status) {
+    if (row.status === 'IgnoreArticle') --searchPageCounts.nbrToIgnore;
+    if (row.status === 'UnignoreArticle') --searchPageCounts.nbrToUnignore;
+    if (status === 'IgnoreArticle') ++searchPageCounts.nbrToIgnore;
+    if (status === 'UnignoreArticle') ++searchPageCounts.nbrToUnignore;
+    row.status = status;
+}
+function nextIgnoreStatus(row) {
+    switch (row.status) {
+        case 'QIgnored': return 'UnignoreArticle'; // Is in DB IgnoredArticles List - Unignore It
+        case 'UnignoreArticle': return 'QIgnored'; // Was to be Unignored - changed mind
+        case 'IgnoreArticle': return row.prevIgnoreStatus ?? 'New'; // Was set to be QIgnored - changed mind
+        default: return 'IgnoreArticle'; // New, AQIgnored or GIgnored - Now to be QIgnored
+    }
+}
+// Rows only change together if they take the same kind of step
+function ignoreStepKind(row) {
+    return row.status === 'IgnoreArticle' ? 'revert' : nextIgnoreStatus(row);
+}
+function ignoreArticleClick(rowNbr) {
+    const clicked = searchResults.value[rowNbr - 1];
+    console.log (`ignoreArticleClick idx:%s, row:%s`, rowNbr, JSON.stringify(clicked));
+    const kind = ignoreStepKind(clicked);
+    const rows = duplicateSetRows(clicked).filter(r => ignoreStepKind(r) === kind);
+    saveAction ("Undo Last Ignore", rows.map(row => ({ row, before: { status: row.status } })))
+    if (kind === 'IgnoreArticle') closeTroveTabs(rows);
+    rows.forEach(row => {
+        const next = nextIgnoreStatus(row);
+        if (next === 'IgnoreArticle') row.prevIgnoreStatus = row.status;
+        setIgnoreStatus(row, next);
+    });
+    switch (clicked.status) {
+        case 'IgnoreArticle':
             ignoreAction.value = "Remove from TO Ignore List";
             ignoreIcon.value = "bi bi-file-earmark-arrow-up";
-            searchResults.value[rowNbr - 1].status = 'IgnoreArticle';
-            ++searchPageCounts.nbrToIgnore;
+            break;
+        case 'QIgnored':
+        case 'UnignoreArticle':
+            ignoreAction.value = "UnIgnore";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-up";
+            break;
+        default:
+            ignoreAction.value = "Add to Ignore List";
+            ignoreIcon.value = "bi bi-file-earmark-arrow-down";
     }
     updateActionButton() 
 }
@@ -520,7 +542,6 @@ function updateActionButton() {
         disableUpdateIgnored.value = true;
         lastActionSaved.value = ""
     }
-    // console.log ('ignoreArticleClick Done');
 }
 //
 function getSearch() {
@@ -967,9 +988,65 @@ function foundCount(which, countInfo, last) {
     return foundCountOut
 }
 //
-function identifyDuplicate(articleMatch) {
+const duplicatedOfIds = computed(() => new Set(
+    searchResults.value
+        .filter(r => r.duplicateOfId && r.articleMatch < 50)
+        .map(r => String(r.duplicateOfId))
+));
+// Escapes the text and bolds every occurrence of the first word of the searched string
+function boldFirstSearchWord(text) {
+    const escapeHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const safe = escapeHtml(text ?? '');
+    const searched = /String:(.*?)(?:, Limited to|$)/.exec(thisSearchText.value)?.[1] ?? '';
+    const firstWord = searched.replace(/["']/g, ' ').trim().split(/\s+/)[0];
+    if (!firstWord) return safe;
+    const pattern = escapeHtml(firstWord).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(new RegExp(pattern, 'gi'), '<b>$&</b>');
+}
+//
+function identifyDuplicateColour(articleMatch, articleId) {
     if (articleMatch < 50) return "Wheat"// Article within 6 days of previous and close match
+    // If articleId matches duplicateOfId in any other row, highlight it light orange
+    if (duplicatedOfIds.value.has(String(articleId))) return "#FFB366";
     return "transparent";
+}
+// The original article plus every row flagged as a duplicate of it
+function duplicateSetRows(row) {
+    const originalId = (row.duplicateOfId && row.articleMatch < 50) ? String(row.duplicateOfId) : String(row.id);
+    return searchResults.value.filter(r =>
+        String(r.id) === originalId ||
+        (r.duplicateOfId && r.articleMatch < 50 && String(r.duplicateOfId) === originalId)
+    );
+}
+// Trove tabs opened from this page, by article id (a page can only close tabs it opened)
+const openTroveTabs = new Map();
+function openTroveTab(r) {
+    const tab = window.open(r.troveUrl, '_blank');
+    if (tab) openTroveTabs.set(String(r.id), tab);
+    return tab;
+}
+function closeTroveTabs(rows) {
+    rows.forEach(r => {
+        const tab = openTroveTabs.get(String(r.id));
+        if (tab && !tab.closed) tab.close();
+        openTroveTabs.delete(String(r.id));
+    });
+}
+// Opens the Trove links of the row's duplicates, then the row's own link last so that tab is focused
+function openTroveLinks(row) {
+    const others = duplicateSetRows(row).filter(r => r.id !== row.id);
+    others.forEach(openTroveTab);
+    openTroveTab(row)?.focus();
+}
+// Ids of rows flagged as duplicates of the given article
+function identifyFollowingDuplicate(articleId) {
+    return searchResults.value
+        .filter(r => r.duplicateOfId && r.articleMatch < 50 && String(r.duplicateOfId) === String(articleId))
+        .map(r => r.id);
+}
+function identifyDuplicate(articleMatch) {
+    if (articleMatch < 50) return true// Article within 6 days of previous and close match
+    return false;
 }
 //
 function waitSearch(started) {
@@ -1523,7 +1600,7 @@ onMounted(() => {
                             {{ row.rowNbr }}
                             </td>
                             <!-- Date -->
-                            <td :style="{backgroundColor: identifyDuplicate(row.articleMatch)}">
+                            <td :style="{backgroundColor: identifyDuplicateColour(row.articleMatch, row.id)}">
                                 {{ row.date }}
                             </td>
                             <!-- Article Id -->
@@ -1564,7 +1641,7 @@ onMounted(() => {
                                 <template v-if="index == 0">
                                     <template v-if="getIgnoreUI(row.status)">
                                         <EditItem
-                                        @click-item="ignoreArticleClick(true , row.rowNbr)"
+                                        @click-item="ignoreArticleClick(row.rowNbr)"
                                         :action="getIgnoreUI(row.status).action"
                                         :icon="getIgnoreUI(row.status).icon"
                                         />
@@ -1587,7 +1664,7 @@ onMounted(() => {
                             </td>
                             <!-- Link -->
                             <td>
-                                <a :href="row.troveUrl" target="_blank">
+                                <a :href="row.troveUrl" target="_blank" @click.prevent="openTroveLinks(row)">
                                     <template v-if="index === 0">
                                         <span class="hotkey">T</span>rove
                                     </template>
@@ -1602,8 +1679,13 @@ onMounted(() => {
                             </td>
                             <!-- Heading / Snippet -->
                             <td>
-                                {{ row.heading }}<br>{{ row.snippet }}<br>{{ row.textSnip }}<br>{{
-                                    row.articleMatch }}
+                                {{ row.heading }}<br><i>{{ row.snippet }}</i><br><span v-html="boldFirstSearchWord(row.textSnip)"></span>
+                                <template v-if="identifyFollowingDuplicate(row.id).length > 0">
+                                    <br>This Article matched by <b>{{ identifyFollowingDuplicate(row.id).join(', ') }}</b>
+                                </template>
+                                <template v-if="identifyDuplicate(row.articleMatch)">
+                                    <br>This Article match level <b>{{ row.articleMatch }} to {{ row.duplicateOfId }}</b>
+                                </template>
                             </td>
                         </tr>
                     </tbody>
