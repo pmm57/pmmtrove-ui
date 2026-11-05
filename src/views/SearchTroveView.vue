@@ -82,8 +82,9 @@ const searchAllDecadeYears = ref(false);
 const showLimitYear = ref(false);
 const limitYears = ref([]);
 const limitYear = ref("");
-const lastActionRowsBefore = ref([])
-const lastActionSaved = ref("")
+const undoHistory = ref([])
+const selectedUndoAction = ref('')
+let nextUndoActionId = 0
 const ignoreAction = ref('');
 const ignoreIcon = ref('');
 const showReturnedStates = ref(false);
@@ -94,14 +95,18 @@ const loadingNextPage = ref(false);
 const autoNextPage = ref(false);
 const disablePrev = computed(() => {
   return (
-    visiblePageNbr.value < 2
+    visiblePageNbr.value < 2 ||
+    actionButtonText.value.length > 0 ||
+    waitUpdateIgnored.value
   )
 });
 const disableNext = computed(() => {
   return (
     loadingNextPage.value ||
     visiblePageNbr.value === searchMaxPageNbr.value ||
-    visiblePageNbr.value === searchReadPageNbr.value
+    visiblePageNbr.value === searchReadPageNbr.value ||
+    actionButtonText.value.length > 0 ||
+    waitUpdateIgnored.value
   )
 })
 const disableUpdateIgnored = ref(true);
@@ -436,35 +441,48 @@ function checkLimitYear () {
     }
 }
 //
-// rowsBefore is an array of { row, before } where before holds the row's previous values, e.g. { status } or { hidden }
-function saveAction (action, rowsBefore) {
-    lastActionRowsBefore.value = rowsBefore
-    lastActionSaved.value = action 
+// rowsBefore entries retain the state needed to reverse one local action.
+function saveAction (label, rowsBefore) {
+    const id = String(++nextUndoActionId)
+    const entry = { id, label: id + ". " + label, rowsBefore }
+    undoHistory.value.push(entry)
+    selectedUndoAction.value = entry.id
 }
-function undoLastAction () {
-    if (lastActionSaved.value == "Undo Last Ignore") {
-        lastActionRowsBefore.value.forEach(({ row, before }) => setIgnoreStatus(row, before.status))
-        updateActionButton()
+function undoSelectedActions () {
+    if (waitUpdateIgnored.value) return
+    const selectedIndex = undoHistory.value.findIndex(({ id }) => id === selectedUndoAction.value)
+    if (selectedIndex === -1) return
+
+    for (let historyIndex = undoHistory.value.length - 1; historyIndex >= selectedIndex; --historyIndex) {
+        const entry = undoHistory.value[historyIndex]
+        entry.rowsBefore.forEach(({ row, before }) => {
+            if ('status' in before) row.status = before.status
+            if ('hidden' in before) row.hidden = before.hidden
+            if ('prevIgnoreStatus' in before) row.prevIgnoreStatus = before.prevIgnoreStatus
+        })
     }
-    if (lastActionSaved.value == "Undo Last Hide") {
-        lastActionRowsBefore.value.forEach(({ row, before }) => { row.hidden = before.hidden })
-    }
-    lastActionSaved.value = ""
+    undoHistory.value.splice(selectedIndex)
+    selectedUndoAction.value = undoHistory.value.length
+        ? undoHistory.value[undoHistory.value.length - 1].id
+        : ''
+    countSearchResults()
+    updateActionButton()
 }
 // On clicking the hide row icon - flip  hidden flag
 function hideRowClick(rowNbr) {
-    console.log (`hideRowClick Row Nbr:%s, hidden:%s`, rowNbr, searchResults.value[rowNbr - 1].hidden);
-    if (searchResults.value[rowNbr - 1].hidden) { // Currently Hidden so show
-        searchResults.value[rowNbr - 1].hidden = false
-    } else {
-        saveAction ("Undo Last Hide", [{ row: searchResults.value[rowNbr - 1], before: { hidden: false } }]);
-        searchResults.value[rowNbr - 1].hidden = true
-    }
+    if (waitUpdateIgnored.value) return
+    const row = searchResults.value[rowNbr - 1]
+    console.log (`hideRowClick Row Nbr:%s, hidden:%s`, rowNbr, row.hidden);
+    saveAction(row.hidden ? "Show row " + row.rowNbr : "Hide row " + row.rowNbr,
+        [{ row, before: { hidden: row.hidden } }])
+    row.hidden = !row.hidden
 }
 //
 function addedListClick(rowNbr) {
-    // console.log (`addedListClick doing:%s, idx:%s`, doing, rowNbr);
-    switch (searchResults.value[rowNbr - 1].status) {
+    if (waitUpdateIgnored.value) return
+    const row = searchResults.value[rowNbr - 1]
+    saveAction("Mark row " + row.rowNbr + " known", [{ row, before: { status: row.status } }])
+    switch (row.status) {
         case 'New':
             --searchPageCounts.nbrNew;
             break;
@@ -473,7 +491,7 @@ function addedListClick(rowNbr) {
     }
     ++searchPageCounts.nbrKnown;
     ++searchPageCounts.nbrKnownToStore;
-    searchResults.value[rowNbr - 1].status = 'KnownToStore';
+    row.status = 'KnownToStore';
     updateActionButton()
 }
 // On clicking the ignore row
@@ -501,11 +519,18 @@ function ignoreStepKind(row) {
     return row.status === 'IgnoreArticle' ? 'revert' : nextIgnoreStatus(row);
 }
 function ignoreArticleClick(rowNbr) {
+    if (waitUpdateIgnored.value) return
     const clicked = searchResults.value[rowNbr - 1];
     console.log (`ignoreArticleClick idx:%s, row:%s`, rowNbr, JSON.stringify(clicked));
     const kind = ignoreStepKind(clicked);
     const rows = duplicateSetRows(clicked).filter(r => ignoreStepKind(r) === kind);
-    saveAction ("Undo Last Ignore", rows.map(row => ({ row, before: { status: row.status } })))
+    const actionLabel = kind === 'IgnoreArticle' ? 'Ignore'
+        : kind === 'revert' ? 'Restore'
+        : kind === 'UnignoreArticle' ? 'Unignore'
+        : 'Cancel unignore';
+    saveAction(actionLabel + " " + rows.length + (rows.length === 1 ? " article" : " articles")
+        + " (row " + clicked.rowNbr + ")",
+        rows.map(row => ({ row, before: { status: row.status, prevIgnoreStatus: row.prevIgnoreStatus } })))
     if (kind === 'IgnoreArticle') closeTroveTabs(rows);
     rows.forEach(row => {
         const next = nextIgnoreStatus(row);
@@ -530,17 +555,19 @@ function ignoreArticleClick(rowNbr) {
 }
 //
 function updateActionButton() {
-    if ((searchPageCounts.nbrToIgnore > 0) || (searchPageCounts.nbrToUnignore > 0) || (searchPageCounts.nbrKnownToStore > 0)) {
+    const nbrToIgnore = searchResults.value.filter(row => row.status === 'IgnoreArticle').length
+    const nbrToUnignore = searchResults.value.filter(row => row.status === 'UnignoreArticle').length
+    const nbrKnownToStore = searchResults.value.filter(row => row.status === 'KnownToStore').length
+    if ((nbrToIgnore > 0) || (nbrToUnignore > 0) || (nbrKnownToStore > 0)) {
         actionButtonText.value = "Save "
-        if (searchPageCounts.nbrToIgnore > 0) actionButtonText.value += searchPageCounts.nbrToIgnore + " Ignored "
-        if (searchPageCounts.nbrToUnignore > 0) actionButtonText.value += searchPageCounts.nbrToUnignore + " Unignore"
-        if (searchPageCounts.nbrKnownToStore > 0) actionButtonText.value += searchPageCounts.nbrKnownToStore + " Known to Store"
+        if (nbrToIgnore > 0) actionButtonText.value += nbrToIgnore + " Ignored "
+        if (nbrToUnignore > 0) actionButtonText.value += nbrToUnignore + " Unignore"
+        if (nbrKnownToStore > 0) actionButtonText.value += nbrKnownToStore + " Known to Store"
         actionButtonText.value += " Articles"
         disableUpdateIgnored.value = false;
     } else {
         actionButtonText.value = ''
         disableUpdateIgnored.value = true;
-        lastActionSaved.value = ""
     }
 }
 //
@@ -714,15 +741,29 @@ function countSearchResults() {
         switch (element.status) {
             case 'Known':
             case 'KnownToStore':
-                if (onPage) ++searchPageCounts.nbrKnown;
+                if (onPage) {
+                    ++searchPageCounts.nbrKnown;
+                    if (element.status === 'KnownToStore') ++searchPageCounts.nbrKnownToStore;
+                }
                 ++searchAllCounts.nbrKnown;
                 break;
             case 'GIgnored':
             case 'QIgnored':
             case 'AQIgnored':
-            case 'IgnoreArticle':
                 if (onPage) ++searchPageCounts.nbrIgnored;
                 ++searchAllCounts.nbrIgnored;
+                break;
+            case 'IgnoreArticle':
+                if (onPage) {
+                    ++searchPageCounts.nbrIgnored;
+                    ++searchPageCounts.nbrToIgnore;
+                }
+                ++searchAllCounts.nbrIgnored;
+                break;
+            case 'UnignoreArticle':
+                if (onPage) ++searchPageCounts.nbrToUnignore;
+                if (onPage) ++searchPageCounts.nbrNew;
+                ++searchAllCounts.nbrNew;
                 break;
             case 'LowRelevance':
                 if (onPage) ++searchPageCounts.nbrLessRelevant;
@@ -1078,8 +1119,12 @@ function waitSearch(started) {
                     rowNbr: index + 1,
                     hidden: false,
                 }));
+                undoHistory.value = [];
+                selectedUndoAction.value = '';
+                nextUndoActionId = 0;
+                actionButtonText.value = '';
+                disableUpdateIgnored.value = true;
                 started = false;
-                chgVisiblePage(1)
             } else {
                 // searchResults.value.push(...results);
                 const base = searchResults.value.length;
@@ -1089,6 +1134,11 @@ function waitSearch(started) {
                     hidden: false,
                 })));
                 ++searchReadPageNbr.value
+            }
+            // Determine the initial number of pages to read and set the visible page accordingly
+            const initialPagesToRead = Math.min(2, Math.max(1, searchMaxPageNbr.value));
+            if (visiblePageNbr.value === 0 && searchReadPageNbr.value >= initialPagesToRead) {
+                chgVisiblePage(1);
             }
             //
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
@@ -1115,6 +1165,7 @@ function waitSearch(started) {
 }
 //
 function postSearch() {
+    if (waitUpdateIgnored.value) return
     //
     searchNextUrl = 'done';
     loadingNextPage.value = false;
@@ -1150,6 +1201,7 @@ function postSearch() {
 }
 //
 function chgVisiblePage(by) {
+    if (actionButtonText.value.length > 0 || waitUpdateIgnored.value) return;
     if (by === 1 && loadingNextPage.value) return;
     visiblePageNbr.value = Math.min(
         searchMaxPageNbr.value,
@@ -1236,36 +1288,24 @@ function waitStoredArticles() {
 }
 //  Post array of Actioned Article Id's
 async function updateActionedArticles() {
-    var items = [];
-    var action = '';
-    var setupStoredArticleSSE = false;
-    searchResults.value.forEach((el, index) => {
-        if (el.status == 'IgnoreArticle') {
-            // console.log ('Ignore Article ', el)
-            searchResults.value[index].status = 'QIgnored';
-            action = 'addIgnore'
+    if (waitUpdateIgnored.value) return
+    const changedRows = [];
+    let setupStoredArticleSSE = false;
+    searchResults.value.forEach((row) => {
+        let action = '';
+        if (row.status === 'IgnoreArticle') action = 'addIgnore';
+        if (row.status === 'UnignoreArticle') action = 'removeIgnore';
+        if (row.status === 'KnownToStore') {
+            action = 'storeArticle';
+            setupStoredArticleSSE = true;
         }
-        if (el.status == 'UnignoreArticle') {
-            // console.log ('Ignore Article ', el)
-            searchResults.value[index].status = 'New';
-            action = 'removeIgnore'
-        }
-        if (el.status == 'KnownToStore') {
-            // console.log ('Known to Store ', el)
-            searchResults.value[index].status = 'Known';
-            action = 'storeArticle'
-            setupStoredArticleSSE = true
-        }
-        if (action.length > 0) {
-            items.push({ id: el.id, action: action });
-            action = ''
-        }
+        if (action) changedRows.push({ row, action });
     });
     const actionedArticles = {
         searchId: currentSearchId,
-        actionedArticlesInfo: items,
-        reloadArticle: false
+        actionedArticlesInfo: changedRows.map(({ row, action }) => ({ id: row.id, action }))
     };
+    if (changedRows.length === 0) return;
     // console.log(`SearchTroveView/updateActionedArticles clicked Save Article actions:%s`, JSON.stringify(actionedArticles));
     //
     const options = {
@@ -1279,16 +1319,41 @@ async function updateActionedArticles() {
         //make sure to serialize your JSON body
         body: JSON.stringify(actionedArticles)
     };
-    countSearchResults();
-    disableUpdateIgnored.value = true;
-    actionButtonText.value = '';
-    lastActionSaved.value = "";
-    waitUpdateIgnored.value = true
-    const data = await useDoFetch('Actioned Articles', "/searchTrove/updateActionedArticles", options)
-    if (typeof data == 'boolean') {
+    const savedSearch = userData.savedSearches.find(search => search.searchId == currentSearchId);
+    let stopWaitingForSavedSearch;
+    const savedSearchUpdated = new Promise((resolve) => {
+        stopWaitingForSavedSearch = watch(
+            () => userData.savedSearches.find(search => search.searchId == currentSearchId),
+            (updatedSearch) => {
+                if (!updatedSearch || updatedSearch === savedSearch) return;
+                stopWaitingForSavedSearch();
+                resolve();
+            }
+        );
+    });
+    waitUpdateIgnored.value = true;
+    try {
+        if (setupStoredArticleSSE) waitStoredArticles();
+        const data = await useDoFetch('Actioned Articles', "/searchTrove/updateActionedArticles", options);
+        if (data === false) {
+            stopWaitingForSavedSearch();
+            return;
+        }
+        await savedSearchUpdated;
+        changedRows.forEach(({ row }) => {
+            if (row.status === 'IgnoreArticle') row.status = 'QIgnored';
+            else if (row.status === 'UnignoreArticle') row.status = 'New';
+            else if (row.status === 'KnownToStore') row.status = 'Known';
+        });
+        undoHistory.value = [];
+        selectedUndoAction.value = '';
+        nextUndoActionId = 0;
+        countSearchResults();
+        updateActionButton();
+    } finally {
+        stopWaitingForSavedSearch();
+        waitUpdateIgnored.value = false;
     }
-    waitUpdateIgnored.value = false
-    if (setupStoredArticleSSE) waitStoredArticles()   
 }
 //
 // if (completedDecades.value.length > 0) {
@@ -1482,7 +1547,8 @@ onMounted(() => {
                     </div> 
                 </div>
                 <div class="form-group">
-                    <input @click.prevent="postSearch()" :class="{ disabled: disableSearch }"
+                    <input @click.prevent="postSearch()" :class="{ disabled: disableSearch || waitUpdateIgnored }"
+                        :disabled="disableSearch || waitUpdateIgnored"
                         class="btn btn-primary" type="button" value="Search">
                 </div>
             </div>
@@ -1526,10 +1592,21 @@ onMounted(() => {
                     </div>
                     <div id="actionButtons">
                         <button v-if="actionButtonText.length > 0" @click.prevent="updateActionedArticles()" type="button" class="btn btn-primary ms-2"
-                            :class="{ disabled: disableUpdateIgnored && !waitUpdateIgnored}"> {{ actionButtonText }}
+                            :disabled="disableUpdateIgnored || waitUpdateIgnored">
+                            {{ waitUpdateIgnored ? "Saving..." : actionButtonText }}
                         </button>
-                        <button v-if="lastActionSaved.length > 0" @click.prevent="undoLastAction" type="button" class="btn btn-primary ms-2"> {{ lastActionSaved }} 
-                        </button>                
+                        <div v-if="undoHistory.length > 0" class="d-inline-flex align-items-center ms-2">
+                            <select v-model="selectedUndoAction" class="form-select w-auto" aria-label="Select action to undo"
+                                :disabled="waitUpdateIgnored">
+                                <option v-for="action in undoHistory.slice().reverse()" :key="action.id" :value="action.id">
+                                    {{ action.label }}
+                                </option>
+                            </select>
+                            <button @click.prevent="undoSelectedActions" type="button" class="btn btn-primary ms-1"
+                                title="Undo the selected action and all newer actions"
+                                :disabled="waitUpdateIgnored || !selectedUndoAction">Undo
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div id="searchResultsCounts">

@@ -800,12 +800,11 @@ function loadArticle(firstLoad) {
 function manageIgnoredArticle(action = 'removeIgnore') {
     processingArticleActionDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
     var param = {
-        actionedArticlesInfo: [{
+        actionedArticlesInfo: {
             id: navStore.articleId,
             listId: navStore.listId,
             action: action
-        }],
-        reloadArticle: true
+        }
     };
     console.log(`EditArticle/manageIgnoredArticle clicked Manage GIgnored action %s - %s `, action, JSON.stringify(param));
     //
@@ -820,7 +819,7 @@ function manageIgnoredArticle(action = 'removeIgnore') {
         //make sure to serialize your JSON body
         body: JSON.stringify(param)
     };
-    useDoFetch('Manage Ignored Articles', "/searchTrove/updateActionedArticles", options)
+    useDoFetch('Manage Ignored Articles', "/saveDB/updateArticle/generalIgnore", options)
     if (action == 'addIgnore') troveArticleRef.value.click(); // Take user to Trove
 }
 //  Post updated data and wait for response in reloadArticle
