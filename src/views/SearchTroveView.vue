@@ -449,6 +449,7 @@ function saveAction (label, rowsBefore) {
     selectedUndoAction.value = entry.id
 }
 function undoSelectedActions () {
+    if (waitUpdateIgnored.value) return
     const selectedIndex = undoHistory.value.findIndex(({ id }) => id === selectedUndoAction.value)
     if (selectedIndex === -1) return
 
@@ -1124,7 +1125,6 @@ function waitSearch(started) {
                 actionButtonText.value = '';
                 disableUpdateIgnored.value = true;
                 started = false;
-                chgVisiblePage(1)
             } else {
                 // searchResults.value.push(...results);
                 const base = searchResults.value.length;
@@ -1134,6 +1134,11 @@ function waitSearch(started) {
                     hidden: false,
                 })));
                 ++searchReadPageNbr.value
+            }
+            // Determine the initial number of pages to read and set the visible page accordingly
+            const initialPagesToRead = Math.min(2, Math.max(1, searchMaxPageNbr.value));
+            if (visiblePageNbr.value === 0 && searchReadPageNbr.value >= initialPagesToRead) {
+                chgVisiblePage(1);
             }
             //
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
@@ -1160,6 +1165,7 @@ function waitSearch(started) {
 }
 //
 function postSearch() {
+    if (waitUpdateIgnored.value) return
     //
     searchNextUrl = 'done';
     loadingNextPage.value = false;
@@ -1282,6 +1288,7 @@ function waitStoredArticles() {
 }
 //  Post array of Actioned Article Id's
 async function updateActionedArticles() {
+    if (waitUpdateIgnored.value) return
     const changedRows = [];
     let setupStoredArticleSSE = false;
     searchResults.value.forEach((row) => {
@@ -1296,9 +1303,9 @@ async function updateActionedArticles() {
     });
     const actionedArticles = {
         searchId: currentSearchId,
-        actionedArticlesInfo: changedRows.map(({ row, action }) => ({ id: row.id, action })),
-        reloadArticle: false
+        actionedArticlesInfo: changedRows.map(({ row, action }) => ({ id: row.id, action }))
     };
+    if (changedRows.length === 0) return;
     // console.log(`SearchTroveView/updateActionedArticles clicked Save Article actions:%s`, JSON.stringify(actionedArticles));
     //
     const options = {
@@ -1312,22 +1319,41 @@ async function updateActionedArticles() {
         //make sure to serialize your JSON body
         body: JSON.stringify(actionedArticles)
     };
-    waitUpdateIgnored.value = true;
-    const data = await useDoFetch('Actioned Articles', "/searchTrove/updateActionedArticles", options)
-    waitUpdateIgnored.value = false;
-    if (data === false) return;
-
-    changedRows.forEach(({ row }) => {
-        if (row.status === 'IgnoreArticle') row.status = 'QIgnored';
-        else if (row.status === 'UnignoreArticle') row.status = 'New';
-        else if (row.status === 'KnownToStore') row.status = 'Known';
+    const savedSearch = userData.savedSearches.find(search => search.searchId == currentSearchId);
+    let stopWaitingForSavedSearch;
+    const savedSearchUpdated = new Promise((resolve) => {
+        stopWaitingForSavedSearch = watch(
+            () => userData.savedSearches.find(search => search.searchId == currentSearchId),
+            (updatedSearch) => {
+                if (!updatedSearch || updatedSearch === savedSearch) return;
+                stopWaitingForSavedSearch();
+                resolve();
+            }
+        );
     });
-    undoHistory.value = [];
-    selectedUndoAction.value = '';
-    nextUndoActionId = 0;
-    countSearchResults();
-    updateActionButton();
-    if (setupStoredArticleSSE) waitStoredArticles();
+    waitUpdateIgnored.value = true;
+    try {
+        if (setupStoredArticleSSE) waitStoredArticles();
+        const data = await useDoFetch('Actioned Articles', "/searchTrove/updateActionedArticles", options);
+        if (data === false) {
+            stopWaitingForSavedSearch();
+            return;
+        }
+        await savedSearchUpdated;
+        changedRows.forEach(({ row }) => {
+            if (row.status === 'IgnoreArticle') row.status = 'QIgnored';
+            else if (row.status === 'UnignoreArticle') row.status = 'New';
+            else if (row.status === 'KnownToStore') row.status = 'Known';
+        });
+        undoHistory.value = [];
+        selectedUndoAction.value = '';
+        nextUndoActionId = 0;
+        countSearchResults();
+        updateActionButton();
+    } finally {
+        stopWaitingForSavedSearch();
+        waitUpdateIgnored.value = false;
+    }
 }
 //
 // if (completedDecades.value.length > 0) {
@@ -1521,7 +1547,8 @@ onMounted(() => {
                     </div> 
                 </div>
                 <div class="form-group">
-                    <input @click.prevent="postSearch()" :class="{ disabled: disableSearch }"
+                    <input @click.prevent="postSearch()" :class="{ disabled: disableSearch || waitUpdateIgnored }"
+                        :disabled="disableSearch || waitUpdateIgnored"
                         class="btn btn-primary" type="button" value="Search">
                 </div>
             </div>
@@ -1565,7 +1592,8 @@ onMounted(() => {
                     </div>
                     <div id="actionButtons">
                         <button v-if="actionButtonText.length > 0" @click.prevent="updateActionedArticles()" type="button" class="btn btn-primary ms-2"
-                            :disabled="disableUpdateIgnored || waitUpdateIgnored"> {{ actionButtonText }}
+                            :disabled="disableUpdateIgnored || waitUpdateIgnored">
+                            {{ waitUpdateIgnored ? "Saving..." : actionButtonText }}
                         </button>
                         <div v-if="undoHistory.length > 0" class="d-inline-flex align-items-center ms-2">
                             <select v-model="selectedUndoAction" class="form-select w-auto" aria-label="Select action to undo"
