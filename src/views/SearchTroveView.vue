@@ -481,17 +481,28 @@ function hideRowClick(rowNbr) {
 function addedListClick(rowNbr) {
     if (waitUpdateIgnored.value) return
     const row = searchResults.value[rowNbr - 1]
-    saveAction("Mark row " + row.rowNbr + " known", [{ row, before: { status: row.status } }])
-    switch (row.status) {
-        case 'New':
-            --searchPageCounts.nbrNew;
-            break;
-        default:
-            --searchPageCounts.nbrLessRelevant;
-    }
-    ++searchPageCounts.nbrKnown;
-    ++searchPageCounts.nbrKnownToStore;
+    const duplicatesToIgnore = duplicateSetRows(row)
+        .filter(duplicate => duplicate !== row && nextIgnoreStatus(duplicate) === 'IgnoreArticle')
+    const rowsBefore = [
+        { row, before: { status: row.status } },
+        ...duplicatesToIgnore.map(duplicate => ({
+            row: duplicate,
+            before: { status: duplicate.status, prevIgnoreStatus: duplicate.prevIgnoreStatus }
+        }))
+    ]
+    const actionLabel = "Mark row " + row.rowNbr + " known"
+        + (duplicatesToIgnore.length
+            ? " and ignore " + duplicatesToIgnore.length + " duplicate"
+                + (duplicatesToIgnore.length === 1 ? "" : "s")
+            : "")
+    saveAction(actionLabel, rowsBefore)
     row.status = 'KnownToStore';
+    duplicatesToIgnore.forEach(duplicate => {
+        duplicate.prevIgnoreStatus = duplicate.status
+        setIgnoreStatus(duplicate, 'IgnoreArticle')
+    })
+    closeTroveTabs(duplicatesToIgnore)
+    countSearchResults()
     updateActionButton()
 }
 // On clicking the ignore row
@@ -523,7 +534,8 @@ function ignoreArticleClick(rowNbr) {
     const clicked = searchResults.value[rowNbr - 1];
     console.log (`ignoreArticleClick idx:%s, row:%s`, rowNbr, JSON.stringify(clicked));
     const kind = ignoreStepKind(clicked);
-    const rows = duplicateSetRows(clicked).filter(r => ignoreStepKind(r) === kind);
+    const rows = duplicateSetRows(clicked)
+        .filter(r => r.status !== 'Known' && r.status !== 'KnownToStore' && ignoreStepKind(r) === kind);
     const actionLabel = kind === 'IgnoreArticle' ? 'Ignore'
         : kind === 'revert' ? 'Restore'
         : kind === 'UnignoreArticle' ? 'Unignore'
@@ -1374,9 +1386,6 @@ async function updateActionedArticles() {
     }
 }
 //
-// if (completedDecades.value.length > 0) {
-//     console.log(`SearchTroveView: completedDecades:%o`, JSON.stringify(completedDecades.value));
-// }
 // Initialisation
 // Get passed Data
 // console.log ('Passed Person: ', navStore.troveSearchName);
