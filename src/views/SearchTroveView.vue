@@ -1090,26 +1090,42 @@ function identifyDuplicate(articleMatch) {
     return false;
 }
 //
+// One EventSource per search, reused for the nextPage requests of that search
+let searchSource = null;
+let searchSourceName = '';
+let searchLoadingInterval = null;
+let awaitingFirstBatch = false;
+function closeSearchSource() {
+    if (searchSource) searchSource.close();
+    searchSource = null;
+    searchSourceName = '';
+}
 function waitSearch(started) {
-    let intervalLoading = setInterval(function () {
+    clearInterval(searchLoadingInterval);
+    searchLoadingInterval = setInterval(function () {
         loadingText.value += '.';
     }, 500);
     const mySearchId = currentSearchId
     if (!!window.EventSource) {
         var searchName = userData.troveDetails.troveUserId + ':searchNbr' + thisSearch.searchId;
+        if (started) awaitingFirstBatch = true;
+        if (searchSource && searchSourceName === searchName && searchSource.readyState !== EventSource.CLOSED) return;
+        closeSearchSource();
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/loadSearch/' + searchName;
         // console.log(streamName);
         var source = new EventSource(streamName, { withCredentials: true });
+        searchSource = source;
+        searchSourceName = searchName;
         source.addEventListener(searchName, function (e) {
             if (mySearchId !== currentSearchId) { source.close(); return; }
-            clearInterval(intervalLoading);
+            clearInterval(searchLoadingInterval);
             loadingNextPage.value = false;
             var returnData = JSON.parse(e.data);
-            console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, started, returnData.searchId, returnData.searchResults.length);
+            console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, awaitingFirstBatch, returnData.searchId, returnData.searchResults.length);
             thisSearchId.value = returnData.searchId;
             const results = returnData.searchResults.map(item => ({...item, hidden: false}));
             searchNextUrl = returnData.searchNextUrl
-            if (started){
+            if (awaitingFirstBatch){
                 searchAllCounts.nbrFound = returnData.searchTotalFound;
                 searchMaxPageNbr.value = Math.ceil(searchAllCounts.nbrFound / searchPageSize);
                 searchReadPageNbr.value = 1;
@@ -1124,7 +1140,7 @@ function waitSearch(started) {
                 nextUndoActionId = 0;
                 actionButtonText.value = '';
                 disableUpdateIgnored.value = true;
-                started = false;
+                awaitingFirstBatch = false;
             } else {
                 // searchResults.value.push(...results);
                 const base = searchResults.value.length;
@@ -1137,13 +1153,15 @@ function waitSearch(started) {
             }
             // Determine the initial number of pages to read and set the visible page accordingly
             const initialPagesToRead = Math.min(2, Math.max(1, searchMaxPageNbr.value));
-            if (visiblePageNbr.value === 0 && searchReadPageNbr.value >= initialPagesToRead) {
+            const initialBatchesDone = searchReadPageNbr.value >= initialPagesToRead || searchNextUrl == 'done' || returnData.searchNbrPages == 0;
+            if (visiblePageNbr.value === 0 && initialBatchesDone) {
                 chgVisiblePage(1);
             }
             //
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
                 console.log(`SearchTroveView/waitSearch source closed:%s`, streamName);
                 source.close();
+                if (searchSource === source) closeSearchSource();
             }
             console.log(`SearchTroveView/waitSearch searchNextUrl:%s`, searchNextUrl);
             countSearchResults();
@@ -1151,7 +1169,7 @@ function waitSearch(started) {
         source.addEventListener('error', function (e) {
             if (mySearchId !== currentSearchId) { source.close(); return; }
             if (e.target.readyState == EventSource.CLOSED) {
-                clearInterval(intervalLoading);
+                clearInterval(searchLoadingInterval);
                 loadingNextPage.value = false;
                 console.log("Disconnected");
             }
