@@ -481,17 +481,28 @@ function hideRowClick(rowNbr) {
 function addedListClick(rowNbr) {
     if (waitUpdateIgnored.value) return
     const row = searchResults.value[rowNbr - 1]
-    saveAction("Mark row " + row.rowNbr + " known", [{ row, before: { status: row.status } }])
-    switch (row.status) {
-        case 'New':
-            --searchPageCounts.nbrNew;
-            break;
-        default:
-            --searchPageCounts.nbrLessRelevant;
-    }
-    ++searchPageCounts.nbrKnown;
-    ++searchPageCounts.nbrKnownToStore;
+    const duplicatesToIgnore = duplicateSetRows(row)
+        .filter(duplicate => duplicate !== row && nextIgnoreStatus(duplicate) === 'IgnoreArticle')
+    const rowsBefore = [
+        { row, before: { status: row.status } },
+        ...duplicatesToIgnore.map(duplicate => ({
+            row: duplicate,
+            before: { status: duplicate.status, prevIgnoreStatus: duplicate.prevIgnoreStatus }
+        }))
+    ]
+    const actionLabel = "Mark row " + row.rowNbr + " known"
+        + (duplicatesToIgnore.length
+            ? " and ignore " + duplicatesToIgnore.length + " duplicate"
+                + (duplicatesToIgnore.length === 1 ? "" : "s")
+            : "")
+    saveAction(actionLabel, rowsBefore)
     row.status = 'KnownToStore';
+    duplicatesToIgnore.forEach(duplicate => {
+        duplicate.prevIgnoreStatus = duplicate.status
+        setIgnoreStatus(duplicate, 'IgnoreArticle')
+    })
+    closeTroveTabs(duplicatesToIgnore)
+    countSearchResults()
     updateActionButton()
 }
 // On clicking the ignore row
@@ -523,7 +534,8 @@ function ignoreArticleClick(rowNbr) {
     const clicked = searchResults.value[rowNbr - 1];
     console.log (`ignoreArticleClick idx:%s, row:%s`, rowNbr, JSON.stringify(clicked));
     const kind = ignoreStepKind(clicked);
-    const rows = duplicateSetRows(clicked).filter(r => ignoreStepKind(r) === kind);
+    const rows = duplicateSetRows(clicked)
+        .filter(r => r.status !== 'Known' && r.status !== 'KnownToStore' && ignoreStepKind(r) === kind);
     const actionLabel = kind === 'IgnoreArticle' ? 'Ignore'
         : kind === 'revert' ? 'Restore'
         : kind === 'UnignoreArticle' ? 'Unignore'
@@ -1090,26 +1102,42 @@ function identifyDuplicate(articleMatch) {
     return false;
 }
 //
+// One EventSource per search, reused for the nextPage requests of that search
+let searchSource = null;
+let searchSourceName = '';
+let searchLoadingInterval = null;
+let awaitingFirstBatch = false;
+function closeSearchSource() {
+    if (searchSource) searchSource.close();
+    searchSource = null;
+    searchSourceName = '';
+}
 function waitSearch(started) {
-    let intervalLoading = setInterval(function () {
+    clearInterval(searchLoadingInterval);
+    searchLoadingInterval = setInterval(function () {
         loadingText.value += '.';
     }, 500);
     const mySearchId = currentSearchId
     if (!!window.EventSource) {
         var searchName = userData.troveDetails.troveUserId + ':searchNbr' + thisSearch.searchId;
+        if (started) awaitingFirstBatch = true;
+        if (searchSource && searchSourceName === searchName && searchSource.readyState !== EventSource.CLOSED) return;
+        closeSearchSource();
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/loadSearch/' + searchName;
         // console.log(streamName);
         var source = new EventSource(streamName, { withCredentials: true });
+        searchSource = source;
+        searchSourceName = searchName;
         source.addEventListener(searchName, function (e) {
             if (mySearchId !== currentSearchId) { source.close(); return; }
-            clearInterval(intervalLoading);
+            clearInterval(searchLoadingInterval);
             loadingNextPage.value = false;
             var returnData = JSON.parse(e.data);
-            console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, started, returnData.searchId, returnData.searchResults.length);
+            console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, awaitingFirstBatch, returnData.searchId, returnData.searchResults.length);
             thisSearchId.value = returnData.searchId;
             const results = returnData.searchResults.map(item => ({...item, hidden: false}));
             searchNextUrl = returnData.searchNextUrl
-            if (started){
+            if (awaitingFirstBatch){
                 searchAllCounts.nbrFound = returnData.searchTotalFound;
                 searchMaxPageNbr.value = Math.ceil(searchAllCounts.nbrFound / searchPageSize);
                 searchReadPageNbr.value = 1;
@@ -1124,7 +1152,7 @@ function waitSearch(started) {
                 nextUndoActionId = 0;
                 actionButtonText.value = '';
                 disableUpdateIgnored.value = true;
-                started = false;
+                awaitingFirstBatch = false;
             } else {
                 // searchResults.value.push(...results);
                 const base = searchResults.value.length;
@@ -1137,13 +1165,15 @@ function waitSearch(started) {
             }
             // Determine the initial number of pages to read and set the visible page accordingly
             const initialPagesToRead = Math.min(2, Math.max(1, searchMaxPageNbr.value));
-            if (visiblePageNbr.value === 0 && searchReadPageNbr.value >= initialPagesToRead) {
+            const initialBatchesDone = searchReadPageNbr.value >= initialPagesToRead || searchNextUrl == 'done' || returnData.searchNbrPages == 0;
+            if (visiblePageNbr.value === 0 && initialBatchesDone) {
                 chgVisiblePage(1);
             }
             //
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
                 console.log(`SearchTroveView/waitSearch source closed:%s`, streamName);
                 source.close();
+                if (searchSource === source) closeSearchSource();
             }
             console.log(`SearchTroveView/waitSearch searchNextUrl:%s`, searchNextUrl);
             countSearchResults();
@@ -1151,7 +1181,7 @@ function waitSearch(started) {
         source.addEventListener('error', function (e) {
             if (mySearchId !== currentSearchId) { source.close(); return; }
             if (e.target.readyState == EventSource.CLOSED) {
-                clearInterval(intervalLoading);
+                clearInterval(searchLoadingInterval);
                 loadingNextPage.value = false;
                 console.log("Disconnected");
             }
@@ -1356,9 +1386,6 @@ async function updateActionedArticles() {
     }
 }
 //
-// if (completedDecades.value.length > 0) {
-//     console.log(`SearchTroveView: completedDecades:%o`, JSON.stringify(completedDecades.value));
-// }
 // Initialisation
 // Get passed Data
 // console.log ('Passed Person: ', navStore.troveSearchName);

@@ -100,7 +100,7 @@ function handleMessage(e) {
             if (userData.userListArticles[sseRetrieve.updatedListIndex].length > 0) {
                 var targetList = userData.userListArticles[sseRetrieve.updatedListIndex]
                 if (cacheListArticles.length == 0) {
-                    targetList = []
+                    targetList.splice(0, targetList.length) // Empty in place so the store array updates
                 } else {
                     if (cacheListArticles.length < targetList.length) {
                         // Trim userListArticles
