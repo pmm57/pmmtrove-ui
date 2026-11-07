@@ -20,11 +20,14 @@ watch(
         () => userData.userLists?.[idxList]?.TroveListItemCount ?? 0,
         () => userData.userListArticles?.[idxList]?.[
                 (userData.userLists?.[idxList]?.TroveListItemCount ?? 0) - 1
-            ]?.TroveListArticleMinedStatus ?? 0
+            ]?.TroveListArticleMinedStatus ?? 0,
+        () => userData.userLists?.[idxList]?.TroveListLoadState
     ],
-    ([expected, lastLoadedStatus]) => {
-        console.log (`UserListView/watch expected:${expected} lastLoadedStatus:${lastLoadedStatus}`)
-        if (expected == 0 && lastLoadedStatus == 0) {
+    ([expected, lastLoadedStatus, loadState]) => {
+        console.log (`UserListView/watch expected:${expected} lastLoadedStatus:${lastLoadedStatus} loadState:${loadState}`)
+        if (expected == 0 && loadState == 'Loaded') { // Empty list finished loading
+            loadingVisible.value = false
+        } else if (expected == 0 && lastLoadedStatus == 0) {
             // Just Started to load
         }else {
             if (expected > 0 && lastLoadedStatus > 0) { // Finished Load
@@ -81,7 +84,7 @@ async function loadListArticles(firstLoad) {
         userData.userListArticles[idxList][expected - 1]
         ) {userData.userListArticles[idxList][expected - 1].TroveListArticleMinedStatus = 0
     }
-    if (userData.userListArticles?.[idxList][expected - 1]?.TroveListArticleMinedStatus == 0) loadingVisible.value = true
+    if (firstLoad === 'false' || userData.userListArticles?.[idxList][expected - 1]?.TroveListArticleMinedStatus == 0) loadingVisible.value = true
     const url = "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
     const options = {
         method: "get",
