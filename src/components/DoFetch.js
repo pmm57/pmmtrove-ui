@@ -1,5 +1,6 @@
 import { useErrorsArrayStore } from '@/stores/errorsarray'
 import { useNavBarStore } from '@/stores/navbar'
+import { useTabGuardStore } from '@/stores/tabguard'
 // Used for Timeout Check  in NavBar.vue
 function isOnRenderHost(fullUrl) {
   try {
@@ -14,6 +15,11 @@ const serverUrl = import.meta.env.VITE_SERVER_URL
 export async function useDoFetch (calledFrom, inUrl, options) {
     const errorsStore = useErrorsArrayStore()
     const navStore = useNavBarStore()
+    if (useTabGuardStore().passive) {
+        // Another tab is the active tab - make no server calls
+        console.log('useDoFetch ' + calledFrom + ' : skipped, tab is passive')
+        return false
+    }
     const noJsonResponse = ["Search",  "Delete Search", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
     const request = new Request(serverUrl + inUrl, options);
     if (isOnRenderHost(serverUrl + inUrl)) {

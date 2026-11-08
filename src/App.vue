@@ -11,6 +11,8 @@ const userData = useUserDataStore()
 import { useNavBarStore } from '@/stores/navbar'
 const navStore = useNavBarStore()
 import { getObjDiff } from '@/components/CompareObject.js';
+import { useTabGuardStore } from '@/stores/tabguard'
+const tabGuard = useTabGuardStore()
 var eventSourceUserCache = null
 const navRef = ref(null)
 const navHeight = ref(0)
@@ -273,6 +275,7 @@ function handleError(e) {
 function setupUserSse() {
     eventSourceUserCache?.close();
     eventSourceUserCache = null;
+    if (tabGuard.passive) return
     if (!!window.EventSource) {
         var streamId = 'userSSE' + userData.troveDetails.troveUserId
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/userSSE/' + streamId;
@@ -360,6 +363,10 @@ async function waitForBackend(timeoutMs = 5 * 60 * 1000) {
     var previousStatus = null;
     startDotAnimation();
     while (true) {
+        if (tabGuard.passive) {
+            stopDotAnimation()
+            return
+        }
         if (Date.now() - start > timeoutMs) {
             throw new Error("Backend startup timeout");
         }
@@ -394,6 +401,7 @@ onMounted(async () => {
     updateHeight()
     // optional: update if window resizes
     window.addEventListener('resize', updateHeight)
+    if (tabGuard.passive) return
     try {
         console.log(`App/onMounted waitForBackend`);
         // wait for backend readiness
@@ -412,6 +420,11 @@ onUnmounted(() => {
 
 <template>
     <main>
+        <div v-if="tabGuard.passive" class="center-box">
+            <h3>Trove is already open in another tab</h3>
+            <p>Close this tab and use the existing one. This tab will start automatically if the other tab is closed.</p>
+        </div>
+        <template v-else>
         <NavBar  ref="navRef"/>
         <div id="positionModals"></div>
         <div class="container-fluid  app-content">
@@ -422,6 +435,7 @@ onUnmounted(() => {
                     <RouterView />
             </div>
         </div>
+        </template>
     </main>
 </template>
 

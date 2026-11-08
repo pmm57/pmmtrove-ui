@@ -21,6 +21,7 @@ const options = {
 import App from './App.vue'
 import router from './router'
 import { createAuth0 } from '@auth0/auth0-vue'
+import { useTabGuardStore } from '@/stores/tabguard'
 
 const app = createApp(App)
 
@@ -45,4 +46,5 @@ app.use(createPinia())
 app.use(router)
 app.use(Toast, options);
 
-app.mount('#app')
+// Single active tab guard - decided before the app mounts or makes any server call
+useTabGuardStore().startGuard().finally(() => app.mount('#app'))
