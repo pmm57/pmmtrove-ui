@@ -92,7 +92,6 @@ onBeforeUnmount(() => {
     // Nothing was set up locally, so nothing to clean up
     if (!isRenderBackendBase()) return
     if (tickTimer) clearInterval(tickTimer)
-    if (storageHandler) window.removeEventListener('storage', storageHandler)
 })
 
 const logoutUser = () => {

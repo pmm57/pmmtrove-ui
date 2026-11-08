@@ -74,6 +74,18 @@ From code review, not live-tested.
   3. Server restart, then new tab: normal flow.
   4. Stop server after picking and reload: error state, nothing cleared.
 
+## Single active tab (decision, implemented)
+
+One active tab per browser; the Web Locks mechanism, takeover, stolen-lock handling and fallback are described in `doco/ui-copilot-notes.md` ("Single active tab guard"). Multi-subscriber SSE is intentionally not done and BroadcastChannel sync is not required. This supersedes the two-tab mismatch ping-pong described below for browsers with Web Locks: a second tab is passive and makes no server calls until the user clicks "Use this tab" (which keeps the session, and `adoptServerSession` reuses it).
+
+Manual test plan:
+1. Open tab A, then tab B: B shows the notice, no network calls or SSE from B.
+2. B "Use this tab": B reloads, adopts the session without the picker, A shows the notice and its SSE closes. Repeat A to B.
+3. Close the active tab: the passive tab reloads and becomes active.
+4. Reload the active tab: it re-acquires the lock and stays active.
+5. Repeat with mock auth (local) and Auth0 (including login redirect and logout).
+6. Browser without `navigator.locks` or non-HTTPS origin: guard skipped, logged.
+
 ## Important trade-offs and open questions
 
 - Session status does not hydrate Pinia by itself; `/troveUser` plus SSE does.
