@@ -40,14 +40,13 @@ Decision: one active tab per browser. Multi-subscriber SSE is intentionally not 
 
 - `src/stores/tabguard.js` uses the Web Locks API, lock name `trove-active-tab`. `main.js` runs `startGuard()` before mounting the app, so no server call, SSE or startup flow happens before the decision. It works the same for Auth0 and mock auth, and runs before login.
 - Lock granted (`ifAvailable`): the tab is ACTIVE and holds the lock with a never-resolving promise. The browser releases it on tab close or crash, so there are no stale locks.
-- Lock not granted: the tab is PASSIVE. `App.vue` shows "Trove is already open in another tab" with a "Use this tab" button, `useDoFetch` returns `false` without calling the server, and no SSE or startup flow runs. A queued lock request reloads the tab to activate it if the active tab closes.
-- "Use this tab": requests the lock with `steal: true`, then `location.reload()`. `/reset-session` is not called; the server session is kept and `adoptServerSession` reuses it.
-- Stolen lock: the old tab's lock request rejects (AbortError). It becomes passive, `App.vue` closes its EventSource (so it does not auto-reconnect), the readiness loop stops, and it shows the same notice and button.
+- Lock not granted: the tab is PASSIVE. `App.vue` shows "Trove is already open in another tab" (no takeover button; the user closes the tab and uses the existing one), `useDoFetch` returns `false` without calling the server, and no SSE or startup flow runs. A queued lock request reloads the tab to activate it if the active tab closes.
+- No takeover: stealing the lock ("Use this tab") was considered and intentionally not allowed. A passive tab never becomes active while another tab holds the lock. Edge: reloading the active tab briefly releases the lock, so a waiting passive tab may win it and the reloaded tab becomes passive.
 - Fallback: if `navigator.locks` is missing or the page is not a secure context, the guard is skipped (behaviour as before) and this is logged.
 
 ## Multi-tab behavior and trade-offs
 
-- A new tab has separate Pinia/UI state, but same-origin Auth0 local-storage state and browser cookies are shared. With the guard, only the active tab talks to the server; a takeover reloads the tab and it rehydrates from the kept session.
+- A new tab has separate Pinia/UI state, but same-origin Auth0 local-storage state and browser cookies are shared. With the guard, only the active tab talks to the server.
 - Without the guard (no Web Locks or insecure context), tabs can share a server session while holding different selected-user and data state, and logout/reset or user switching in one tab may affect another.
 
 ## Files examined / modified

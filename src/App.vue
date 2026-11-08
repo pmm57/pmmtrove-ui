@@ -289,18 +289,6 @@ function setupUserSse() {
     }
 }
 //
-// Another tab took over - stop the stream so it does not auto-reconnect and fight for it
-watch(
-    () => tabGuard.passive,
-    (passive) => {
-        if (!passive) return
-        console.log('App/tabGuard passive - close SSE and stop timers')
-        eventSourceUserCache?.close();
-        eventSourceUserCache = null;
-        stopDotAnimation()
-    }
-)
-//
 // When HomeView has verified a User Id it is saved and triggers this watcher
 //
 watch(
@@ -434,7 +422,7 @@ onUnmounted(() => {
     <main>
         <div v-if="tabGuard.passive" class="center-box">
             <h3>Trove is already open in another tab</h3>
-            <button type="button" class="btn btn-primary mt-3" @click="tabGuard.useThisTab()">Use this tab</button>
+            <p>Close this tab and use the existing one. This tab will start automatically if the other tab is closed.</p>
         </div>
         <template v-else>
         <NavBar  ref="navRef"/>

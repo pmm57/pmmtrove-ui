@@ -22,14 +22,6 @@ export const useTabGuardStore = defineStore('tabGuard', () => {
     state.value = 'passive'
     waitForActive()
   }
-  // Take the lock from the active tab - the session on the server is kept
-  function useThisTab() {
-    navigator.locks.request(LOCK_NAME, { steal: true }, () => {
-      console.log('tabGuard - took over as active tab')
-      location.reload()
-      return hold()
-    }).catch((e) => console.log('tabGuard useThisTab ended:', e?.name))
-  }
   // Called before the app mounts and before any server call
   async function startGuard() {
     if (!navigator.locks || !window.isSecureContext) {
@@ -45,12 +37,8 @@ export const useTabGuardStore = defineStore('tabGuard', () => {
         }
         becomePassive()
         resolve()
-      }).catch((e) => {
-        // Lock stolen by another tab
-        console.log('tabGuard - lock taken by another tab:', e?.name)
-        becomePassive()
       })
     })
   }
-  return { state, passive, startGuard, useThisTab }
+  return { state, passive, startGuard }
 })
