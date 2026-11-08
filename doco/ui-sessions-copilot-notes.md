@@ -58,6 +58,22 @@ Behaviour:
 
 `/reset-session` is kept for explicit logout and the mismatch case only. The server must still validate that the Trove ID belongs to the authenticated account; the UI does not rely on status alone as authorization.
 
+## Mock auth (local) behaviour
+
+From code review, not live-tested.
+
+- Locally Auth0 is off (`shouldUseAuth0` false); `src/auth/mockAuth.js` supplies the user `{ nickname, mockAuth: true }`. `adoptServerSession` compares `status.authUserName` to that nickname exactly, so the logic is identical to Auth0.
+- Mock user state is module-level refs, per tab, and not shared via localStorage. A new tab shows the mock-user picker (list from `GET /authUsers`; the picker does not appear until that succeeds, so server-down cannot be seen before picking).
+  - Same name as the session: adopts it.
+  - Different name: silent `/reset-session` mismatch path, which also wipes the other tab's server session. Two tabs on different mock users will keep resetting each other (accepted shared-session limit; BroadcastChannel sync would address it).
+- `mockAuth.logout()` only clears local refs. The server session is cleared because `NavBar.vue` `logoutUser` calls `resetUser()` before `logout()` (verified).
+- `resetUser()` clears Pinia but not the mock user ref; the flow continues with the existing watcher.
+- Local test plan:
+  1. Same mock user in two tabs: adopts, no picker.
+  2. Different mock user in tab B: reset, tab A is stale.
+  3. Server restart, then new tab: normal flow.
+  4. Stop server after picking and reload: error state, nothing cleared.
+
 ## Important trade-offs and open questions
 
 - Session status does not hydrate Pinia by itself; `/troveUser` plus SSE does.
