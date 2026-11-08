@@ -447,7 +447,7 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                     <div v-if="userData.authUserState == AuthUserState.READY">
                         <p v-if="userData.troveDetails.cacheAllArticles">{{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
                         <p v-else>No List Articles have been Cached</p>
-                        <div v-if="userData.userListsArticlesReady">
+                        <div v-if="userData.userListsArticlesReady || !userData.troveDetails.cacheAllArticles">
                             <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
                                 Your Trove Lists and Articles</button>
                         </div>
