@@ -53,7 +53,7 @@ Behaviour:
 1. Request failure or non-200: error state only (recorded by `useDoFetch`). State is never cleared, `/reset-session` is not called, and it is not treated as "no session". The startup flow stops.
 2. `valid: false`: existing flow (`POST /` linked IDs, picker, `/troveUser`).
 3. `valid` and `authUserName !== authorisedUser` (exact, case-sensitive, no normalisation): silently call `resetUser()` (`/reset-session`), restore `authorisedUser` and `UNVERIFIED`, then run the existing flow.
-4. `valid`, names match, `troveUserId` set: set it as the selected Trove user, call `/troveUser { UserId }` (matches the session), skip the picker, and let SSE hydrate. `POST /` is skipped, so `authUserTroveIds` is not loaded on this path.
+4. `valid`, names match, `troveUserId` set: first load the linked IDs with `POST /` (shared `loadLinkedTroveIds`, also used by `getUserTroveIds`) which fills `authUserTroveIds` and enables Home/Manage in the nav bar. If that request fails: error state only. If the session's `troveUserId` is not among the linked IDs: normal flow. Otherwise set it as the selected Trove user, call `/troveUser { UserId }` (matches the session), skip the picker, and let SSE hydrate.
 5. `valid`, names match, `troveUserId` null: existing flow.
 
 `/reset-session` is kept for explicit logout and the mismatch case only. The server must still validate that the Trove ID belongs to the authenticated account; the UI does not rely on status alone as authorization.
@@ -90,7 +90,7 @@ Manual test plan:
 - Session status does not hydrate Pinia by itself; `/troveUser` plus SSE does.
 - Confirm with the backend owner: session cookie scope and attributes, expiration/renewal, and `/troveUser` `newLogon` semantics.
 - Confirm CORS permits credentialed requests if UI and API are cross-origin.
-- Adopting skips `POST /`, so `authUserTroveIds` (Manage view, Change User button) is not populated on that path; decide whether to load it separately without touching the session.
+- Adopting first runs `POST /` (shared `loadLinkedTroveIds`) so `authUserTroveIds` and the nav bar are set up; the session's Trove user must be among the linked IDs, otherwise the normal flow runs.
 - Test two tabs with the same and different users/Trove IDs, including logout/reset and SSE reconnects.
 
 ## Relevant files

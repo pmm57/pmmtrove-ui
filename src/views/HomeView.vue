@@ -265,18 +265,26 @@ async function adoptServerSession(authUserName) {
         return false
     }
     if (!status.troveUserId) return false
+    // Load linked Trove IDs and nav setup as the normal flow does (Manage view and ID selector need them)
+    const linkedIds = await loadLinkedTroveIds(authUserName)
+    if (linkedIds === false) return true // Request failed - error state only
+    if (!linkedIds.some((u) => u.troveUserId != null && u.troveUserId === status.troveUserId)) {
+        console.log('HomeView/adoptServerSession Session Trove User not in linked IDs - normal flow:', status.troveUserId)
+        return false
+    }
     console.log('HomeView/adoptServerSession Adopt server session Trove User:', status.troveUserId)
     selectedTroveUserId.value = status.troveUserId // watch calls verifyTroveUser, SSE hydrates
     return true
 }
 //
-async function getUserTroveIds(authUserName) {
+// POST / for the linked Trove IDs, store them and enable the nav bar. Returns the IDs or false on failure
+async function loadLinkedTroveIds(authUserName) {
     // oauth will populate user
     currentStartMsgIndex = 0
     startMsg.value = startMsgs[currentStartMsgIndex]
     loadingInterval(tickStarting);
     errorsStore.arrayErrors = [];
-    console.log('HomeView/getUserTroveIds User-', authUserName)
+    console.log('HomeView/loadLinkedTroveIds User-', authUserName)
     const options = {
         method: "post",
         mode: "cors",
@@ -292,14 +300,18 @@ async function getUserTroveIds(authUserName) {
     };
     const data = await useDoFetch('getUserTroveIds', "/", options); // pmmtrove-servicelayer index\initTroveUser.authUserInitRouter
     clearLoadingInterval()
-    if (typeof data == 'boolean') {
-        // Verification failed
-    } else {
-        userData.authUserTroveIds = [...data]
-        // userData.verifiedAuthUserName = true
-        navStore.clearNavBar()
-        navStore.disableManage = false
-        console.log(`HomeView/getUserTroveIds Returned userData.authUserTroveIds: %s `, JSON.stringify(userData?.authUserTroveIds))
+    if (typeof data == 'boolean') return false // Verification failed
+    userData.authUserTroveIds = [...data]
+    // userData.verifiedAuthUserName = true
+    navStore.clearNavBar()
+    navStore.disableManage = false
+    console.log(`HomeView/loadLinkedTroveIds Returned userData.authUserTroveIds: %s `, JSON.stringify(userData?.authUserTroveIds))
+    return userData.authUserTroveIds
+}
+//
+async function getUserTroveIds(authUserName) {
+    const data = await loadLinkedTroveIds(authUserName)
+    if (data !== false) {
         // How many Trove User ID's are linked to this AuthUser
         const savedAuthUserTroveIds = userData.authUserTroveIds.filter((u) => u.troveUserId != null)
         console.log(`HomeView/getUserTroveIds Returned savedAuthUserTroveIds: %s `, JSON.stringify(savedAuthUserTroveIds))
@@ -434,7 +446,7 @@ console.log(`HomeView Started AuthUserState:%s`, userData.authUserState)
                     </div>
                     <div v-if="userData.authUserState == AuthUserState.READY">
                         <p v-if="userData.troveDetails.cacheAllArticles">{{ userData.nbrUserDupArticles }} Duplicates and {{ userData.nbrUserIgnoredArticles }} Ignored</p>
-                        <p v-else>No List Articles have beeen Cached</p>
+                        <p v-else>No List Articles have been Cached</p>
                         <div v-if="userData.userListsArticlesReady">
                             <button @click.prevent="refreshUserLists()" class="btn btn-primary">Refresh
                                 Your Trove Lists and Articles</button>
