@@ -961,7 +961,7 @@ function updateMetadata(action, index) {
         case 'Check':
             var savedPopover = popoverForMetadata.value;
             var clickedRowCells = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index];
-            var message = checkMetadata(clickedRowCells);
+            var message = checkMetadata(clickedRowCells, index);
             if (message.length > 0) {
                 popoverForMetadata.value = message;
                 notifyEditError.value = 'red';
@@ -995,7 +995,7 @@ function updateMetadata(action, index) {
     }
 }
 // On clicking the check edit button, do row cell edit checks
-function checkMetadata(clickedRowCells) {
+function checkMetadata(clickedRowCells, index) {
     // console.log (clickedRowCells);
     var message = ''
     // Check Different Metadata Types
@@ -1006,9 +1006,21 @@ function checkMetadata(clickedRowCells) {
         case 'EventDate':
         case 'OtherDate':
             message = checkInputDate(clickedRowCells[1]);
+            if (message.length == 0 && isDuplicateDate(clickedRowCells[1], index)) {
+                message = 'Date already selected';
+            }
             break;
     }
     return message
+}
+// True if the article publish date or another row already has the same date (EventDate and OtherDate both count)
+function isDuplicateDate(dateStr, index) {
+    var target = String(dateStr).trim();
+    var pubDate = String(userData.viewedArticles[idxViewed.value].ViewedArticlePubDate ?? '').trim().slice(0, 10);
+    if (pubDate === target) return true;
+    return userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.some(
+        (row, i) => i !== index && (row[0] === 'EventDate' || row[0] === 'OtherDate') && String(row[1]).trim() === target
+    );
 }
 //  Edit a Person Metadata
 function editPersonMetadata(stringPerson) {
