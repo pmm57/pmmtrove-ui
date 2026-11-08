@@ -9,6 +9,7 @@ import { useUserDataStore } from '@/stores/userdata'
 import { useAuth } from '@/auth'
 import { shouldUseAuth0 } from '@/auth/authMode'
 import MockLogin from '@/components/MockLogin.vue'
+import { resetUser } from '@/components/ResetUser.js'
 
 const router = useRouter();
 const navStore = useNavBarStore()
@@ -133,6 +134,7 @@ watch(user, async (u) => {
     }
     if (userData.authUserState == AuthUserState.UNVERIFIED) {
         console.log('HomeView WATCH user AuthUserState.UNVERIFIED - verifyTroveUser for user:', userData.authorisedUser)
+        if (await adoptServerSession(u.nickname)) return
         await getUserTroveIds(userData.authorisedUser)
     }
 }, { immediate: true })
@@ -236,6 +238,37 @@ watch(
         }
     }
 )
+//
+// Check for an existing server session so a new tab adopts it instead of overwriting it
+// Returns true when the existing flow must NOT continue (session adopted or status request failed)
+async function adoptServerSession(authUserName) {
+    const options = {
+        method: "get",
+        mode: "cors",
+        credentials: "include", // to send HTTP only cookies
+        headers: {
+            'Accept': 'application/json'
+        }
+    };
+    const status = await useDoFetch('sessionStatus', "/session/status", options);
+    if (typeof status == 'boolean' || typeof status?.valid !== 'boolean') {
+        // Request failed - error state only, do not clear anything or reset the session
+        console.log('HomeView/adoptServerSession Session status unavailable')
+        return true
+    }
+    if (!status.valid) return false
+    if (status.authUserName !== authUserName) {
+        console.log('HomeView/adoptServerSession Server session belongs to another user - reset')
+        await resetUser()
+        userData.authorisedUser = authUserName
+        userData.authUserState = AuthUserState.UNVERIFIED
+        return false
+    }
+    if (!status.troveUserId) return false
+    console.log('HomeView/adoptServerSession Adopt server session Trove User:', status.troveUserId)
+    selectedTroveUserId.value = status.troveUserId // watch calls verifyTroveUser, SSE hydrates
+    return true
+}
 //
 async function getUserTroveIds(authUserName) {
     // oauth will populate user
