@@ -29,7 +29,7 @@ Document the app's authentication and server-session behavior across browser tab
 - Request failure or non-200: error state only (recorded by `useDoFetch`); no state is cleared, `/reset-session` is not called, and it is not treated as "no session". The startup flow stops.
 - `valid: false`: existing flow (`POST /`, picker, `/troveUser`).
 - `valid` and `authUserName !== authorisedUser` (exact, case-sensitive): silently call `resetUser()` (`/reset-session`), restore `authorisedUser`/`UNVERIFIED`, then run the existing flow.
-- `valid`, names match, `troveUserId` set: set it as the selected Trove user, which calls `/troveUser { UserId }`, skips the picker, and SSE hydrates the tab. `POST /` is skipped, so `authUserTroveIds` is not loaded on this path.
+- `valid`, names match, `troveUserId` set: load linked IDs via `POST /` (shared `loadLinkedTroveIds`: sets `authUserTroveIds`, enables Home/Manage nav). Request failure is error-only; if the session's Trove user is not in the linked IDs, run the normal flow. Otherwise set it as the selected Trove user, which calls `/troveUser { UserId }`, skips the picker, and SSE hydrates the tab.
 - `valid`, names match, `troveUserId` null: existing flow.
 
 `/reset-session` is otherwise used only for explicit logout.
