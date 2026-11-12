@@ -1583,8 +1583,11 @@ onMounted(() => {
     </div>
     <div v-if="!showSearchToggle" class="card">
         <div v-if="loading" class="container-fluid">
-            <div class="card-body">
+            <div class="card-body d-flex align-items-center gap-2">
                 {{ loadingText }}
+                <div class="spinner-border text-dark spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         </div>
         <div v-else class="card-body">
@@ -1620,7 +1623,7 @@ onMounted(() => {
                     <div id="actionButtons">
                         <button v-if="actionButtonText.length > 0" @click.prevent="updateActionedArticles()" type="button" class="btn btn-primary ms-2"
                             :disabled="disableUpdateIgnored || waitUpdateIgnored">
-                            {{ waitUpdateIgnored ? "Saving..." : actionButtonText }}
+                            <span v-if="waitUpdateIgnored" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>{{ waitUpdateIgnored ? "Saving..." : actionButtonText }}
                         </button>
                         <div v-if="undoHistory.length > 0" class="d-inline-flex align-items-center ms-2">
                             <select v-model="selectedUndoAction" class="form-select w-auto" aria-label="Select action to undo"
