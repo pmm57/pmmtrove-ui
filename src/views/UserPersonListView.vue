@@ -891,7 +891,7 @@ initScreen('');
                                     class="card-body">
                                     <span>Other Linked Articles </span>
                                     <ArticleUrls
-                                        :key="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.map(a => a.idxViewedArticle).join(',')"
+                                        :key="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray.map(a => `${a.troveListId}-${a.troveArticleId}-${a.idxViewedArticle}`).join(',')"
                                         :inline="true"
                                         :articleListArray="userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata[navStore.savedPerson.personIndex].articleListArray">
                                     </ArticleUrls>

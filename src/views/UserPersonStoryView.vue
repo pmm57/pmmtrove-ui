@@ -53,7 +53,8 @@ const personDob = strPersonDob.length == 0 ? 0 : Number(strPersonDob)
 console.log('UserPersonStoryView Person DOB, Reference', personDob, navStore.savedPerson.readRefInfo);
 console.log('UserPersonStoryView Events Articles', JSON.stringify(storyEvents.value.map((el) => el.articleId)));
 for (let event of storyEvents.value) {
-    const viewedIdx = userData.viewedArticles.findIndex((el) => el.ViewedArticleId == event.articleId)
+    const viewedIdx = userData.viewedArticles.findIndex((el) =>
+        el.ViewedArticleId == event.articleId && el.ViewedArticleListId == event.listId)
     if (viewedIdx == -1) {
         console.log('UserPersonStoryView/updateFromViewedArticles Event article not found in Viewed Articles ', JSON.stringify(event));
         continue
@@ -79,7 +80,9 @@ function updateStory() {
         oldPersonData.storyStatus = 'Create'
     }
     const updateEvents = {
-        "updatedEvents": storyEvents.value.map((el) => ({ articleId: el.articleId, include: el.include })),
+        "updatedEvents": storyEvents.value.map((el) => ({
+            listId: el.listId, articleId: el.articleId, include: el.include
+        })),
         "chgPersonStoryShowWhat": storyShowWhat.value
     }
     useSavePersonData('Save Story', oldPersonData, updateEvents);
@@ -99,7 +102,9 @@ function updateViewedArticleTrigger(updatingIdx) {
     console.log(`UserPersonStoryView/updateViewedArticleTrigger Watch Trigger `, updatingIdx);
     const viewedArticle = userData.viewedArticles[updatingIdx]
     // console.log(`UserPersonStoryView/updateViewedArticleTrigger viewedArticle `, JSON.stringify(viewedArticle));
-    const eventIdx = storyEvents.value.findIndex((el) => el.articleId == viewedArticle.ViewedArticleId)
+    const eventIdx = storyEvents.value.findIndex((el) =>
+        el.articleId == viewedArticle.ViewedArticleId &&
+        el.listId == viewedArticle.ViewedArticleListId)
     if (eventIdx == -1) return
     updateEventFromViewedArticle(storyEvents.value[eventIdx], viewedArticle)
 }
@@ -200,7 +205,9 @@ function getTroveUrlWithText (event, viewedArticle) {
 }
 //
 function updateInclude(action, index) {
-    const storyIdx = storyEvents.value.findIndex(e => e.articleId == filteredEvents.value[index].articleId)
+    const storyIdx = storyEvents.value.findIndex(e =>
+        e.articleId == filteredEvents.value[index].articleId &&
+        e.listId == filteredEvents.value[index].listId)
     console.log(`UserPersonStory/updateInclude index %s Filtered Line %s`, storyIdx, JSON.stringify(filteredEvents.value[index]))
     switch (action) {
         case 'Include':
@@ -671,7 +678,7 @@ async function createPdf(mode) {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(article, index) in filteredEvents" :key="article.articleId">
+                    <tr v-for="(article, index) in filteredEvents" :key="`${article.listId}-${article.articleId}`">
                         <td class="text-center">
                             <EditItem v-if="article.include" @click-item="updateInclude('Exclude', index)"
                                 action="Included" icon="bi-check-square" />

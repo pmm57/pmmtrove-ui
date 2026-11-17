@@ -1288,18 +1288,25 @@ function waitStoredArticles() {
                     continue
                 }
                 if (item.listId != null) {
-                    searchResults.value[idx].dbListId = item.listId;
-                    // console.log(`SearchTroveView/waitStoredArticles List:%s `, JSON.stringify(userData.userLists[3]));
                     const idxList = userData.userLists.findIndex((list) => list.TroveListId == item.listId);
-                    console.log(`SearchTroveView/waitStoredArticles ListId:%s idxList:%s`, item.listId, idxList);
-                    if (idxList !== -1) searchResults.value[idx].listName = userData.userLists[idxList].TroveListName;
-                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s ListId:%s Name:%s`, item.articleId, item.listId, searchResults.value[idx].listName);
-                } else {
-                    searchResults.value[idx].dbListId = -100;
-                    searchResults.value[idx].listName = 'Not in a List';
-                    searchResults.value[idx].status = 'New';
-                    countSearchResults();
-                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s Not in List`, item.articleId);
+                    const knownLists = searchResults.value[idx].knownLists;
+                    const knownListIdx = knownLists.findIndex((list) => list.listId == item.listId);
+                    const viewedIndex = knownListIdx === -1
+                        ? userData.viewedArticles.findIndex((article) =>
+                            article.ViewedArticleListId == item.listId &&
+                            article.ViewedArticleId == item.articleId)
+                        : knownLists[knownListIdx].viewedIndex;
+                    const knownList = {
+                        listId: item.listId,
+                        listName: userData.userLists[idxList].TroveListName,
+                        viewedIndex
+                    };
+                    if (knownListIdx === -1) {
+                        knownLists.push(knownList);
+                    } else {
+                        knownLists.splice(knownListIdx, 1, knownList);
+                    }
+                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s ListId:%s Name:%s`, item.articleId, item.listId, knownList.listName);
                 }
             }
             //
@@ -1711,26 +1718,36 @@ onMounted(() => {
                                 {{ row.date }}
                             </td>
                             <!-- Article Id -->
-                            <td v-if="row.viewedIndex > -1">
-                                <ArticleUrls :key="row.viewedIndex" :inline="false"
-                                    :articleListArray="[{ idxViewedArticle: row.viewedIndex, troveListId: row.dbListId, troveArticleId: row.id }]">
-                                    ></ArticleUrls>
-                            </td>
-                            <td v-else-if="row.dbListId != 0">
-                                {{ row.id }}
-                                <p v-if="row.dbListId < 0">
-                                    {{ row.listName }}
-                                </p>
-                                <a href="#" v-else-if="haveListLink(row.dbListId)"
-                                    @click.prevent="openList(row.dbListId)">
-                                    <br>{{ row.listName }}
-                                </a>
-                                <p v-else>
-                                    {{ row.listName }}
-                                </p>
-                            </td>
-                            <td v-else>
-                                {{ row.id }}
+                            <td>
+                                <template v-if="row.knownLists.length > 0">
+                                    <div v-for="listEntry in row.knownLists"
+                                        :key="`${row.id}-${listEntry.listId}`">
+                                        <ArticleUrls v-if="listEntry.viewedIndex > -1"
+                                            :key="`${row.id}-${listEntry.listId}-${listEntry.viewedIndex}`"
+                                            :inline="false"
+                                            :articleListArray="[{ idxViewedArticle: listEntry.viewedIndex, troveListId: listEntry.listId, troveArticleId: row.id }]">
+                                        </ArticleUrls>
+                                        <template v-else-if="listEntry.listId != 0">
+                                            {{ row.id }}
+                                            <p v-if="listEntry.listId < 0">
+                                                {{ listEntry.listName }}
+                                            </p>
+                                            <a href="#" v-else-if="haveListLink(listEntry.listId)"
+                                                @click.prevent="openList(listEntry.listId)">
+                                                <br>{{ listEntry.listName }}
+                                            </a>
+                                            <p v-else>
+                                                {{ listEntry.listName }}
+                                            </p>
+                                        </template>
+                                        <template v-else>
+                                            {{ row.id }}
+                                        </template>
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    {{ row.id }}
+                                </template>
                             </td>
                             <!-- Known -->
                             <td>

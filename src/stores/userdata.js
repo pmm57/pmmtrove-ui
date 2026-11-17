@@ -64,7 +64,7 @@ export const useUserDataStore = defineStore('userData', () => {
     const updatingViewedArticleIdx = ref(0)
     const viewedArticles = ref([])
     // viewedArticles FROM displayedArticles = []; => 
-    // ViewedArticleId FROM TroveArticleId
+    // Identity is ViewedArticleListId + ViewedArticleId
     // ViewedArticleLastTroveUpdated FROM TroveArticleLastUpdated
     // ViewedArticleLastTroveUpdatedText added June 2025 DUmmy daye / troveArticle.lastCorrection.lastupdated / Latest List Updated Date
     // ViewedArticleDbUpdateDateText added June 2025 - Date time updated in DB

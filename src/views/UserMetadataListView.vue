@@ -190,7 +190,7 @@ function flipStoryPrimaryEvent(idxValue) {
                         </div>
                         <div v-show="flagMetadataValue[idxValue]" class="card-body ml-3 px-0 py-0">
                             <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;</span>
-                            <ArticleUrls :key="value.articleListArray.map(a => a.idxViewedArticle).join(',')"
+                            <ArticleUrls :key="value.articleListArray.map(a => `${a.troveListId}-${a.troveArticleId}-${a.idxViewedArticle}`).join(',')"
                                 :inline="true" :articleListArray="[...value.articleListArray]">
                             </ArticleUrls>
                         </div>

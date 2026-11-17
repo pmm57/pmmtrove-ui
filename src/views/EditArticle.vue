@@ -27,7 +27,9 @@ const articleRef = ref(null);
 const troveArticleRef = ref(null);
 // Has it been viewed previously
 const idxViewed = ref(0)
-idxViewed.value = userData.userListArticles[idxList.value][idxListArticle.value].TroveListArticleViewedIdx
+idxViewed.value = userData.viewedArticles.findIndex((viewedArticle) =>
+    viewedArticle.ViewedArticleListId == navStore.listId &&
+    viewedArticle.ViewedArticleId == navStore.articleId)
 console.log(`EditArticle Start navStore.articleid:%s ListIdx:%s ListArticleIdx:%s ListArticleViewdIdx:%s  ViewedArticleId:%s`,
    navStore.articleId, idxList.value, idxListArticle.value, idxViewed.value, userData.viewedArticles[idxViewed.value].ViewedArticleId )
 // console.log(`userData.viewedArticles:%s`, userData.viewedArticles)
@@ -888,7 +890,7 @@ watch(() => userData.viewedArticles[idxViewed.value], () => {
 })
 //  reloaded
 watch(() => userData.reloadedViewedArticle, () => {
-    console.log('EditAticle/Watch reloadedViewedArticle')
+    console.log('EditArticle/Watch reloadedViewedArticle')
     disableUpdate.value = false
     if (userData.viewedArticles[idxViewed.value].ViewedArticleNote.length > 0) useViewedArticleNote ()
 })
