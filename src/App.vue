@@ -182,7 +182,9 @@ function handleMessage(e) {
                 userData.updatingViewedArticleIdx, sseRetrieve.cacheViewedArticle.ViewedArticleMetadata)
             break
         case 'sseArticlePossibleDupArticle':
-            articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
+            articleIdx = userData.viewedArticles.findIndex((item) =>
+                item.ViewedArticleId === sseRetrieve.viewedArticleId &&
+                item.ViewedArticleListId == sseRetrieve.viewedArticleListId);
             // console.log ('App/sseArticlePossibleDupArticle', JSON.stringify(sseRetrieve))
             userData.viewedArticles[articleIdx].ViewedArticlePossibleDupArticle = sseRetrieve.cacheViewedArticlePossibleDupArticle
             break
@@ -191,7 +193,9 @@ function handleMessage(e) {
             // Update List Article Status
             updAListArticle(sseRetrieve.viewedListId, sseRetrieve.viewedArticleId, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatus, sseRetrieve.cacheViewedArticle.ViewedArticleMinedStatusText)
             // Update Viewed Article
-            articleIdx = userData.viewedArticles.findIndex((item) => item.ViewedArticleId === sseRetrieve.viewedArticleId);
+            articleIdx = userData.viewedArticles.findIndex((item) =>
+                item.ViewedArticleId === sseRetrieve.viewedArticleId &&
+                item.ViewedArticleListId == sseRetrieve.viewedListId);
             if (articleIdx < 0) { // New Viewed Article
                 // console.log("sseReloadViewedArticle userData New Viewed Article", sseRetrieve.cacheViewedArticle)
                 articleIdx = userData.viewedArticles.length;

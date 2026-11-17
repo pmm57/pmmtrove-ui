@@ -43,7 +43,7 @@ articleUrls.sort(compareFn);
 </script>
 //
 <template>
-    <template v-for="(articleLink, index) in articleUrls" :key="articleLink.troveArticleId">
+    <template v-for="(articleLink, index) in articleUrls" :key="`${articleLink.troveListId}-${articleLink.troveArticleId}`">
         <a v-if="articleLink.idxViewedArticle > -1" href="#" @click.prevent="openArticle(articleLink)">
             {{ articleLink.troveListArticleId }}
         </a>

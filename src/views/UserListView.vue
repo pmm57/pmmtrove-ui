@@ -46,10 +46,16 @@ function linkArticle(article) {
     if (article.TroveListArticleViewedIdx === undefined || article.TroveListArticleViewedIdx < 0) {
         haveLink = false;
     } else {
-        const viewedArticle = userData.viewedArticles[article.TroveListArticleViewedIdx]
+        const viewedArticle = getViewedArticle(article)
         if (viewedArticle.ViewedArticleIgnored) articleLink = 'Ignored:' + article.TroveListArticleId
     }
     return haveLink;
+}
+//
+function getViewedArticle(article) {
+    return userData.viewedArticles.find((viewedArticle) =>
+        viewedArticle.ViewedArticleListId == userData.userLists[idxList].TroveListId &&
+        viewedArticle.ViewedArticleId == article.TroveListArticleId)
 }
 //
 function statusColour(status) {
@@ -102,7 +108,7 @@ function getArticleTitle(article) {
     // Needs to have been read into viewedArticles
     if (article.TroveListArticleViewedIdx === null || article.TroveListArticleViewedIdx < 0) return article.TroveListArticleHeading;
     //
-    const viewedArticle = userData.viewedArticles[article.TroveListArticleViewedIdx];
+    const viewedArticle = getViewedArticle(article);
     // console.log('UserListView/getArticleTitle - viewedArticle ', JSON.stringify(viewedArticle))
     if ((viewedArticle.hasOwnProperty("ViewedArticleSummaryText")) && (viewedArticle.ViewedArticleSummaryText.length > 0)) {
         // console.log('Article Title - SUmmary Text ', viewedArticle.ViewedArticleSummaryText)
