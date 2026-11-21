@@ -733,6 +733,9 @@ function displayPersonInfo(mv) {
     }
     return showPersonInfo
 }
+function hasBirthAndDeathYears(personName) {
+    return /\bb\.\s*\d{4}\b/i.test(personName) && /\bd\.\s*\d{4}\b/i.test(personName)
+}
 // Initaliase
 initScreen('');
 // console.log("UserPersonListView - persons ", userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata);
@@ -815,7 +818,7 @@ initScreen('');
                             <div v-show="showEditPersonAction" class="col">
                                 <div v-show="!showDeletePersonAction" class="card">
                                     <button @click.prevent="personStory()" class="btn btn-primary"
-                                        :disabled="['Generating', 'None', 'Loading'].indexOf(navStore.savedPerson.personStoryStatus) > -1">{{
+                                        :disabled="['Generating', 'None', 'Loading'].indexOf(navStore.savedPerson.personStoryStatus) > -1 || !hasBirthAndDeathYears(navStore.savedPerson.readName)">{{
                                             navStore.savedPerson.personStoryStatus }} {{ personStoryText }}</button>
                                     <button v-if="readArticlesText.length > 0" class="btn btn-primary">
                                         <span>{{ readArticlesText }}</span>
