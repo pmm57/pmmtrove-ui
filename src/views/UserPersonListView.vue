@@ -110,7 +110,7 @@ function setPersonNameActions(showActions) {
             showActions += ' delete';
         };
     };
-    console.log('UserPersonListView/setPersonNameAction ' + showActions);
+    // console.log('UserPersonListView/setPersonNameAction ' + showActions);
     if (showActions.includes("start")) {
         showDefaultPersonAction.value = true
     } else {
@@ -455,8 +455,8 @@ function delRelativeClick(idxRelation) {
 //
 function chgPerson(preChgDetails, chgDetails, firstCall) {
     // Could be ADD or CHG
-    console.log('UserPersonListView/chgPerson Pre-Change ', JSON.stringify(preChgDetails));
-    console.log('UserPersonListView/chgPerson Changed ', JSON.stringify(chgDetails));
+    // console.log('UserPersonListView/chgPerson Pre-Change ', JSON.stringify(preChgDetails));
+    // console.log('UserPersonListView/chgPerson Changed ', JSON.stringify(chgDetails));
     //
     if ((firstCall) && (partners.value.length > 0)) {
         // Check Partners Array for any changes
@@ -493,8 +493,8 @@ function chgPerson(preChgDetails, chgDetails, firstCall) {
                 return;
             }
             chgDetails.chgRelated = clnRelated;
-            console.log('UserPersonListView/chgPerson Pre-Change ', JSON.stringify(preChgDetails));
-            console.log('UserPersonListView/chgPerson Changed Details', JSON.stringify(chgDetails));
+            // console.log('UserPersonListView/chgPerson Pre-Change ', JSON.stringify(preChgDetails));
+            // console.log('UserPersonListView/chgPerson Changed Details', JSON.stringify(chgDetails));
             if (chgDetails.chgLinkedListId != preChgDetails.linkedListId) {
                 if (chgDetails.chgLinkedListId == 0) {
                     userData.userLists[linkedListIdx.value].TroveListLinkedPerson = ''
@@ -572,7 +572,7 @@ function personStory() {
 function handleLoadStoryMessage(e, intervalLoadPersonStory, idxPerson) {
     readArticlesText.value = ''
     var returnedData = JSON.parse(e.data);
-    console.log('UserPersonListView/handleLoadStoryMessage Return Load Person Story', JSON.stringify(returnedData), userData.troveDetails.troveUserId, idxPerson);
+    // console.log('UserPersonListView/handleLoadStoryMessage Return Load Person Story', JSON.stringify(returnedData), userData.troveDetails.troveUserId, idxPerson);
     personStoryText.value = 'Person Story'
     // Check this message is for this User and Person
     if ((returnedData.checkUserId != userData.troveDetails.troveUserId) || (returnedData.personIdx != idxPerson)) {
@@ -593,7 +593,7 @@ function handleLoadStoryMessage(e, intervalLoadPersonStory, idxPerson) {
 //
 function handleProgressMessage(e) {
     var returnedData = JSON.parse(e.data);
-    console.log('UserPersonListView/handleProgressMessage ', JSON.stringify(returnedData));
+    // console.log('UserPersonListView/handleProgressMessage ', JSON.stringify(returnedData));
     personStoryText.value.replace('.', '')
     readArticlesText.value = returnedData.progressText
 }
@@ -601,9 +601,9 @@ function handleProgressMessage(e) {
 function editPersonStory() {
     navStore.savedPerson.personStoryStatus = "Editing"
     navStore.disablePersonStory = false
-    console.log(`UserPersonListView/editPersonStory - Person - %s Events %s`,
-        JSON.stringify(navStore.savedPerson), JSON.stringify(userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx]));
-    console.log(`UserPersonListView/editPersonStory storyShowWhat %s`, navStore.savedPerson.storyShowWhat)
+    // console.log(`UserPersonListView/editPersonStory - Person - %s Events %s`,
+    //     JSON.stringify(navStore.savedPerson), JSON.stringify(userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx]));
+    // console.log(`UserPersonListView/editPersonStory storyShowWhat %s`, navStore.savedPerson.storyShowWhat)
     router.push({ name: 'userPersonStory' });
 }
 //
@@ -664,7 +664,7 @@ function initPersonScreen() {
         if (navStore.savedPerson.personStoryStatus == 'None') navStore.savedPerson.personStoryStatus = 'Create'
     }
     if (navStore.savedPerson.personStoryIdx > -1) navStore.savedPerson.personStoryStatus = 'Review'
-    console.log(`UserPersonListView/initPersonScreen Load Person %s %s`, linkedListIdx.value, JSON.stringify(navStore.savedPerson));
+    // console.log(`UserPersonListView/initPersonScreen Load Person %s %s`, linkedListIdx.value, JSON.stringify(navStore.savedPerson));
     setPersonActions('');
     updatePerson.chgName = navStore.savedPerson.readName;
     updatePerson.chgRefInfo = navStore.savedPerson.readRefInfo;
@@ -692,7 +692,7 @@ function initPersonScreen() {
     showEditPersonName.value = false;
     setPersonNameActions('');
     // Load partner details
-    console.log('UserPersonListView/initPersonScreen Load Person Partners', JSON.stringify(partners.value));
+    //  console.log('UserPersonListView/initPersonScreen Load Person Partners', JSON.stringify(partners.value));
     for (var idx = 0; idx < partners.value.length; ++idx) {
         loadPerson(partners.value[idx].personIndex, idx);
     };
@@ -732,6 +732,9 @@ function displayPersonInfo(mv) {
         showPersonInfo = start + 'Unused]'
     }
     return showPersonInfo
+}
+function hasBirthAndDeathYears(personName) {
+    return /\bb\.\s*\d{4}\b/i.test(personName) && /\bd\.\s*\d{4}\b/i.test(personName)
 }
 // Initaliase
 initScreen('');
@@ -815,7 +818,7 @@ initScreen('');
                             <div v-show="showEditPersonAction" class="col">
                                 <div v-show="!showDeletePersonAction" class="card">
                                     <button @click.prevent="personStory()" class="btn btn-primary"
-                                        :disabled="['Generating', 'None', 'Loading'].indexOf(navStore.savedPerson.personStoryStatus) > -1">{{
+                                        :disabled="['Generating', 'None', 'Loading'].indexOf(navStore.savedPerson.personStoryStatus) > -1 || !hasBirthAndDeathYears(navStore.savedPerson.readName)">{{
                                             navStore.savedPerson.personStoryStatus }} {{ personStoryText }}</button>
                                     <button v-if="readArticlesText.length > 0" class="btn btn-primary">
                                         <span>{{ readArticlesText }}</span>
