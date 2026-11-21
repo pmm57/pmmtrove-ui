@@ -56,7 +56,7 @@ for (let event of storyEvents.value) {
     const viewedIdx = userData.viewedArticles.findIndex((el) =>
         el.ViewedArticleId == event.articleId && el.ViewedArticleListId == event.listId)
     if (viewedIdx == -1) {
-        console.log('UserPersonStoryView/updateFromViewedArticles Event article not found in Viewed Articles ', JSON.stringify(event));
+        // console.log('UserPersonStoryView/updateFromViewedArticles Event article not found in Viewed Articles ', JSON.stringify(event));
         continue
     }
     const viewedArticle = userData.viewedArticles[viewedIdx]
