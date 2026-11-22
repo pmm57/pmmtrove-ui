@@ -28,6 +28,7 @@ var savedTroveId = {}
 var disableUpdate = ref(true)
 var actioningUpdate = ref(false)
 var localAuthUserTroveIds = ref([])
+const metadataTroveUserId = Symbol('metadataTroveUserId')
 var chgAuthUserTroveIds = []
 //    [{
 //         authUserName: '',
@@ -36,6 +37,9 @@ var chgAuthUserTroveIds = []
 //         action: 'ADDLINK'/'DELLINK'/'CHG'
 //     }]
 localAuthUserTroveIds.value = JSON.parse(JSON.stringify(userData.authUserTroveIds))
+localAuthUserTroveIds.value.forEach(item => {
+    item[metadataTroveUserId] = item.troveUserId
+})
 console.log(`ManageView Start %s`, JSON.stringify(localAuthUserTroveIds.value))
 notifyEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTroveIds.value.length).fill("inherit"));
 popoverEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTroveIds.value.length).fill(""));
@@ -206,7 +210,12 @@ async function saveData() {
     actioningUpdate.value = true
     // Only Send ones that have changed
     var updatedData = {
-        'chgAuthUserTroveIds': chgAuthUserTroveIds
+        'chgAuthUserTroveIds': chgAuthUserTroveIds.map(item => {
+            const changedItem = { ...item }
+            delete changedItem.userCorrelationId
+            delete changedItem.latestInteractionNumber
+            return changedItem
+        })
     }
     // console.log (updatedData);
     const options = {
@@ -246,6 +255,9 @@ async function saveData() {
         }
     }
     localAuthUserTroveIds.value = JSON.parse(JSON.stringify(authUserInf.authUsers))
+    localAuthUserTroveIds.value.forEach(item => {
+        item[metadataTroveUserId] = item.troveUserId
+    })
     userData.authUserTroveIds = JSON.parse(JSON.stringify(localAuthUserTroveIds.value))
     //
     
@@ -254,7 +266,7 @@ async function saveData() {
 }
 </script>
 <template>
-    <div class="card col-sm-5 border-0 mx-auto text-center">
+    <div class="card col-sm-8 border-0 mx-auto text-center">
         <div>
             <h1>Overview</h1>
             <h2>About Trove Data Miner</h2>
@@ -280,14 +292,18 @@ async function saveData() {
             <div class="card text-center">
                 <table class="table table-bordered trove-table">
                 <colgroup>
-                    <col style="width: 30%">
-                    <col style="width: 20%">
-                    <col style="width: 50%">
-                    <col style="width: 20%">
+                    <col style="width: 18%">
+                    <col style="width: 14%">
+                    <col style="width: 14%">
+                    <col style="width: 13%">
+                    <col style="width: 26%">
+                    <col style="width: 15%">
                 </colgroup>
                     <thead class="mbhead">
                         <tr class="mbrow">
                             <th>Trove Id</th>
+                            <th>Correlation ID</th>
+                            <th>Latest Interaction</th>
                             <th>Cache Articles</th>
                             <th>Trove Api Key</th>
                             <th>Actions</th>
@@ -303,6 +319,12 @@ async function saveData() {
                                             <span v-if="popoverForCheckTroveIdError.length > 0" class="tooltiptext">{{ popoverForCheckTroveIdError }}</span>
                                         </div>
                                     </td>
+                                    <td>{{ troveId.troveUserId && troveId.troveUserId === troveId[metadataTroveUserId] && troveId.userCorrelationId != null
+                                        ? 'cr' + String(troveId.userCorrelationId).padStart(4, '0')
+                                        : '' }}</td>
+                                    <td>{{ troveId.troveUserId && troveId.troveUserId === troveId[metadataTroveUserId]
+                                        ? troveId.latestInteractionNumber
+                                        : '' }}</td>
                                     <td> <!-- Cache All Articles -->
                                         <div>
                                             <input class="form-check-input" type="checkbox" v-model="troveId.cacheAllArticles" placeholder="Flip Cache All Articles">
@@ -321,6 +343,12 @@ async function saveData() {
                                 </template>
                                 <template v-else>
                                     <td>{{ troveId.troveUserId }}</td>
+                                    <td>{{ troveId.troveUserId && troveId.troveUserId === troveId[metadataTroveUserId] && troveId.userCorrelationId != null
+                                        ? 'cr' + String(troveId.userCorrelationId).padStart(4, '0')
+                                        : '' }}</td>
+                                    <td>{{ troveId.troveUserId && troveId.troveUserId === troveId[metadataTroveUserId]
+                                        ? troveId.latestInteractionNumber
+                                        : '' }}</td>
                                     <td>{{ troveId.cacheAllArticles }}</td>
                                     <td>{{ troveId.troveUserApiKey }}</td>
                                     <td>
@@ -333,6 +361,12 @@ async function saveData() {
                                         popoverEditErrors[0][index]
                                         }}</span>
                                 </td>
+                                <td>{{ troveId.troveUserId && troveId.troveUserId === troveId[metadataTroveUserId] && troveId.userCorrelationId != null
+                                    ? 'cr' + String(troveId.userCorrelationId).padStart(4, '0')
+                                    : '' }}</td>
+                                <td>{{ troveId.troveUserId && troveId.troveUserId === troveId[metadataTroveUserId]
+                                    ? troveId.latestInteractionNumber
+                                    : '' }}</td>
                                 <td>{{ troveId.cacheAllArticles }}</td>
                                 <td :style="{ 'background-color': notifyEditErrors[1][index] }">{{ troveId.troveUserApiKey
                                     }}
