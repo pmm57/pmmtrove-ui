@@ -198,8 +198,9 @@ function btnCompletedDecade(decadeSearch) {
 }
 // Combine the per-year saved searches covering this decade into one decade search, merging their results
 async function searchCompletedDecade(decadeSearch) {
+    const uiId = userData.getNextInteractionId()
     const searchFields = JSON.parse(decadeSearch);
-    console.log(`SearchTroveView/searchCompletedDecade: Combining searches for decade ${searchFields.searchLimitDecade}0s`);
+    console.log(`SearchTroveView/searchCompletedDecade ${uiId} Combining searches for decade ${searchFields.searchLimitDecade}0s`);
     // Populate screen search fields with values from decadeSearch and invoke getSearch to get a single search object
     searchFor.value = searchFields.searchString;
     allStates.value = searchFields.searchAllStates;
@@ -212,7 +213,7 @@ async function searchCompletedDecade(decadeSearch) {
     showLimitYear.value = false;
     limitYear.value = '';
     const thisDecadeSearch = getSearch();
-    console.log(`SearchTroveView/searchCompletedDecade: thisDecadeSearch: %o`, thisDecadeSearch);
+    console.log(`SearchTroveView/searchCompletedDecade ${uiId} thisDecadeSearch: %o`, thisDecadeSearch);
     // Merge article results from all the year searches
     // Each search covers a single year, so no article can appear in more than one search - no de-duplication needed
     const decadeSearches = savedSearchesWithStats.value.filter(row => {
@@ -221,7 +222,7 @@ async function searchCompletedDecade(decadeSearch) {
         const rowKey = JSON.stringify(row.searchFields, ['searchString', 'searchAllStates', 'searchLimitState', 'searchLimitDecade']);
         return rowKey === decadeSearch;
     });
-    console.log(`SearchTroveView/searchCompletedDecade: decadeSearches: %o`, decadeSearches);
+    console.log(`SearchTroveView/searchCompletedDecade ${uiId} decadeSearches: %o`, decadeSearches);
     // Merge article results from all the year searches
     // Each search covers a single year, so no article can appear in more than one search - no de-duplication needed
     const mergedArticles = decadeSearches.flatMap(row => row.searchArticlesIdStatus ?? []);
@@ -233,7 +234,7 @@ async function searchCompletedDecade(decadeSearch) {
         searchTotalFound: mergedArticles.length,
         searchArticlesIdStatus: mergedArticles
     }
-    console.log(`SearchTroveView/searchCompletedDecade: Saved Decade Search: %s %o %s %o Nbr articles:%s`,
+    console.log(`SearchTroveView/searchCompletedDecade ${uiId} Saved Decade Search: %s %o %s %o Nbr articles:%s`,
     savedDecadeSearch.searchId, JSON.stringify(savedDecadeSearch.searchFields), savedDecadeSearch.searchTotalFound, 
     JSON.stringify(mergedSearchIds), savedDecadeSearch.searchArticlesIdStatus.length);
     //
@@ -247,12 +248,13 @@ async function searchCompletedDecade(decadeSearch) {
         },
         //make sure to serialize your JSON body
         body: JSON.stringify({
+            uiInteractionId: uiId,
             combinedDecadeSearch: savedDecadeSearch,
             deleteSearchIds: mergedSearchIds
         })
     };
     combiningDecade.value = decadeSearch;
-    const data = await useDoFetch('Save Combined Search', "/searchTrove/saveCombinedSearch", options);
+    const data = await useDoFetch('Save Combined Search', "/searchTrove/saveCombinedSearch", options, uiId);
     if (typeof data == 'boolean') {
         // Error response - leave spinner active
         return;
@@ -288,6 +290,8 @@ const savedSearchesWithStats = computed(() =>
 );
 //
 function sortBy(column) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`SearchTroveView/sortBy ${uiId}`, column)
     if (sortColumn.value === column) {
         sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
     } else {
@@ -349,10 +353,11 @@ function onSavedSearchesToggle(event) {
 }
 //
 function checkSearchPhrase() {
-    console.log('SearchTroveView/checkSearchPhrase', searchPhrase.value);
+    const uiId = userData.getNextInteractionId()
+    console.log(`SearchTroveView/checkSearchPhrase ${uiId}`, searchPhrase.value);
     var isPhrase = false;
     if (searchFor.value.includes(' ')) {
-        console.log('SearchTroveView/checkSearchPhrase isPhrase');
+        console.log(`SearchTroveView/checkSearchPhrase ${uiId} isPhrase`);
         isPhrase = true;
     }
     if (searchPhrase.value) {
@@ -377,7 +382,8 @@ function checkSearchPhrase() {
 }
 //
 function checkIfLimitState() {
-    console.log ("SearchTroveView/checkIfLimitState All States:", allStates.value)
+    const uiId = userData.getNextInteractionId()
+    console.log (`SearchTroveView/checkIfLimitState ${uiId} All States:`, allStates.value)
     if (allStates.value) {
         limitState.value = "";
     } else {
@@ -387,7 +393,8 @@ function checkIfLimitState() {
 }
 //
 function checkIfAllYears() {
-    console.log ("SearchTroveView/checkIfAllYears All Years:", allYears.value)
+    const uiId = userData.getNextInteractionId()
+    console.log (`SearchTroveView/checkIfAllYears ${uiId} All Years:`, allYears.value)
     if (allYears.value) {
         limitDecade.value = "";
         showLimitToDecade.value = false;
@@ -406,11 +413,12 @@ function checkIfAllYears() {
 }
 //
 function checkLimitDecade () {
+    const uiId = userData.getNextInteractionId()
     // Populate with years of decade
-    console.log ("SearchTroveView/checkLimitDecade ", limitDecade.value)
+    console.log (`SearchTroveView/checkLimitDecade ${uiId} `, limitDecade.value)
     updateLimitYears()
     // limitYear.value = limitYears.value[0]
-    console.log ("SearchTroveView/checkLimitDecade limitYears ", limitYears.value)
+    console.log (`SearchTroveView/checkLimitDecade ${uiId} limitYears `, limitYears.value)
     searchAllDecadeYears.value = true;
     showLimitYear.value = false
     changeSearch()
@@ -424,6 +432,8 @@ function updateLimitYears() {
 }
 //
 function checkLimitYear () {
+    const uiId = userData.getNextInteractionId()
+    console.log(`SearchTroveView/checkLimitYear ${uiId}`, searchAllDecadeYears.value)
     // Called when Include All Decade Years check box changes
     if (showLimitYear.value) {
         // Limit Years is displayed
@@ -449,6 +459,8 @@ function saveAction (label, rowsBefore) {
     selectedUndoAction.value = entry.id
 }
 function undoSelectedActions () {
+    const uiId = userData.getNextInteractionId()
+    console.log(`SearchTroveView/undoSelectedActions ${uiId}`)
     if (waitUpdateIgnored.value) return
     const selectedIndex = undoHistory.value.findIndex(({ id }) => id === selectedUndoAction.value)
     if (selectedIndex === -1) return
@@ -470,9 +482,10 @@ function undoSelectedActions () {
 }
 // On clicking the hide row icon - flip  hidden flag
 function hideRowClick(rowNbr) {
+    const uiId = userData.getNextInteractionId()
     if (waitUpdateIgnored.value) return
     const row = searchResults.value[rowNbr - 1]
-    console.log (`hideRowClick Row Nbr:%s, hidden:%s`, rowNbr, row.hidden);
+    console.log (`SearchTroveView/hideRowClick ${uiId} Row Nbr:%s, hidden:%s`, rowNbr, row.hidden);
     saveAction(row.hidden ? "Show row " + row.rowNbr : "Hide row " + row.rowNbr,
         [{ row, before: { hidden: row.hidden } }])
     row.hidden = !row.hidden
@@ -530,9 +543,10 @@ function ignoreStepKind(row) {
     return row.status === 'IgnoreArticle' ? 'revert' : nextIgnoreStatus(row);
 }
 function ignoreArticleClick(rowNbr) {
+    const uiId = userData.getNextInteractionId()
     if (waitUpdateIgnored.value) return
     const clicked = searchResults.value[rowNbr - 1];
-    console.log (`ignoreArticleClick idx:%s, row:%s`, rowNbr, JSON.stringify(clicked));
+    console.log (`SearchTroveView/ignoreArticleClick ${uiId} idx:%s, row:%s`, rowNbr, JSON.stringify(clicked));
     const kind = ignoreStepKind(clicked);
     const rows = duplicateSetRows(clicked)
         .filter(r => r.status !== 'Known' && r.status !== 'KnownToStore' && ignoreStepKind(r) === kind);
@@ -662,8 +676,9 @@ function textSearchDate (searchDateTime) {
 }
 //
 function loadSavedSearch(searchFields) {
+    const uiId = userData.getNextInteractionId()
     // const savedSearchFields = JSON.parse(searchFields);
-    console.log (`SearchTroveView/loadSavedSearch %s`, JSON.stringify(searchFields));
+    console.log (`SearchTroveView/loadSavedSearch ${uiId} %s`, JSON.stringify(searchFields));
     searchFor.value = searchFields.searchString;
     allStates.value = searchFields.searchAllStates;
     limitState.value = searchFields.searchLimitState;
@@ -686,14 +701,16 @@ function loadSavedSearch(searchFields) {
 }
 //
 function checkDeleteSavedSearch (searchId) {
-    console.log (`SearchTroveView/checkDeleteSavedSearch Check Delete %s`, searchId);
+    const uiId = userData.getNextInteractionId()
+    console.log (`SearchTroveView/checkDeleteSavedSearch ${uiId} Check Delete %s`, searchId);
     toDeleteSearchId = searchId;
     showCheckDeleteSearch.value = true;
 }
 //
 function deleteSavedSearch() {
+    const uiId = userData.getNextInteractionId()
     showCheckDeleteSearch.value = false;
-    console.log (`SearchTroveView/deleteSavedSearch Check Delete %s`, toDeleteSearchId);
+    console.log (`SearchTroveView/deleteSavedSearch ${uiId} Check Delete %s`, toDeleteSearchId);
     const options = {
         method: "delete",
         mode: "cors",
@@ -703,14 +720,17 @@ function deleteSavedSearch() {
             'Content-Type': 'application/json'
         },
         //make sure to serialize your JSON body
-        body: JSON.stringify({searchId: toDeleteSearchId})
+        body: JSON.stringify({
+            uiInteractionId: uiId,
+            searchId: toDeleteSearchId})
     };
-    useDoFetch('Delete Search', "/searchTrove/deleteSavedSearch", options)
+    useDoFetch('Delete Search', "/searchTrove/deleteSavedSearch", options, uiId)
 }
 //
 function changeSearchText() {
+    const uiId = userData.getNextInteractionId()
     // Save for later to reset the keyup.once
-    // console.log ('Change Search test ', searchFor.value.length, disableSearch.value)
+    console.log (`SearchTroveView/changeSearchText ${uiId} searchFor.length`, searchFor.value.length)
     if ((searchFor.value.length > 4) && (disableSearch.value)) {
         changeSearch();
     }
@@ -862,7 +882,7 @@ function countSearchResults() {
         // Shouldn't happen ??
         const duplicated = searchResults.value.filter((r) => r.id === element.id);
         if (duplicated.length > 1) {
-            console.log ('countSearchResults/ Duplicated Search Results:', JSON.stringify(duplicated))
+            console.log (`SearchTroveView/countSearchResults Duplicated Search Results:`, JSON.stringify(duplicated))
         }
     });
     //
@@ -1112,7 +1132,7 @@ function closeSearchSource() {
     searchSource = null;
     searchSourceName = '';
 }
-function waitSearch(started) {
+function waitSearch(started, uiId) {
     clearInterval(searchLoadingInterval);
     searchLoadingInterval = setInterval(function () {
         loadingText.value += '.';
@@ -1133,7 +1153,11 @@ function waitSearch(started) {
             clearInterval(searchLoadingInterval);
             loadingNextPage.value = false;
             var returnData = JSON.parse(e.data);
-            console.log(`SearchTroveView/waitSearch Return Started:%s, SearchId: %s, NumberReturned:%s`, awaitingFirstBatch, returnData.searchId, returnData.searchResults.length);
+            const eventUiId = returnData.finalInteractionId || uiId;
+            if (!returnData.finalInteractionId && uiId) {
+                console.warn(`SearchTroveView/waitSearch No finalInteractionId in event; using stream-open ID ${uiId}`);
+            }
+            console.log(`SearchTroveView/waitSearch ${eventUiId} Return Started:%s, SearchId: %s, NumberReturned:%s`, awaitingFirstBatch, returnData.searchId, returnData.searchResults.length);
             thisSearchId.value = returnData.searchId;
             const results = returnData.searchResults.map(item => ({...item, hidden: false}));
             searchNextUrl = returnData.searchNextUrl
@@ -1171,11 +1195,11 @@ function waitSearch(started) {
             }
             //
             if ((returnData.searchNbrPages == 0) || (searchNextUrl == 'done')){
-                console.log(`SearchTroveView/waitSearch source closed:%s`, streamName);
+                console.log(`SearchTroveView/waitSearch ${eventUiId} source closed:%s`, streamName);
                 source.close();
                 if (searchSource === source) closeSearchSource();
             }
-            console.log(`SearchTroveView/waitSearch searchNextUrl:%s`, searchNextUrl);
+            console.log(`SearchTroveView/waitSearch ${eventUiId} searchNextUrl:%s`, searchNextUrl);
             countSearchResults();
         }, false);
         source.addEventListener('error', function (e) {
@@ -1183,18 +1207,19 @@ function waitSearch(started) {
             if (e.target.readyState == EventSource.CLOSED) {
                 clearInterval(searchLoadingInterval);
                 loadingNextPage.value = false;
-                console.log("Disconnected");
+                console.log(`SearchTroveView/waitSearch ${uiId} Disconnected`);
             }
             else if (e.target.readyState == EventSource.CONNECTING) {
-                console.log("Connecting...");
+                console.log(`SearchTroveView/waitSearch ${uiId} Connecting...`);
             }
         }, false);
     } else {
-        console.log("Your browser doesn't support SSE")
+        console.log(`SearchTroveView/waitSearch ${uiId} Your browser doesn't support SSE`)
     }
 }
 //
 function postSearch() {
+    const uiId = userData.getNextInteractionId()
     if (waitUpdateIgnored.value) return
     //
     searchNextUrl = 'done';
@@ -1206,6 +1231,8 @@ function postSearch() {
     if (!searchAllDecadeYears.value) thisSearchText.value += `, Limited to Year:${limitYear.value}`
     currentSearchId = thisSearch.searchId
     //
+    thisSearch.uiInteractionId = uiId
+    //
     disableSearch.value = true;
     disableUpdateIgnored.value = true;
     showSavedSearchesToggle.value = false;
@@ -1213,7 +1240,7 @@ function postSearch() {
     loading.value = true;
     loadingText.value = "Loading Search Results ";
     //
-    console.log('Post this Search', JSON.stringify(thisSearch));
+    console.log(`SearchTroveView/postSearch ${uiId}`, JSON.stringify(thisSearch));
     const options = {
         method: "post",
         mode: "cors",
@@ -1226,11 +1253,12 @@ function postSearch() {
         body: JSON.stringify(thisSearch)
     };
     // console.log(options);
-    useDoFetch('Search', "/searchTrove/", options)
-    waitSearch(true);
+    useDoFetch('Search', "/searchTrove/", options, uiId)
+    waitSearch(true, uiId);
 }
 //
 function chgVisiblePage(by) {
+    const uiId = userData.getNextInteractionId()
     if (actionButtonText.value.length > 0 || waitUpdateIgnored.value) return;
     if (by === 1 && loadingNextPage.value) return;
     visiblePageNbr.value = Math.min(
@@ -1238,14 +1266,15 @@ function chgVisiblePage(by) {
         Math.max(1, visiblePageNbr.value + by)
     );
     countSearchResults();
-    console.log (`SearchTroveView/chgVisiblePage by:%s now:%s`, by, visiblePageNbr.value)
+    console.log (`SearchTroveView/chgVisiblePage ${uiId} by:%s now:%s`, by, visiblePageNbr.value)
         // Check if Next Page + 1 needs to be read
     if ((by == 1) && (searchNextUrl != 'done') && (((visiblePageNbr.value + 1) * searchPageSize) > searchResults.value.length)) {
         loadingNextPage.value = true;
         const nextPage = {
             searchId: currentSearchId,
             strInSearchWords: searchFor.value,
-            strSearchTrove: searchNextUrl
+            strSearchTrove: searchNextUrl,
+            uiInteractionId: uiId
         }
         // console.log(`chgVisiblePage Post this Search:%s`, JSON.stringify(nextPage));
         const options = {
@@ -1260,31 +1289,36 @@ function chgVisiblePage(by) {
             body: JSON.stringify(nextPage)
         };
         // console.log(options);
-        useDoFetch('Search', "/searchTrove/nextPage", options)
+        useDoFetch('Search', "/searchTrove/nextPage", options, uiId)
         waitSearch(false);
     }
 }
 //
 function openList(listLink) {
-    console.log('SearchTroveView/openList ', listLink)
+    const uiId = userData.getNextInteractionId()
+    console.log(`SearchTroveView/openList ${uiId} `, listLink)
     navStore.listId = listLink;
     router.push({ name: 'userListPage' });
 }
 //
-function waitStoredArticles() {
+function waitStoredArticles(uiId) {
     if (!!window.EventSource) {
         const sseName = userData.troveDetails.troveUserId + ':storedArticles';
         var streamName = import.meta.env.VITE_SERVER_URL + '/streamTrove/searchStoredArticles/' + sseName;
         var source = new EventSource(streamName, { withCredentials: true });
         source.addEventListener(sseName, function (e) {
             var returnData = JSON.parse(e.data);
-            console.log(`SearchTroveView/waitStoredArticles source closed:%s`, streamName);
+            const eventUiId = returnData.finalInteractionId || uiId;
+            if (!returnData.finalInteractionId && uiId) {
+                console.warn(`SearchTroveView/waitStoredArticles No finalInteractionId in event; using stream-open ID ${uiId}`);
+            }
+            console.log(`SearchTroveView/waitStoredArticles ${eventUiId} source closed:%s`, streamName);
             source.close();
-            console.log(`SearchTroveView/waitStoredArticles Return NumberReturned:%s`, returnData.storedArticlesResults.length);
+            console.log(`SearchTroveView/waitStoredArticles ${eventUiId} Return NumberReturned:%s`, returnData.storedArticlesResults.length);
             for (const item of returnData.storedArticlesResults) {
                 const idx = searchResults.value.findIndex((el) => el.id === item.articleId);
                 if (idx == -1) {
-                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s not found in searchResults`, item.articleId);
+                    console.log(`SearchTroveView/waitStoredArticles ${eventUiId} ArticleId:%s not found in searchResults`, item.articleId);
                     continue
                 }
                 if (item.listId != null) {
@@ -1306,25 +1340,26 @@ function waitStoredArticles() {
                     } else {
                         knownLists.splice(knownListIdx, 1, knownList);
                     }
-                    console.log(`SearchTroveView/waitStoredArticles ArticleId:%s ListId:%s Name:%s`, item.articleId, item.listId, knownList.listName);
+                    console.log(`SearchTroveView/waitStoredArticles ${eventUiId} ArticleId:%s ListId:%s Name:%s`, item.articleId, item.listId, knownList.listName);
                 }
             }
             //
         }, false);
         source.addEventListener('error', function (e) {
             if (e.target.readyState == EventSource.CLOSED) {
-                console.log("Disconnected");
+                console.log(`SearchTroveView/waitStoredArticles ${uiId} Disconnected`);
             }
             else if (e.target.readyState == EventSource.CONNECTING) {
-                console.log("Connecting...");
+                console.log(`SearchTroveView/waitStoredArticles ${uiId} Connecting...`);
             }
         }, false);
     } else {
-        console.log("Your browser doesn't support SSE")
+        console.log(`SearchTroveView/waitStoredArticles ${uiId} Your browser doesn't support SSE`)
     }
 }
 //  Post array of Actioned Article Id's
 async function updateActionedArticles() {
+    const uiId = userData.getNextInteractionId()
     if (waitUpdateIgnored.value) return
     const changedRows = [];
     let setupStoredArticleSSE = false;
@@ -1339,11 +1374,12 @@ async function updateActionedArticles() {
         if (action) changedRows.push({ row, action });
     });
     const actionedArticles = {
+        uiInteractionId: uiId,
         searchId: currentSearchId,
         actionedArticlesInfo: changedRows.map(({ row, action }) => ({ id: row.id, action }))
     };
     if (changedRows.length === 0) return;
-    // console.log(`SearchTroveView/updateActionedArticles clicked Save Article actions:%s`, JSON.stringify(actionedArticles));
+    // console.log(`SearchTroveView/updateActionedArticles ${uiId} clicked Save Article actions:%s`, JSON.stringify(actionedArticles));
     //
     const options = {
         method: "post",
@@ -1370,8 +1406,8 @@ async function updateActionedArticles() {
     });
     waitUpdateIgnored.value = true;
     try {
-        if (setupStoredArticleSSE) waitStoredArticles();
-        const data = await useDoFetch('Actioned Articles', "/searchTrove/updateActionedArticles", options);
+        if (setupStoredArticleSSE) waitStoredArticles(uiId);
+        const data = await useDoFetch('Actioned Articles', "/searchTrove/updateActionedArticles", options, uiId);
         if (data === false) {
             stopWaitingForSavedSearch();
             return;

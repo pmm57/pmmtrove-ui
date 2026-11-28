@@ -31,13 +31,14 @@ showMetadataType(-1)
 watch(
     () => userData.metadataTypeByMetadata,
     (newVal) => {
-        console.log(`UserMetadataListView/watch triggerGetArticleLinks %s`, triggerGetArticleLinks)
+        const uiId = userData.getCurrentInteractionId()
+        console.log(`UserMetadataListView/watch ${uiId} triggerGetArticleLinks:`, triggerGetArticleLinks)
         if (triggerGetArticleLinks) {
             triggerGetArticleLinks = false
             return
         }
         // console.log(`UserMetadataListView/watch All %s`, JSON.stringify(userData.metadataTypeByMetadata))
-        console.log(`UserMetadataListView/watch Type %s`, JSON.stringify(userData.metadataTypeByMetadata[showMetdataTypeIdx]))
+        console.log(`UserMetadataListView/watch ${uiId} Type:`, JSON.stringify(userData.metadataTypeByMetadata[showMetdataTypeIdx]))
         if (newVal.length > 0) {
             // flagMetadataType.value[showMetdataTypeIdx] = false
             // showMetadataType(showMetdataTypeIdx)
@@ -51,12 +52,15 @@ watch(
 )
 //
 async function showMetadataType(idxType) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserMetadataListView/showMetadataType ${uiId}`, idxType)
     // Wait for Vue to apply the latest metadata update
     await nextTick()
     // console.log('showMetadataType ', idxType, flagMetadataType.value, flagMetadataType.value[idxType])  const totalTypes = userData.metadataTypeByMetadata.length  const totalTypes = userData.metadataTypeByMetadata.length
     const totalTypes = userData.metadataTypeByMetadata.length
     // Toggle: if already open, close it
     if (flagMetadataType.value[idxType]) {
+        console.log(`UserMetadataListView/showMetadataType ${uiId} closing accordion`)
         flagMetadataType.value = Array(totalTypes).fill(false)
         flagMetadataValue.value = []   // collapse values too
         showMetdataTypeIdx = -1
@@ -67,7 +71,7 @@ async function showMetadataType(idxType) {
         { length: totalTypes },
         (_, i) => i === idxType
     )
-    console.log('UserMetdataListView showMetadataType', idxType)
+    console.log(`UserMetadataListView/showMetadataType ${uiId} opening type at index`, idxType)
     showMetdataTypeIdx = idxType
     if (idxType > -1) {
         // Resize value accordion for this type (all closed initially)
@@ -77,33 +81,36 @@ async function showMetadataType(idxType) {
 }
 //
 function showMetadataValue(idxType, idxValue) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserMetadataListView/showMetadataValue ${uiId}`, idxType, idxValue)
     const total = userData.metadataTypeByMetadata[idxType].arrayMetadata.length
     // Toggle: if already open, close it
     if (flagMetadataValue.value[idxValue]) {
+        console.log(`UserMetadataListView/showMetadataValue ${uiId} closing value`)
         flagMetadataValue.value = Array(total).fill(false)
         // showMetdataValueIdx = -1
         return
     }
     // Otherwise open the selected value (and close others)
-    console.log("showMetadataValue ", flagMetadataValue.value[idxValue])
+    console.log(`UserMetadataListView/showMetadataValue ${uiId} opening value at index`, idxValue)
     flagMetadataValue.value = Array.from({ length: total }, (_, i) => i === idxValue)
-    console.log("showMetadataValue ", flagMetadataValue.value[idxValue])
     // Check if there are Articles that haven't been loaded into Viewed Articles
     // showMetdataValueIdx = idxValue
-    console.log('UserMetdataListView showMetadataValue', idxType, idxValue, JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray))
+    console.log(`UserMetadataListView/showMetadataValue ${uiId} articleListArray:`, JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxValue].articleListArray))
     const getLinks = userData
         .metadataTypeByMetadata[idxType]
         .arrayMetadata[idxValue]
         .articleListArray
         .some(el => el.idxViewedArticle < 0)
-    if (getLinks) getArticleLinks(idxType, idxValue)
+    if (getLinks) getArticleLinks(idxType, idxValue, uiId)
 }
 //
-async function getArticleLinks(idxType, idxMetadataValue) {
+async function getArticleLinks(idxType, idxMetadataValue, uiId) {
+    console.log(`UserMetadataListView/getArticleLinks ${uiId} fetching metadata type:`, userData.metadataTypeByMetadata[idxType].metadataType, 'value index:', idxMetadataValue)
     triggerGetArticleLinks = true
     errorsStore.arrayErrors = [];
-    const url = '/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue;
-    console.log('getArticleLinks -', url)
+    const url = '/streamTrove/MetadataLinks/' + userData.metadataTypeByMetadata[idxType].metadataType + ':' + idxMetadataValue + '?uiInteractionId=' + uiId;
+    console.log(`UserMetadataListView/getArticleLinks ${uiId} url:`, url)
     const options = {
         method: "get",
         mode: "cors",
@@ -113,30 +120,32 @@ async function getArticleLinks(idxType, idxMetadataValue) {
             'Content-Type': 'application/json'
         }
     };
-    const data = await useDoFetch('metadatarticleLinks', url, options);
+    const data = await useDoFetch('metadatarticleLinks', url, options, uiId);
     if (typeof data != 'boolean'){
-        console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(data))
+        console.log(`UserMetadataListView/getArticleLinks ${uiId} received data:`, JSON.stringify(data))
         // Update Dup-licate and Ignored modifier
         if (data.linkedArticleUrls.arrayArticleUrls.length > 0) {
             userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue].articleListArray = data.linkedArticleUrls.arrayArticleUrls
-            console.log('UserMetadataListView/getArticleLinks ', JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue]))
+            console.log(`UserMetadataListView/getArticleLinks ${uiId} updated articleListArray:`, JSON.stringify(userData.metadataTypeByMetadata[idxType].arrayMetadata[idxMetadataValue]))
         }
     }
 }
 //
 function flipStoryPrimaryEvent(idxValue) {
+    const uiId = userData.getNextInteractionId()
     // Event Metadata can have storyStatus - isPrimary
     const thisEvent = {
         ...userData.metadataTypeByMetadata[idxMetatypeEvent].arrayMetadata[idxValue]
     }
-    console.log('UserMetadataListView/flipStoryPrimaryEvent Event ', JSON.stringify(thisEvent))
+    console.log(`UserMetadataListView/flipStoryPrimaryEvent ${uiId} current Event:`, JSON.stringify(thisEvent))
     var updateUserEvent = {
         'action': 'CHG',
         'userId': userData.troveDetails.troveUserId,
         'event': thisEvent.metadataValue,
-        'isPrimary': !thisEvent.isPrimary
+        'isPrimary': !thisEvent.isPrimary,
+        'uiInteractionId': uiId
     };
-    console.log('UserMetadataListView/flipStoryPrimaryEvent Flipped Event ', JSON.stringify(updateUserEvent))
+    console.log(`UserMetadataListView/flipStoryPrimaryEvent ${uiId} flipped Event:`, JSON.stringify(updateUserEvent))
     // console.log (updatedData);
     const options = {
         method: "post",
@@ -149,8 +158,9 @@ function flipStoryPrimaryEvent(idxValue) {
         //make sure to serialize your JSON body
         body: JSON.stringify(updateUserEvent)
     };
+    console.log(`UserMetadataListView/flipStoryPrimaryEvent ${uiId} sending POST to backend`)
     // console.log (options);
-    useDoFetch('flipStoryPrimaryEvent', "/updUserMetaData/userEventMetadata", options);
+    useDoFetch('flipStoryPrimaryEvent', "/updUserMetaData/userEventMetadata", options, uiId);
 }
 </script>
 //

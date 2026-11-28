@@ -301,7 +301,7 @@ async function loadLinkedTroveIds(authUserName) {
     const data = await useDoFetch('getUserTroveIds', "/", options); // pmmtrove-servicelayer index\initTroveUser.authUserInitRouter
     clearLoadingInterval()
     if (typeof data == 'boolean') return false // Verification failed
-    userData.authUserTroveIds = [...data]
+    userData.authUserTroveIds = [...data.data]
     // userData.verifiedAuthUserName = true
     navStore.clearNavBar()
     navStore.disableManage = false
@@ -355,16 +355,22 @@ async function verifyTroveUser(refresh) {
         //make sure to serialize your JSON body
         body: JSON.stringify({
             UserId: inUserId,
-            refresh: refresh
+            refresh: refresh,
+            uiInteractionId: "ui-9999"
         })
     };
-    const data = await useDoFetch('verifyTroveUser', "/troveUser", options);
+    const data = await useDoFetch('verifyTroveUser', "/troveUser", options, "ui-9999");
     clearLoadingInterval();
     if (typeof data == 'boolean') {
         // Verification failed
     } else {
         // console.log(`HomeView/verifyTroveUser Returned data: %s `, JSON.stringify(data))
         console.log(`HomeView/verifyTroveUser Returned Logon:"%s" New:%s`, JSON.stringify(data.troveDetails), data.newLogon)
+        
+        if (data.troveDetails.latestInteractionNumber !== undefined) {
+            userData.initializeInteractionCounter(data.troveDetails.latestInteractionNumber)
+        }
+        
         userData.troveDetails = data.troveDetails; // There is a watch function in App.vue that will be triggered
         // navStore.disableSearch = false;
         if (!data.newLogon) {

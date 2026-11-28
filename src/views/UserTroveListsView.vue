@@ -54,7 +54,8 @@ function statusBadge(status, count) {
 }
 //
 function openList(listLink) {
-  console.log('UserToveListsView/openList ', listLink)
+  const uiId = userData.getNextInteractionId()
+  console.log(`UserTroveListsView/openList ${uiId}`, listLink)
   navStore.listId = listLink;
   router.push({ name: 'userListPage' });
 }

@@ -45,52 +45,60 @@ notifyEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTrov
 popoverEditErrors.value = Array.from({ length: 2 }, () => Array(localAuthUserTroveIds.value.length).fill(""));
 //
 async function validateInput(action, index) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`ManageView/validateInput ${uiId} entry action:%s index:%s`, action, index)
+    
     notifyCheckTroveIdError.value = 'inherit';
     popoverForCheckTroveIdError.value = ''
     notifyCheckApiKeyError.value = 'inherit';
     popoverForCheckApiKeyError.value = ''
     disableUpdate.value = true;
-    console.log(`ManageView/validateInput index:%s action:%s`, index, action)
-    console.log(`ManageView/validateInput localAuthUserTroveIds:%s stored:%s`, JSON.stringify(localAuthUserTroveIds.value), JSON.stringify(userData.authUserTroveIds))
+    console.log(`ManageView/validateInput ${uiId} localAuthUserTroveIds:%s stored:%s`, JSON.stringify(localAuthUserTroveIds.value), JSON.stringify(userData.authUserTroveIds))
     switch (action) {
         case 'Cancel':
+            console.log(`ManageView/validateInput ${uiId} Cancel branch`)
             editTroveId.value = -1;
             if (savedTroveId.length == 0) { // Cancel Add
+                console.log(`ManageView/validateInput ${uiId} Cancel Add - splicing index %d`, index)
                 localAuthUserTroveIds.value.splice(index, 1);
             } else {
+                console.log(`ManageView/validateInput ${uiId} Cancel Edit - restoring saved`)
                 localAuthUserTroveIds.value[index] = { ...savedTroveId };
                 savedTroveId = '';
             }
             // disableChangeDefaultApiKey.value = false
-            console.log(`ManageView/validateInput cancel index:%s saved:%s`, editTroveId.value, JSON.stringify(savedTroveId))
+            console.log(`ManageView/validateInput ${uiId} cancel complete index:%s`, editTroveId.value)
             return;
         case 'Check':
-            console.log(`ManageView/validateInput Check index:%s :%s`, index, JSON.stringify(localAuthUserTroveIds.value[index]))
+            console.log(`ManageView/validateInput ${uiId} Check branch index:%s :%s`, index, JSON.stringify(localAuthUserTroveIds.value[index]))
             if (localAuthUserTroveIds.value[index].troveUserApiKey.length < 14) {
-                console.log(`ManageView/validateInput Check APiKey < 14`)
+                console.log(`ManageView/validateInput ${uiId} Check validation failed: APiKey < 14`)
                 popoverForCheckApiKeyError.value = 'Trove Api Key must be greater than 14 chars';
                 notifyCheckApiKeyError.value = 'red';
             }
             if (localAuthUserTroveIds.value[index].troveUserId.length < 4) {
+                console.log(`ManageView/validateInput ${uiId} Check validation failed: TroveId < 4`)
                 popoverForCheckTroveIdError.value = 'Trove Id must be at least 4 chars';
                 notifyCheckTroveIdError.value = 'red';
             }
             if ((popoverForCheckApiKeyError.value.length > 0) || (popoverForCheckTroveIdError.value.length > 0)) {
-                console.log(`ManageView/validateInput check TroveIdError:%s, ApiKeyError:%s`, popoverForCheckTroveIdError.value, popoverForCheckApiKeyError.value)
+                console.log(`ManageView/validateInput ${uiId} check validation failed TroveIdError:%s, ApiKeyError:%s`, popoverForCheckTroveIdError.value, popoverForCheckApiKeyError.value)
                 return
             }
             if ((index > userData.authUserTroveIds.length - 1) || // New Trove Id
                     (localAuthUserTroveIds.value[index].troveUserId != userData.authUserTroveIds[index].troveUserId)) {
-                console.log(`ManageView/validateInput index:%s Check:%s`, index, localAuthUserTroveIds.value[index].troveUserId)
+                console.log(`ManageView/validateInput ${uiId} Check server validation for index:%s TroveId:%s`, index, localAuthUserTroveIds.value[index].troveUserId)
                 // Validate the entered Trove Id
-                const chkedTroveUserId = await ckhTroveUserId(localAuthUserTroveIds.value[index].troveUserId)
+                const chkedTroveUserId = await ckhTroveUserId(uiId, localAuthUserTroveIds.value[index].troveUserId)
                 if (!chkedTroveUserId.validTroveUserId) {
+                    console.log(`ManageView/validateInput ${uiId} Check server validation failed: ${chkedTroveUserId.errorMsg}`)
                     popoverForCheckTroveIdError.value = chkedTroveUserId.errorMsg
                     notifyCheckTroveIdError.value = 'red';
                     return
                 }
                 if ((chkedTroveUserId.linkedAuthUserName.length > 0) &&
                     (chkedTroveUserId.linkedAuthUserName != userData.authUserTroveIds[0].authUserName)) {
+                    console.log(`ManageView/validateInput ${uiId} Check validation failed: TroveId linked to another user`)
                     popoverForCheckTroveIdError.value = 'Trove User Id already Linked to another Authorised User'
                     notifyCheckTroveIdError.value = 'red';
                     return
@@ -99,19 +107,22 @@ async function validateInput(action, index) {
             editTroveId.value = -1;
             disableUpdate.value = checkUpdate();
             savedTroveId = '';
-            console.log(`ManageView/validateInput check index:%s disableUpdate:%s`, editTroveId.value, disableUpdate.value)
+            console.log(`ManageView/validateInput ${uiId} check complete index:%s disableUpdate:%s`, editTroveId.value, disableUpdate.value)
             break;
         case 'Del':
+            console.log(`ManageView/validateInput ${uiId} Del branch index:%s`, index)
             localAuthUserTroveIds.value.splice(index, 1);
             disableUpdate.value = checkUpdate();
-            console.log(`ManageView/validateInput delete index:%s disaableUpdate:%s`, editTroveId.value, disableUpdate.value)
+            console.log(`ManageView/validateInput ${uiId} delete complete disableUpdate:%s`, disableUpdate.value)
             break;
         case 'Edit':
+            console.log(`ManageView/validateInput ${uiId} Edit branch index:%s`, index)
             editTroveId.value = index;
             savedTroveId = { ...localAuthUserTroveIds.value[index] };
-            console.log(`ManageView/validateInput edit index:%s saved:%s`, editTroveId.value, JSON.stringify(savedTroveId))
+            console.log(`ManageView/validateInput ${uiId} edit saved:%s`, JSON.stringify(savedTroveId))
             return;
         case 'New':
+            console.log(`ManageView/validateInput ${uiId} New branch`)
             savedTroveId = '';
             const newAuthUser = {
                 authUserName: localAuthUserTroveIds.value[0].authUserName,
@@ -125,21 +136,23 @@ async function validateInput(action, index) {
             popoverEditErrors.value[0].push('');
             popoverEditErrors.value[1].push('');
             editTroveId.value = index + 1;
-            console.log(`ManageView/validateInput new index:%s disaableUpdate:%s`, editTroveId.value, JSON.stringify(localAuthUserTroveIds.value[editTroveId.value]))
+            console.log(`ManageView/validateInput ${uiId} new complete newIndex:%s`, editTroveId.value)
             return;
         default:
+            console.log(`ManageView/validateInput ${uiId} default branch (should not reach)`)
             break;
     }
 }
 //
 //  Check if troveUserId is valid and not linked to another authUserName
-async function ckhTroveUserId(chkTroveUserId) {
-    console.log(`ManageView/ckhTroveUserId AuthUserName:%s, Check Trove USer Id:%s`, userData.authUserTroveIds[0]?.authUserName, chkTroveUserId)
+async function ckhTroveUserId(uiId, chkTroveUserId) {
+    console.log(`ManageView/ckhTroveUserId ${uiId} entry AuthUserName:%s, Check Trove USer Id:%s`, userData.authUserTroveIds[0]?.authUserName, chkTroveUserId)
     var updatedData = {
         'authUserName': userData.authUserTroveIds[0]?.authUserName,
-        'chkTroveUserId': chkTroveUserId
+        'chkTroveUserId': chkTroveUserId,
+        'uiInteractionId': uiId
     }
-    // console.log (updatedData);
+    console.log(`ManageView/ckhTroveUserId ${uiId} request:`, JSON.stringify(updatedData));
     const options = {
         method: "post",
         mode: "cors",
@@ -151,8 +164,10 @@ async function ckhTroveUserId(chkTroveUserId) {
         //make sure to serialize your JSON body
         body: JSON.stringify(updatedData)
     };
-    console.log('ManageView/ckhTroveUserId ', JSON.stringify(options));
-    return useDoFetch('ckhTroveUserId', "/chkTroveUserId", options)
+    console.log(`ManageView/ckhTroveUserId ${uiId} sending request`);
+    const result = await useDoFetch(`ckhTroveUserId ${uiId}`, "/chkTroveUserId", options, uiId)
+    console.log(`ManageView/ckhTroveUserId ${uiId} response:`, result);
+    return result
     //
 }
 //
@@ -205,9 +220,13 @@ function checkUpdate() {
 //
 //  Post updated AuthUser TroveIds cacheAllArticles
 async function saveData() {
-    console.log("ManageView/saveData updateData ", JSON.stringify(chgAuthUserTroveIds))
+    const uiId = userData.getNextInteractionId()
+    console.log(`ManageView/saveData ${uiId} entry updateData:`, JSON.stringify(chgAuthUserTroveIds))
+    
     disableUpdate.value = true
     actioningUpdate.value = true
+    console.log(`ManageView/saveData ${uiId} disabled update button`)
+    
     // Only Send ones that have changed
     var updatedData = {
         'chgAuthUserTroveIds': chgAuthUserTroveIds.map(item => {
@@ -215,9 +234,10 @@ async function saveData() {
             delete changedItem.userCorrelationId
             delete changedItem.latestInteractionNumber
             return changedItem
-        })
+        }),
+        'uiInteractionId': uiId
     }
-    // console.log (updatedData);
+    console.log(`ManageView/saveData ${uiId} prepared data`);
     const options = {
         method: "post",
         mode: "cors",
@@ -229,15 +249,21 @@ async function saveData() {
         //make sure to serialize your JSON body
         body: JSON.stringify(updatedData)
     };
-    console.log('ManageView/SaveData ', JSON.stringify(options));
-    const authUserInf = await useDoFetch('saveAuthUserTroveIds', "/manageUserInf", options)
-    if (typeof data == 'boolean') {
+    console.log(`ManageView/saveData ${uiId} sending request`);
+    const authUserInf = await useDoFetch(`saveAuthUserTroveIds ${uiId}`, "/manageUserInf", options, uiId)
+    
+    console.log(`ManageView/saveData ${uiId} response received`, authUserInf);
+    
+    if (typeof authUserInf == 'boolean') {
+        console.log(`ManageView/saveData ${uiId} request failed`);
         // Verification failed
         return
     }
+    
     if (authUserInf.chkErrors.length > 0) {
-        console.log("ManageView/saveData Errors ", JSON.stringify(authUserInf.chkErrors))
+        console.log(`ManageView/saveData ${uiId} errors in response:`, JSON.stringify(authUserInf.chkErrors))
         for (i = 0; i < authUserInf.chkErrors.length; ++i) {
+            console.log(`ManageView/saveData ${uiId} processing error at index %d`, i)
             const idxErrorRow = authUserInf.chkErrors[i].index
             var idxErrorCol = 9
             switch (authUserInf.errorField) {
@@ -249,19 +275,25 @@ async function saveData() {
                     break
             }
             if (idxErrorCol < 9) {
+                console.log(`ManageView/saveData ${uiId} setting error UI at row %d col %d`, idxErrorRow, idxErrorCol)
                 popoverEditErrors.value[idxErrorCol][idxErrorRow] = authUserInf.chkErrors[i].errMsg
                 notifyEditErrors.value[idxErrorCol][idxErrorRow] = 'red';
             }
         }
+    } else {
+        console.log(`ManageView/saveData ${uiId} no errors in response`)
     }
+    
+    console.log(`ManageView/saveData ${uiId} updating local state`)
     localAuthUserTroveIds.value = JSON.parse(JSON.stringify(authUserInf.authUsers))
     localAuthUserTroveIds.value.forEach(item => {
         item[metadataTroveUserId] = item.troveUserId
     })
     userData.authUserTroveIds = JSON.parse(JSON.stringify(localAuthUserTroveIds.value))
-    //
+    console.log(`ManageView/saveData ${uiId} local state updated`)
     
     actioningUpdate.value = false
+    console.log(`ManageView/saveData ${uiId} re-enabled update button, exit`)
     chgAuthUserTroveIds = []
 }
 </script>

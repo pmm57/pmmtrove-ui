@@ -40,9 +40,10 @@ const loadingMessage = ref("Starting...");
 //
 function handleMessage(e) {
     const sseRetrieve = JSON.parse(e.data);
+    const eventUiId = sseRetrieve.finalInteractionId;
     var listIdx = 0
     var articleIdx = 0
-    console.log(`App.vue SSE tiggered troveUserId:%s, sseUser:%s, event:%s`, userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
+    console.log(`App.vue ${eventUiId} SSE tiggered troveUserId:%s, sseUser:%s, event:%s`, userData.troveDetails.troveUserId, sseRetrieve.sseUser, sseRetrieve.event);
     if (sseRetrieve.sseUser != userData.troveDetails.troveUserId) {
         console.log(`App.vue/handleMessge UNMATCHED USER`);
         return;
@@ -62,7 +63,7 @@ function handleMessage(e) {
             userData.updateAllLists(sseRetrieve.cacheUserLists)
             if (sseRetrieve.cacheViewedArticles.length > 0) {
                 userData.viewedArticles = sseRetrieve.cacheViewedArticles // Only has data on Reload
-                console.log('App/sseUserLists - Viewed Articles Length', userData.viewedArticles.length)
+                console.log(`App/sseUserLists ${eventUiId} - Viewed Articles Length`, userData.viewedArticles.length)
                 // console.log('App/sseUserLists - Viewed Articles ', JSON.stringify(sseRetrieve.cacheViewedArticles))
             }
             userData.userListsReady = true
@@ -117,7 +118,7 @@ function handleMessage(e) {
                         const diffProps = getObjDiff(obj1, obj2);
                         // console.log('App/sseUserListsArticles %s Cache %s Old %s', i, JSON.stringify(obj1), JSON.stringify(obj2))
                         if (diffProps.length > 0) { // Article has changed
-                            console.log('App/sseUserListsArticles %s Diff %s - %s', i, diffProps.length, diffProps)
+                            console.log('App/sseUserListsArticles  ${eventUiId} %s Diff %s - %s', i, diffProps.length, diffProps)
                             idxChange = i;
                             break;
                         };
@@ -134,7 +135,7 @@ function handleMessage(e) {
             // Check if loading all lists
             // console.log(`App/sseUserListsArticles Check userListsReady loadedIndex:%s, NbrDupLists:%s, troveTotal:%s`, userData.loadedIndex, userData.userDuplicateListIds.length, userData.troveQueryTotal)
             if ((userData.loadedIndex + 1 + userData.userDuplicateListIds.length) >= userData.troveQueryTotal) {
-                console.log('App/sseUserListsArticles Set userListsArticlesReady true')
+                console.log(`App/sseUserListsArticles ${eventUiId} Set userListsArticlesReady true`)
                 userData.userListsArticlesReady = true
             }
             break
@@ -238,7 +239,7 @@ function handleMessage(e) {
             errorsStore.arrayErrors.push({ msg: sseRetrieve.errorResponse.statusText, param: JSON.stringify(sseRetrieve.errorResponse) });
             break
         default:
-            console.log('App.vue SSE tiggered unknown action: ', sseRetrieve.event);
+            console.log('App.vue ${eventUiId} SSE tiggered unknown action: ', sseRetrieve.event);
     }
 }
 // Split List and Aticles

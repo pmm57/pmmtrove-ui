@@ -1,10 +1,11 @@
 import { useDoFetch } from '@/components/DoFetch.js';
 //  Post updated data and expect ssePersonChg to trigger reload
-export function useSavePersonData(caller, currentDetails, newDetails) {
-    console.log(`useSavePersonData caller %s action %s`,caller, currentDetails.action);
+export function useSavePersonData(caller, currentDetails, newDetails, uiId) {
+    console.log(`useSavePersonData ${uiId} caller %s action %s`,caller, currentDetails.action);
     var updMetaData = {
         'oldPersonData': currentDetails,
-        'updPersonData': newDetails
+        'updPersonData': newDetails,
+        'uiInteractionId': uiId
     };
     // console.log('useSavePersonData Sent to Server', JSON.stringify(updMetaData));
     // console.log (updatedData);
@@ -20,5 +21,5 @@ export function useSavePersonData(caller, currentDetails, newDetails) {
         body: JSON.stringify(updMetaData)
     };
     // console.log (options);
-    useDoFetch('useSavePersonData - ' + caller, "/updUserMetaData/updateUserPersonMetadata", options);
+    useDoFetch('useSavePersonData - ' + caller, "/updUserMetaData/updateUserPersonMetadata", options, uiId);
 }
