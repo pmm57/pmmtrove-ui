@@ -79,15 +79,23 @@ const arrayMetadataDropdown = ref([])
 // Capture highlighted text in Trove Article
 // Extract Snip Front and Back Edges
 function snipHighlightedText() {
-
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/snipHighlightedText ${uiId} entry`)
+    
     var selection = window.getSelection();
-    if (!selection.rangeCount) return;
+    if (!selection.rangeCount) {
+        console.log(`EditArticle/snipHighlightedText ${uiId} no selection range`)
+        return;
+    }
 
     const range = selection.getRangeAt(0);
     const startNode = range.startContainer;
     const endNode = range.endContainer;
 
-    if (startNode.nodeType !== Node.TEXT_NODE || endNode.nodeType !== Node.TEXT_NODE) return;
+    if (startNode.nodeType !== Node.TEXT_NODE || endNode.nodeType !== Node.TEXT_NODE) {
+        console.log(`EditArticle/snipHighlightedText ${uiId} not text node`)
+        return;
+    }
 
     const startText = startNode.textContent;
     const endText = endNode.textContent;
@@ -111,11 +119,14 @@ function snipHighlightedText() {
     selection = window.getSelection()
     var selectedText = selection.toString()
     if (selectedText.length < 15) {
+        console.log(`EditArticle/snipHighlightedText ${uiId} selected text too short:%s`, selectedText.length)
         selection.removeAllRanges();
         return false; // Just a click
     }
-    const snip = getSnipFrontBack(emptySnip, selectedText)
+    console.log(`EditArticle/snipHighlightedText ${uiId} selected text:%s chars:%s`, selectedText.slice(0, 50), selectedText.length)
+    const snip = getSnipFrontBack(emptySnip, selectedText, uiId)
     if ((typeof snip === 'boolean') && (!snip)) {
+        console.log(`EditArticle/snipHighlightedText ${uiId} getSnipFrontBack returned false`)
         selection.removeAllRanges();
         return false;
     }
@@ -123,16 +134,18 @@ function snipHighlightedText() {
     updSnip = { ...snip };
     updSnipOld = {}
     snipChange = articleSnips.length - 1
+    console.log(`EditArticle/snipHighlightedText ${uiId} snip added at index:%s`, snipChange)
     // console.log(`EditArticle snipText Snips Out %s`, JSON.stringify(snips))
-    loadArticleText()
+    loadArticleText(uiId)
     // Sets articleSnipsOld = []
     snipSelAction('endDrag', '')
+    console.log(`EditArticle/snipHighlightedText ${uiId} exit`)
 }
 //
-function getSnipFrontBack(inSnip, selectedText) {
+function getSnipFrontBack(inSnip, selectedText, uiId) {
     // Check snip long enough
     if (selectedText.length < 20) {
-        console.log(`EditArticle getSnip Snip Not Long "%s"`, selectedText)
+        console.log(`EditArticle/getSnipFrontBack ${uiId} Snip Not Long "%s"`, selectedText)
         toast.error('Snip to be longer then 20, pls redo')
         return false
     }
@@ -141,18 +154,18 @@ function getSnipFrontBack(inSnip, selectedText) {
     const allText = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText
     var snipf = inSnip.snipf
     if (snipf.posText < 0) {
-        snipf = frontWordMatch(allText, 0, selTextWords) // Updates snipf.text, snipf.posText
+        snipf = frontWordMatch(allText, 0, selTextWords, uiId) // Updates snipf.text, snipf.posText
         if (typeof snipf == 'boolean') {
-            console.log(`EditArticle getSnipFrontBack Front Snip Not Unique `)
+            console.log(`EditArticle/getSnipFrontBack ${uiId} Front Snip Not Unique `)
             toast.error('Snip Front not unique, pls redo')
             return false
         }
     }
     var snipb = inSnip.snipb
     if (snipb.posText < 0) {
-        snipb = backWordMatch(allText, snipf.posText, selTextWords) // Updates snipb.text, snipb.posText
+        snipb = backWordMatch(allText, snipf.posText, selTextWords, uiId) // Updates snipb.text, snipb.posText
         if (typeof snipb == 'boolean') {
-            console.log(`EditArticle getSnipFrontBack Back Snip Not Unique `)
+            console.log(`EditArticle/getSnipFrontBack ${uiId} Back Snip Not Unique `)
             toast.error('Snip Back not unique, pls redo')
             return false
         }
@@ -165,11 +178,11 @@ function getSnipFrontBack(inSnip, selectedText) {
     // Check for snip overlap
     for (const asnip of articleSnips) {
         if (Object.keys(asnip).length === 0) continue
-        console.log(`EditArticle getSnip Snip %s Overlap Check %s`, JSON.stringify(snip), JSON.stringify(asnip))
+        console.log(`EditArticle/getSnipFrontBack ${uiId} Snip %s Overlap Check %s`, JSON.stringify(snip), JSON.stringify(asnip))
         if (((snip.snipf.posText >= asnip.snipf.posText) && (snip.snipf.posText <= asnip.snipb.posText))
             || ((snip.snipb.posText >= asnip.snipf.posText) && (snip.snipb.posText <= asnip.snipb.posText))
             || ((snip.snipf.posText < asnip.snipf.posText) && (snip.snipb.posText > asnip.snipb.posText))) {
-            console.log(`EditArticle getSnip Snip Overlap `)
+            console.log(`EditArticle/getSnipFrontBack ${uiId} Snip Overlap `)
             toast.error('Overlapping snip, pls redo')
             return false
         }
@@ -177,12 +190,12 @@ function getSnipFrontBack(inSnip, selectedText) {
     return snip
 }
 //
-function frontWordMatch(allText, start, selTextWords) {
+function frontWordMatch(allText, start, selTextWords, uiId) {
     var matchWords = 1
     do {
         const matchs = matchWordArray(selTextWords.slice(0, matchWords), allText)
         if (matchs.length == 0) {
-            console.log('frontWordMatch Selected Text Front NON Match "%s"', selTextWords.slice(0, matchWords + 1))
+            console.log(`EditArticle/frontWordMatch ${uiId} Selected Text Front NON Match "%s"`, selTextWords.slice(0, matchWords + 1))
             return false
         }
         if (matchs.length == 1) {
@@ -193,15 +206,15 @@ function frontWordMatch(allText, start, selTextWords) {
         }
         ++matchWords
     } while (matchWords < selTextWords.length)
-    console.log('frontWordMatch Selected Text Front Not Unique')
+    console.log(`EditArticle/frontWordMatch ${uiId} Selected Text Front Not Unique`)
     return false
 }
-function backWordMatch(allText, start, selTextWords) {
+function backWordMatch(allText, start, selTextWords, uiId) {
     var matchWords = selTextWords.length - 1
     do {
         const matchs = matchWordArray(selTextWords.slice(matchWords), allText)
         if (matchs.length == 0) {
-            console.log('backWordMatch Selected Text Back NON Match "%s"', selTextWords.slice(matchWords))
+            console.log(`EditArticle/backWordMatch ${uiId} Selected Text Back NON Match "%s"`, selTextWords.slice(matchWords))
             return false
         }
         if (matchs.length == 1) {
@@ -212,7 +225,7 @@ function backWordMatch(allText, start, selTextWords) {
         }
         --matchWords
     } while (matchWords > 1)
-    console.log('backWordMatch Selected Text Back Not Unique')
+    console.log(`EditArticle/backWordMatch ${uiId} Selected Text Back Not Unique`)
     return false
 }
 //
@@ -252,7 +265,7 @@ function ocrHygieneCore(text) {
 }
 // Ensure snips are unique returns posText
 //
-function loadArticleText() {
+function loadArticleText(uiId = '') {
     // console.log('EditArticle loadArticleText length', userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length)
     if (userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText.length > 0) {
         viewArticleText.value = userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText;
@@ -263,9 +276,9 @@ function loadArticleText() {
             var snipNbr = -1;
             for (let snip of articleSnips.slice()) {
                 if (snip.snipf.text.length == 0) continue;
-                let posFront = getInsertPos('front', snip.snipf.text, viewArticleText.value);
+                let posFront = getInsertPos('front', snip.snipf.text, viewArticleText.value, uiId);
                 // console.log(`EditArticle loadArticleText PreSnip posFront "%s"`, viewArticleText.value.slice(posFront.pos, posFront.pos + 10))
-                let posBack = posFront.pos < 0 ? posFront : getInsertPos('back', snip.snipb.text, viewArticleText.value);
+                let posBack = posFront.pos < 0 ? posFront : getInsertPos('back', snip.snipb.text, viewArticleText.value, uiId);
                 // console.log(`EditArticle loadArticleText PreSnip posBack "%s"`, viewArticleText.value.slice(posBack.pos - 10, posBack.pos))
                 // console.log(`EditArticle loadArticleText Snip %s posFront %s, posBack %s Text %s`, snipNbr, posFront.pos, posBack.pos, viewArticleText.value.length)
                 snipNbr += 1
@@ -275,38 +288,39 @@ function loadArticleText() {
                     const part1 = viewArticleText.value.slice(0, posFront.pos)
                     const part2 = viewArticleText.value.slice(posFront.pos, posBack.pos)
                     const part3 = viewArticleText.value.slice(posBack.pos)
-                    console.log(`EditArticle loadArticleText Snip %s posFront "%s" at %s "%s", posBack "%s" at %s "%s"`,
+                    const logMsg = `EditArticle/loadArticleText ${uiId} Snip %s posFront "%s" at %s "%s", posBack "%s" at %s "%s"`;
+                    console.log(logMsg,
                         snipNbr, snip.snipf.text, posFront.pos, part2.slice(0, 50), snip.snipb.text, posBack.pos, part2.slice(-50))
                     if (snipChange == snipNbr) {
                         viewArticleText.value = part1 + spanHandleStart + part2 + spanHandleEnd + part3
                     } else {
                         const divSelect = divSelectConst.replace('x', snipNbr)
-                        viewArticleText.value = part1 + cleanInsert('front', divSelect, posFront.nodeInfo, posBack.nodeInfo)
-                            + part2 + cleanInsert('back', divEnd, posFront.nodeInfo, posBack.nodeInfo) + part3
+                        viewArticleText.value = part1 + cleanInsert('front', divSelect, posFront.nodeInfo, posBack.nodeInfo, uiId)
+                            + part2 + cleanInsert('back', divEnd, posFront.nodeInfo, posBack.nodeInfo, uiId) + part3
                     }
-                    updSnipedTextArray(snip)
+                    updSnipedTextArray(snip, uiId)
                 } else {
-                    console.log(`EditArticle loadArticleText Snip %s NOT FOUND %s`, snipNbr, JSON.stringify(snip))
+                    console.log(`EditArticle/loadArticleText ${uiId} Snip %s NOT FOUND %s`, snipNbr, JSON.stringify(snip))
                     toast.info('Snip not Found ' + (snipNbr + 1))
                     articleSnips.splice(snipNbr, 1)
                 }
             }
-            console.log(`EditArticle loadArticleText Snips After Selects %s`, JSON.stringify(articleSnips))
+            console.log(`EditArticle/loadArticleText ${uiId} Snips After Selects %s`, JSON.stringify(articleSnips))
         }
         // 
-        if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
-        markSearchText(false, userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord)
+        if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText(uiId)
+        markSearchText(false, userData.viewedArticles[idxViewed.value].ViewedArticleSearchWord, uiId)
     }
 }
 // Mark Search Text
-function markSearchText(scrollFirst, searchTextIn) {
+function markSearchText(scrollFirst, searchTextIn, uiId = '') {
     // var doScroll = false;
     // if (searchText.value.length > 0) doScroll = true // We are changing the Search Text
-    console.log(`EditArticle/markSearchText Search "%s", %s`, searchTextIn, viewArticleText.value.length)
+    console.log(`EditArticle/markSearchText ${uiId} Search "%s", %s`, searchTextIn, viewArticleText.value.length)
     if (searchTextIn.length > 0) searchText.value = searchTextIn
     if (searchText.value.length == 0) return
     viewArticleText.value = viewArticleText.value.replaceAll(markSearch, "").replaceAll(markEnd, "");
-    console.log('EditArticle/markSearchText Search', searchText.value, viewArticleText.value.length)
+    console.log(`EditArticle/markSearchText ${uiId} Search`, searchText.value, viewArticleText.value.length)
     var re = new RegExp("(" + searchText.value + ")", "gi");
     searchTextCount.value = (viewArticleText.value.match(re) || []).length;
     viewArticleText.value = viewArticleText.value.replace(re, function (matched) {
@@ -317,18 +331,18 @@ function markSearchText(scrollFirst, searchTextIn) {
     if (scrollFirst) {
         activeScrollMode.value = ''
         activeScrollIndex.value = 1
-        triggerSearchScroll()
+        triggerSearchScroll(uiId)
     }
 }
 // Find where to insert Snip Handles
-function getInsertPos(snipEdge, match, text) {
+function getInsertPos(snipEdge, match, text, uiId = '') {
     const cleanMatch = ocrHygieneCore(match)
     const matchWords = cleanMatch.split(' ')
     const regex = regxMatchWords(matchWords)
     var pos = text.search(regex)
     // console.log(`EditArticle getInsertPos match "%s" at %s`, cleanMatch, pos)
     if (pos < 0) {
-        console.log(`EditArticle getInsertPos NOT match "%s"`, cleanMatch)
+        console.log(`EditArticle/getInsertPos ${uiId} NOT match "%s"`, cleanMatch)
         return { pos: -1 }
     }
     if (snipEdge == 'back') pos = pos + match.length
@@ -336,7 +350,7 @@ function getInsertPos(snipEdge, match, text) {
     // const back = (pos + 25) > text.length - 1 ? text.length - 1 : pos + 25
     // console.log(`EditArticle getInsertPos match "%s" and "%s"`, text.slice(front, pos), text.slice(pos, back))
     // Get the html node type and text
-    const nodeInfo = findNodeInfo(snipEdge, cleanMatch)
+    const nodeInfo = findNodeInfo(snipEdge, cleanMatch, uiId)
     if (nodeInfo.edgeMatch) { //  encpsulate tag by adjusting pos
         const slideBy = snipEdge == 'front' ? -1 : 1
         const slideFor = snipEdge == 'front' ? '<' + nodeInfo.nodeType + '>' : '</' + nodeInfo.nodeType + '>'
@@ -346,10 +360,10 @@ function getInsertPos(snipEdge, match, text) {
         const strEnd = pos + 10 > text.length ? text.length : pos + 10
         const chunk = snipEdge == 'front' ? text.slice(strStart, pos) : text.slice(pos, strEnd)
         const checkPtr = snipEdge == 'front' ? chunk.length - 1 : 0
-        const slide = slidePos(slideBy, slideFor, checkPtr, chunk)
+        const slide = slidePos(slideBy, slideFor, checkPtr, chunk, uiId)
         var slideAdj = 0
         if (slide != 0) slideAdj = snipEdge == 'front' ? slide : slide + slideFor.length
-        console.log('EditArticle getInsertPos slide %s', slideAdj)
+        console.log(`EditArticle/getInsertPos ${uiId} slide %s`, slideAdj)
         pos = pos + slideAdj
     }
     // console.log('EditArticle getInsertPos Found "%s" in "%s" at %s Node Tag "%s"', match,
@@ -357,7 +371,7 @@ function getInsertPos(snipEdge, match, text) {
     return { pos: pos, nodeInfo: nodeInfo }
 }
 // Get Node where insert is to happen
-function findNodeInfo(snipEdge, match) {
+function findNodeInfo(snipEdge, match, uiId = '') {
     // Create html portion to find node at insert point
     const matchStr = match.replaceAll(" ", "")
     parsedArticleText = parseHTMLFragment(viewArticleText.value)
@@ -384,7 +398,7 @@ function findNodeInfo(snipEdge, match) {
             }
         }
     }
-    console.log('EditArticle findNodeInfo NOT FOUND "%s" at Edge', matchStr)
+    console.log(`EditArticle/findNodeInfo ${uiId} NOT FOUND "%s" at Edge`, matchStr)
     return { edgeMatch: false, nodeType: '', nodeText: '' }
 }
 //
@@ -416,8 +430,8 @@ function cleanInsert(snipEdge, handle, nodeInfoStart, nodeInfoEnd) {
     return tagStart + handle + tagEnd
 }
 //
-function slidePos(slideBy, slideFor, checkPtr, chunk) {
-    console.log('EditArticle loadArticleText slidePos start slideBy %s, slideFor %s, checkPtr %s, chunk "%s", check "%s" ',
+function slidePos(slideBy, slideFor, checkPtr, chunk, uiId = '') {
+    console.log(`EditArticle/slidePos ${uiId} start slideBy %s, slideFor %s, checkPtr %s, chunk "%s", check "%s" `,
         slideBy, slideFor, checkPtr, chunk, chunk.slice(checkPtr, checkPtr + 1))
     var slide = slideBy
     while (chunk.slice(checkPtr, checkPtr + slideFor.length) != slideFor) {
@@ -433,18 +447,18 @@ function slidePos(slideBy, slideFor, checkPtr, chunk) {
     return slide;
 }
 // Snip the Clean Text to display
-function updSnipedTextArray(thisSnip) {
+function updSnipedTextArray(thisSnip, uiId = '') {
     var selTextWords = ocrHygieneCore(thisSnip.snipf.text).split(" ")
     const matchsFront = matchWordArray(selTextWords, cleanOriginalText)
     if (matchsFront.length != 1) {
-        console.log(`EditArticle updSnipedTextArray Front Snip Not Found "%s" `, selTextWords)
+        console.log(`EditArticle/updSnipedTextArray ${uiId} Front Snip Not Found "%s" `, selTextWords)
         toast.error('Snip Front not unique to enable snip, pls redo')
         return false
     }
     selTextWords = ocrHygieneCore(thisSnip.snipb.text).split(" ")
     const matchsBack = matchWordArray(selTextWords, cleanOriginalText)
     if (matchsBack.length != 1) {
-        console.log(`EditArticle updSnipedTextArray Back Snip Not Found "%s" `, selTextWords)
+        console.log(`EditArticle/updSnipedTextArray ${uiId} Back Snip Not Found "%s" `, selTextWords)
         toast.error('Snip Back not unique to enable snip, pls redo')
         return false
     }
@@ -452,10 +466,10 @@ function updSnipedTextArray(thisSnip) {
     snipedText.value.push(selectedText)
 }
 // Scroll to Search Word in Trove Article
-function scrollTroveTextByWalker(container, span, searchTerm, searchTextCount = 1) {
+function scrollTroveTextByWalker(container, span, searchTerm, searchTextCount = 1, uiId = '') {
     if (!searchTerm) return;
     // Use Range + TreeWalker to locate the text node
-    console.log(`EditArticle/scrollTroveTextByWalker scroll:${searchTerm} event:${searchTextCount}`);
+    console.log(`EditArticle/scrollTroveTextByWalker ${uiId} scroll:${searchTerm} event:${searchTextCount}`);
     const walker = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
     let node;
     let matchNumber = 0;
@@ -490,7 +504,7 @@ function scrollTroveTextByWalker(container, span, searchTerm, searchTextCount = 
             startIndex = index + searchTerm.length;
         }
     }
-    console.log(`EditArticle/scrollTroveText Not found %s, scrolling to top`, searchTerm);
+    console.log(`EditArticle/scrollTroveText ${uiId} Not found %s, scrolling to top`, searchTerm);
     container.scrollTo({
         top: 0,
         left: 0,
@@ -498,14 +512,14 @@ function scrollTroveTextByWalker(container, span, searchTerm, searchTextCount = 
     });
 }
 //
-function scrollTroveText(searchTerm, searchTextCount = 1) {
+function scrollTroveText(searchTerm, searchTextCount = 1, uiId = '') {
     const container = articleRef.value; // the .card-body div
     if (!container) return;
 
     const span = container.querySelector("span");
     if (!span) return;
 
-    console.log("EditArticle/scrollTroveText scroll event");
+    console.log(`EditArticle/scrollTroveText ${uiId} scroll event`);
 
     // 1) Prefer scrolling to <mark> hits if they exist
     if (activeScrollMode.value == 'search') {
@@ -529,56 +543,63 @@ function scrollTroveText(searchTerm, searchTextCount = 1) {
         }
     }
     // 2) Fallback to text-node search
-    scrollTroveTextByWalker(container, span, searchTerm, searchTextCount);
+    scrollTroveTextByWalker(container, span, searchTerm, searchTextCount, uiId);
     return 0;
 }
 // 
-function triggerSnipScroll() {
+function triggerSnipScroll(uiId = '') {
+    if (!uiId) uiId = userData.getNextInteractionId()
     if (!articleRef.value) return
     if (articleSnips.length === 0) return
-    console.log(`EditArticle/triggerSnipScroll Start Mode:${activeScrollMode.value} NbrSnips:${articleSnips.length} index:${activeScrollIndex.value}`);
+    console.log(`EditArticle/triggerSnipScroll ${uiId} Start Mode:${activeScrollMode.value} NbrSnips:${articleSnips.length} index:${activeScrollIndex.value}`);
     if ((activeScrollMode.value != 'snip') || (activeScrollIndex.value === articleSnips.length)) {
         activeScrollIndex.value = 1
-        console.log(`EditArticle/triggerSnipScroll RESET Snip Index`);
+        console.log(`EditArticle/triggerSnipScroll ${uiId} RESET Snip Index`);
     } else {
         // same trigger, same term → NEXT
         activeScrollIndex.value += 1;
-        console.log(`EditArticle/triggerSnipScroll NEXT activeScrollIndex:${activeScrollIndex.value}`);
+        console.log(`EditArticle/triggerSnipScroll ${uiId} NEXT activeScrollIndex:${activeScrollIndex.value}`);
     }
     activeScrollMode.value = 'snip';
-    console.log(`EditArticle/triggerSnipScroll index:${activeScrollIndex.value - 1}, text:${articleSnips[activeScrollIndex.value - 1].snipf.text}`);
-    scrollTroveText(articleSnips[activeScrollIndex.value - 1].snipf.text, 1) // Always 1 as each snip is unique
+    console.log(`EditArticle/triggerSnipScroll ${uiId} index:${activeScrollIndex.value - 1}, text:${articleSnips[activeScrollIndex.value - 1].snipf.text}`);
+    scrollTroveText(articleSnips[activeScrollIndex.value - 1].snipf.text, 1, uiId) // Always 1 as each snip is unique
 }
 //
-function triggerSearchScroll() {
+function triggerSearchScroll(uiId = '') {
+    if (!uiId) uiId = userData.getNextInteractionId()
     if (!articleRef.value) return
     if (searchText.value.length === 0) return
     if (activeScrollMode.value != 'search') {
         activeScrollIndex.value = 1
-        console.log(`EditArticle/triggerSearchScroll RESET Snip Index`);
+        console.log(`EditArticle/triggerSearchScroll ${uiId} RESET Snip Index`);
     } else {
         // same trigger, same term → NEXT
         activeScrollIndex.value += 1;
-        console.log(`EditArticle/triggerSearchScroll NEXT activeScrollIndex:${activeScrollIndex.value}`);
+        console.log(`EditArticle/triggerSearchScroll ${uiId} NEXT activeScrollIndex:${activeScrollIndex.value}`);
     }
     activeScrollMode.value = 'search';
-    console.log(`EditArticle/triggerSearchScroll index:${activeScrollIndex.value - 1}, text:${searchText.value}`);
-    const markCount = scrollTroveText(searchText.value, activeScrollIndex.value);
+    console.log(`EditArticle/triggerSearchScroll ${uiId} index:${activeScrollIndex.value - 1}, text:${searchText.value}`);
+    const markCount = scrollTroveText(searchText.value, activeScrollIndex.value, uiId);
     if ((markCount > 0) && (activeScrollIndex.value > markCount)) {
         activeScrollIndex.value = 1;
-        scrollTroveText(searchText.value, activeScrollIndex.value);
+        scrollTroveText(searchText.value, activeScrollIndex.value, uiId);
     }
 }
 // Inject handles when snip is clicked
 function activateHandles(event) {
+    const uiId = userData.getNextInteractionId()
     const snipDiv = event.target.closest('.snip-block');
-    if (!snipDiv || snipDiv.parentElement.classList.contains('snip-wrapper')) return;
+    if (!snipDiv || snipDiv.parentElement.classList.contains('snip-wrapper')) {
+        console.log(`EditArticle/activateHandles ${uiId} not a snip-block, early return`)
+        return;
+    }
     snipChange = snipDiv.dataset.snipnbr
     updSnipOld = { ...articleSnips[snipChange] }  // Save Old
-    console.log(`EditArticle activateHandles %s, %s`, snipChange, JSON.stringify(updSnipOld))
-    loadArticleText()
+    console.log(`EditArticle/activateHandles ${uiId} entry snipIndex:%s, snip:%s`, snipChange, JSON.stringify(updSnipOld))
+    loadArticleText(uiId)
     // Sets articleSnipsOld = []
     snipSelAction('selected', '')
+    console.log(`EditArticle/activateHandles ${uiId} exit`)
 }
 // Manage Selected Snip Buttons
 function snipSelAction(actionSnip, actionText) {
@@ -628,21 +649,28 @@ function snipSelAction(actionSnip, actionText) {
 }
 // Handle drag start
 function handleDragStart(event) {
+    const uiId = userData.getNextInteractionId()
     // Sets articleSnipsOld = []
     snipSelAction('startDrag', '')
     const snipEdge = event.target.dataset.handle
-    console.log(`EditArticle handleDragStart %s`, snipEdge)
+    console.log(`EditArticle/handleDragStart ${uiId} entry snipEdge:%s`, snipEdge)
     event.dataTransfer.setData('text/plain', snipEdge)
+    console.log(`EditArticle/handleDragStart ${uiId} drag initiated`)
 }
 // Handle drop to reposition handle
 function handleDrop(event) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/handleDrop ${uiId} entry`)
     const snipEdge = event.dataTransfer.getData('text/plain')
     const range = document.caretRangeFromPoint
         ? document.caretRangeFromPoint(event.clientX, event.clientY) : document.caretPositionFromPoint
             ? document.caretPositionFromPoint(event.clientX, event.clientY)
             : null
 
-    if (!range) return null
+    if (!range) {
+        console.log(`EditArticle/handleDrop ${uiId} no range found, exit`)
+        return null
+    }
 
     // var cleanOriginalText = ocrHygieneCore(userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText);
     const preCaretRange = range.cloneRange()
@@ -650,7 +678,7 @@ function handleDrop(event) {
     const articleText = preCaretRange.toString() // The full Article Text
     // console.log(`EditArticle handleDrop area "%s"`, preCaretRange.toString())
     preCaretRange.setEnd(range.endContainer, range.endOffset)
-    console.log(`EditArticle handleDrop offset Text "%s"`, preCaretRange.toString())
+    console.log(`EditArticle/handleDrop ${uiId} offset Text "%s"`, preCaretRange.toString())
     var offset = preCaretRange.toString().length // Where the handle was dropped in articleText
     // const start = Math.max(0, offset - 30);
     // const end = Math.min(articleText.length, offset + 30);
@@ -659,7 +687,7 @@ function handleDrop(event) {
     if (Object.keys(updSnipOld).length === 0) {
         tempSnip = { ...updSnip } // From text highlight
     }
-    console.log(`EditArticle handleDrop points Old start %s "%s", offset %s, Old end %s "%s"`,
+    console.log(`EditArticle/handleDrop ${uiId} points Old start %s "%s", offset %s, Old end %s "%s"`,
         tempSnip.snipf.posText, tempSnip.snipf.text, offset, tempSnip.snipb.posText, tempSnip.snipb.text)
     if (snipEdge == 'front') {
         // Get new Front
@@ -668,7 +696,7 @@ function handleDrop(event) {
         var selTextWords = ocrHygieneCore(tempSnip.snipb.text).split(" ")
         const matchsBack = matchWordArray(selTextWords, articleText)
         if (matchsBack.length != 1) {
-            console.log(`EditArticle handleDrop Old Back Snip Not Found "%s" `, tempSnip.snipb.text)
+            console.log(`EditArticle/handleDrop ${uiId} Old Back Snip Not Found "%s" `, tempSnip.snipb.text)
             toast.error('Old Snip Back not found, pls redo')
             return null
         }
@@ -679,7 +707,7 @@ function handleDrop(event) {
         var selTextWords = ocrHygieneCore(tempSnip.snipf.text).split(" ")
         const matchsFront = matchWordArray(selTextWords, articleText)
         if (matchsFront.length != 1) {
-            console.log(`EditArticle handleDrop Old Front Snip Not Found "%s" `, tempSnip.snipf.text)
+            console.log(`EditArticle/handleDrop ${uiId} Old Front Snip Not Found "%s" `, tempSnip.snipf.text)
             toast.error('Old Snip Front not found, pls redo')
             return null
         }
@@ -688,62 +716,77 @@ function handleDrop(event) {
         tempSnip.snipb.posText = -1
     }
     articleSnips[snipChange] = { ...emptySnip } // Stop check against self
-    const snip = getSnipFrontBack(tempSnip, toMatch)
-    if (typeof snip == 'boolean') return null
+    const snip = getSnipFrontBack(tempSnip, toMatch, uiId)
+    if (typeof snip == 'boolean') {
+        console.log(`EditArticle/handleDrop ${uiId} getSnipFrontBack returned error`)
+        return null
+    }
     articleSnips[snipChange] = { ...snip }
-    loadArticleText()
+    loadArticleText(uiId)
     // Sets articleSnipsOld = []
     snipSelAction('endDrag', '')
     updSnip = { ...snip };
     articleSnips[snipChange] = { ...updSnipOld }
-    console.log(`EditArticle handleDrop Inserted %s`, snipEdge)
+    console.log(`EditArticle/handleDrop ${uiId} inserted %s, exit`, snipEdge)
 }
 // Have selected a snip but want to revert
 function revertChange() {
-    console.log(`EditArticle cancelChange %s`, snipChange)
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/revertChange ${uiId} %s`, snipChange)
     if (Object.keys(updSnipOld).length > 0) {
         articleSnips[snipChange] = { ...updSnipOld }
-        console.log(`EditArticle cancelChange Revert %s`, JSON.stringify(updSnipOld))
+        console.log(`EditArticle/revertChange ${uiId} reverting to old snip %s`, JSON.stringify(updSnipOld))
     } else {
         articleSnips.splice(snipChange, 1)
+        console.log(`EditArticle/revertChange ${uiId} removing new snip at index %s`, snipChange)
     }
     snipChange = -1
-    loadArticleText()
+    loadArticleText(uiId)
     // Sets  updSnipOld = {} updSnip = {} articleSnipsOld = []
     snipSelAction('ended', '')
+    console.log(`EditArticle/revertChange ${uiId} exit`)
 }
 //
 function removeSnip() {// Remove snip
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/removeSnip ${uiId} entry index:%s`, snipChange)
     articleSnips.splice(snipChange, 1)
     const removeText = snipedText.value.splice(snipChange, 1)
-    console.log(`EditArticle removeSnip Remove "%s", %s`, removeText, JSON.stringify(articleSnips))
+    console.log(`EditArticle/removeSnip ${uiId} removed text "%s", articleSnips now:%s`, removeText, JSON.stringify(articleSnips))
     snipChange = -1
-    loadArticleText()
+    loadArticleText(uiId)
     updateSelectedText()
+    console.log(`EditArticle/removeSnip ${uiId} exit`)
 }
 // After handles have been moved - get the updated Snip
 function updateSnip() {
-    console.log(`EditArticle updateSnip %s Snip "%s" to "%s"`, snipChange, JSON.stringify(updSnipOld), JSON.stringify(updSnip))
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/updateSnip ${uiId} entry index:%s old:%s new:%s`, snipChange, JSON.stringify(updSnipOld), JSON.stringify(updSnip))
     articleSnips[snipChange] = { ...updSnip }
     snipChange = -1
-    loadArticleText()
+    loadArticleText(uiId)
     // updSnipOld = {}  updSnip = {}
     snipSelAction('ended', 'update')
     disableUpdate.value = false
+    console.log(`EditArticle/updateSnip ${uiId} update complete, disableUpdate set to false`)
 }
 //
 function updateSelectedText() {
-    console.log(`EditArticle updateSelectedText %s`, snipedText.value.length)
-    copySelectedText()
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/updateSelectedText ${uiId} entry snipCount:%s`, snipedText.value.length)
+    copySelectedText(uiId)
     if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
         deleteSelectedTextDisabled.value = false
         userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Copied Text"
+        console.log(`EditArticle/updateSelectedText ${uiId} text copied, status set to "Copied Text"`)
     }
     // Clears snipUpOld, updSnip
     snipSelAction('ended', '')
+    console.log(`EditArticle/updateSelectedText ${uiId} exit`)
 }
-function copySelectedText() {
-    console.log(`EditArticle copySelectedText %s`, snipedText.value.length)
+function copySelectedText(uiId = null) {
+    if (!uiId) uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/copySelectedText ${uiId} entry snipCount:%s`, snipedText.value.length)
     userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = ''
     for (var text of snipedText.value) {
         if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length > 0) {
@@ -752,27 +795,33 @@ function copySelectedText() {
             userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = text
         }
     }
+    console.log(`EditArticle/copySelectedText ${uiId} copied:%s`, userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText.length)
 }
 //
 function cancelUpdateSelected() {
-    console.log(`EditArticle cancelUpdateSelected %s`, JSON.stringify(articleSnipsOld))
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/cancelUpdateSelected ${uiId} entry articleSnipsOld:%s`, JSON.stringify(articleSnipsOld))
     articleSnips = [...articleSnipsOld];
-    loadArticleText()
+    loadArticleText(uiId)
     // updSnipOld = {} updSnip = {} articleSnipsOld = []
     snipSelAction('ended', '')
+    console.log(`EditArticle/cancelUpdateSelected ${uiId} reverted snips, exit`)
 }
 //
 function deleteSelectedText() {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/deleteSelectedText ${uiId} entry`)
     userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = "Created"
     userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText = ''
     deleteSelectedTextDisabled.value = true;
     userData.viewedArticles[idxViewed.value].ViewedArticleSnips = ''
     snipedText.value.length = 0
     articleSnips.length = 0
-    console.log(`EditArticle deleteSelectedText %s`, snipedText.value.length)
-    loadArticleText()
+    console.log(`EditArticle/deleteSelectedText ${uiId} deleted, snipCount:%s`, snipedText.value.length)
+    loadArticleText(uiId)
     // updSnipOld = {} updSnip = {} articleSnipsOld = []
     snipSelAction('ended', '')
+    console.log(`EditArticle/deleteSelectedText ${uiId} exit`)
 }
 //
 function openTroveArticle() {
@@ -784,9 +833,18 @@ function openTroveArticle() {
 // load of An Article - they will be SSE'd to App.vue
 //
 function loadArticle(firstLoad) {
-    if (!firstLoad) processingArticleActionDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/loadArticle ${uiId} entry firstLoad:%s articleId:%s`, firstLoad, navStore.articleId)
+    
+    if (!firstLoad) {
+        console.log(`EditArticle/loadArticle ${uiId} not first load, disabling actions`)
+        processingArticleActionDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
+    }
+    
     const url = "/dispArticle/newspaper/" + navStore.articleId + "/"
-        + navStore.listId + "/" + !firstLoad;
+        + navStore.listId + "/" + !firstLoad + "?uiInteractionId=" + encodeURIComponent(uiId);
+    console.log(`EditArticle/loadArticle ${uiId} prepared url`);
+    
     const options = {
         method: "get",
         mode: "cors",
@@ -796,19 +854,25 @@ function loadArticle(firstLoad) {
             'Content-Type': 'application/json'
         }
     };
-    useDoFetch('loadArticle', url, options)
+    console.log(`EditArticle/loadArticle ${uiId} sending request`);
+    useDoFetch(`loadArticle ${uiId}`, url, options, uiId)
+    console.log(`EditArticle/loadArticle ${uiId} request sent, exit`)
 }
 //  Post Article Id to Ignore
 function manageIgnoredArticle(action = 'removeIgnore') {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/manageIgnoredArticle ${uiId} entry action:%s articleId:%s`, action, navStore.articleId)
+    
     processingArticleActionDisable.value = true //  Cleared in watch(() => userData.viewedArticles[idxViewed.value]
     var param = {
         actionedArticlesInfo: {
             id: navStore.articleId,
             listId: navStore.listId,
             action: action
-        }
+        },
+        uiInteractionId: uiId
     };
-    console.log(`EditArticle/manageIgnoredArticle clicked Manage GIgnored action %s - %s `, action, JSON.stringify(param));
+    console.log(`EditArticle/manageIgnoredArticle ${uiId} prepared request:`, JSON.stringify(param));
     //
     const options = {
         method: "post",
@@ -821,13 +885,24 @@ function manageIgnoredArticle(action = 'removeIgnore') {
         //make sure to serialize your JSON body
         body: JSON.stringify(param)
     };
-    useDoFetch('Manage Ignored Articles', "/saveDB/updateArticle/generalIgnore", options)
-    if (action == 'addIgnore') troveArticleRef.value.click(); // Take user to Trove
+    console.log(`EditArticle/manageIgnoredArticle ${uiId} sending request`);
+    useDoFetch(`Manage Ignored Articles ${uiId}`, "/saveDB/updateArticle/generalIgnore", options, uiId)
+    console.log(`EditArticle/manageIgnoredArticle ${uiId} request sent`);
+    if (action == 'addIgnore') {
+        console.log(`EditArticle/manageIgnoredArticle ${uiId} action is addIgnore, navigating to Trove`)
+        troveArticleRef.value.click(); // Take user to Trove
+    }
+    console.log(`EditArticle/manageIgnoredArticle ${uiId} exit`)
 }
 //  Post updated data and wait for response in reloadArticle
 function saveData() {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/saveData ${uiId} entry articleId:%s`, navStore.articleId)
+    
     // console.log("click updateData");
     userData.viewedArticles[idxViewed.value].ViewedArticleSnips = JSON.stringify(articleSnips.map((sn) => ({ "snipf": sn.snipf.text.replaceAll('"', '|'), "snipb": sn.snipb.text.replaceAll('"', '|') })))
+    console.log(`EditArticle/saveData ${uiId} prepared snips`)
+    
     var updatedData = {
         'troveUserId': userData.troveDetails.troveUserId,
         'listId': navStore.listId,
@@ -836,14 +911,18 @@ function saveData() {
         'metadata': userData.viewedArticles[idxViewed.value].ViewedArticleMetadata,
         'selectedData': userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText,
         'selectedTextSnips': userData.viewedArticles[idxViewed.value].ViewedArticleSnips,
-        'summaryData': userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText
+        'summaryData': userData.viewedArticles[idxViewed.value].ViewedArticleSummaryText,
+        'uiInteractionId': uiId
     }
     if (updatedData.selectedData.length == 0) {
+        console.log(`EditArticle/saveData ${uiId} selectedData empty, setting to None`)
         updatedData.selectedData = 'None';
     }
     if (updatedData.summaryData.length == 0) {
+        console.log(`EditArticle/saveData ${uiId} summaryData empty, setting to None`)
         updatedData.summaryData = 'None';
     }
+    console.log(`EditArticle/saveData ${uiId} data prepared`);
     // console.log (updatedData);
     const options = {
         method: "post",
@@ -856,15 +935,24 @@ function saveData() {
         //make sure to serialize your JSON body
         body: JSON.stringify(updatedData)
     };
+    console.log(`EditArticle/saveData ${uiId} sending request`);
     // console.log('EditArticle/SaveData ', JSON.stringify(options));
-    useDoFetch('saveArticle', "/saveDB/updateArticle", options)
+    useDoFetch(`saveArticle ${uiId}`, "/saveDB/updateArticle", options, uiId)
+    console.log(`EditArticle/saveData ${uiId} request sent`)
     //
     disableUpdate.value = true
+    console.log(`EditArticle/saveData ${uiId} disabled update button, exit`)
 }
 //
 function changeMinedStatus(newMinedStatus) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/changeMinedStatus ${uiId} entry newMinedStatus:%s`, newMinedStatus)
+    
     userData.viewedArticles[idxViewed.value].ViewedArticleMinedStatusText = newMinedStatus
+    console.log(`EditArticle/changeMinedStatus ${uiId} state updated`)
+    
     disableUpdate.value = false
+    console.log(`EditArticle/changeMinedStatus ${uiId} enabled save button, exit`)
 }
 //  Set the Article Original Text
 watch(() => userData.viewedArticles[idxViewed.value].ViewedArticleOriginalText, () => {
@@ -883,14 +971,16 @@ watch(editMetadata, (newEditMetadata) => {
 })
 //  Enable Update Data Button
 watch(() => userData.viewedArticles[idxViewed.value], () => {
-    console.log('Change ViewedArticleSelectedText ', idxViewed.value)
+    const uiId = userData.getCurrentInteractionId()
+    console.log(`EditArticle/Watch ${uiId} Change ViewedArticleSelectedText `, idxViewed.value)
     disableUpdate.value = false
     processingArticleActionDisable.value = false
-    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText()
+    if (userData.viewedArticles[idxViewed.value].ViewedArticleSelectedText == "Use Snips") copySelectedText(uiId)
 })
 //  reloaded
 watch(() => userData.reloadedViewedArticle, () => {
-    console.log('EditArticle/Watch reloadedViewedArticle')
+    const uiId = userData.getCurrentInteractionId()
+    console.log(`EditArticle/Watch ${uiId} reloadedViewedArticle`)
     disableUpdate.value = false
     if (userData.viewedArticles[idxViewed.value].ViewedArticleNote.length > 0) useViewedArticleNote ()
 })
@@ -911,9 +1001,11 @@ function useViewedArticleNote () {
 }
 //
 function setupEditedFields(index) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/setupEditedFields ${uiId} entry index:%s`, index)
     popoverForMetadata.value = ''
     const metadataType = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index][0]
-    console.log('Change editMetadata ', index, metadataType)
+    console.log(`EditArticle/setupEditedFields ${uiId} metadataType:%s`, metadataType)
     // Wait for DOM update, then focus on the new select field
     nextTick(() => {
         const thisId = "select-" + index
@@ -921,78 +1013,107 @@ function setupEditedFields(index) {
         // console.log('Focus:', thisId, newSelect)
         if (newSelect) newSelect.focus();
     });
-    if (metadataType.length == 0) return
+    if (metadataType.length == 0) {
+        console.log(`EditArticle/setupEditedFields ${uiId} metadataType empty, exit`)
+        return
+    }
     // Popover
     switch (metadataType) {
         case 'Person':
             popoverForMetadata.value = popoverPersonMetadata
+            console.log(`EditArticle/setupEditedFields ${uiId} popover set to Person`)
             break
         case 'EventDate':
         case 'OtherDate':
             popoverForMetadata.value = popoverDateMetadata
+            console.log(`EditArticle/setupEditedFields ${uiId} popover set to Date`)
     }
     // Dropdown
     const metadata = userData.metadataTypeByMetadata.find((el) => el.metadataType === metadataType)
     // console.log ('setupEditedFields Change editMetadata ', JSON.stringify(metadata))
     arrayMetadataDropdown.value =  metadata ? metadata.arrayMetadata.map((el) => el.metadataValue) : []
+    console.log(`EditArticle/setupEditedFields ${uiId} dropdown populated:%s items`, arrayMetadataDropdown.value.length)
     // console.log ('Change editMetadata ', arrayMetadataDropdown)
     // Wait for DOM update, then focus on the new select field
     nextTick(() => {
         const thisId = `value-${index}`
         document.getElementById(thisId)?.focus()
     });
+    console.log(`EditArticle/setupEditedFields ${uiId} exit`)
     return
 }
 //
 function addedEntityToMetadata(index) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/addedEntityToMetadata ${uiId} entry index:%s`, index)
     editMetadata.value = Number(index)
     showModalEntities.value = false
+    console.log(`EditArticle/addedEntityToMetadata ${uiId} entity added, modal closed`)
 }
 //
 function updateMetadata(action, index) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`EditArticle/updateMetadata ${uiId} entry action:%s index:%s`, action, index)
+    
     notifyEditError.value = 'inherit';
     switch (action) {
         case 'Cancel':
+            console.log(`EditArticle/updateMetadata ${uiId} Cancel branch`)
             editMetadata.value = -1;
             if (savedMetadata.value.length == 0) {
+                console.log(`EditArticle/updateMetadata ${uiId} Cancel Add - splicing index %d`, index)
                 userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index, 1);
             } else {
+                console.log(`EditArticle/updateMetadata ${uiId} Cancel Edit - restoring saved`)
                 userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index] = savedMetadata.value;
             }
+            console.log(`EditArticle/updateMetadata ${uiId} cancel complete`)
             break;
         case 'Check':
+            console.log(`EditArticle/updateMetadata ${uiId} Check branch index:%s`, index)
             var savedPopover = popoverForMetadata.value;
             var clickedRowCells = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index];
             var message = checkMetadata(clickedRowCells, index);
             if (message.length > 0) {
+                console.log(`EditArticle/updateMetadata ${uiId} Check validation failed: ${message}`)
                 popoverForMetadata.value = message;
                 notifyEditError.value = 'red';
             } else {
+                console.log(`EditArticle/updateMetadata ${uiId} Check validation passed`)
                 disableUpdate.value = false;
                 editMetadata.value = -1;
                 popoverForMetadata.value = savedPopover;
                 // New Metadata Items are added from Sever
+                console.log(`EditArticle/updateMetadata ${uiId} check complete`)
             }
             break;
         case 'Del':
+            console.log(`EditArticle/updateMetadata ${uiId} Del branch index:%s`, index)
             userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index, 1);
             disableUpdate.value = false;
+            console.log(`EditArticle/updateMetadata ${uiId} delete complete`)
             break;
         case 'Edit':
+            console.log(`EditArticle/updateMetadata ${uiId} Edit branch index:%s`, index)
             if (index) {
                 editMetadata.value = index;
                 savedMetadata.value = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata[index];
+                console.log(`EditArticle/updateMetadata ${uiId} edit saved:%s`, JSON.stringify(savedMetadata.value))
             } else {
                 editMetadata.value = userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.length - 1;
                 savedMetadata.value = [];
+                console.log(`EditArticle/updateMetadata ${uiId} edit last index`)
             }
             break;
         case 'New':
+            console.log(`EditArticle/updateMetadata ${uiId} New branch`)
             var newMatadata = ['', '', 'Sel'];
             userData.viewedArticles[idxViewed.value].ViewedArticleMetadata.splice(index + 1, 0, newMatadata);
             editMetadata.value = index + 1;
+            console.log(`EditArticle/updateMetadata ${uiId} new complete newIndex:%s`, editMetadata.value)
             break;
         default:
+            console.log(`EditArticle/updateMetadata ${uiId} default case (should not reach)`)
             break;
     }
 }

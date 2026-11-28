@@ -126,6 +126,9 @@ export const useUserDataStore = defineStore('userData', () => {
     // searchTotalFound
     // searchFields
     // searchArticlesIdStatus [articleId:, articleStatus:]
+    
+    const latestInteractionNumber = ref(0)
+    
   //
     function clearTroveUserCacheStore() {
         console.log ('userDataData/clearTroveUserCacheStore')
@@ -317,6 +320,25 @@ export const useUserDataStore = defineStore('userData', () => {
         // console.log ("userData updateListItemStatusCount")
     }
     //
+    function initializeInteractionCounter(serverLatestNumber) {
+        console.log(`userdata/initializeInteractionCounter from server:`, serverLatestNumber)
+        latestInteractionNumber.value = serverLatestNumber
+    }
+    //
+    function getCurrentInteractionId(option = '' ) {
+        const paddedNumber = String(latestInteractionNumber.value).padStart(4, '0')
+        const uiId = `ui-${paddedNumber}`
+        if (option == '') console.log(`userdata/getCurrentInteractionId:`, uiId)
+        return uiId
+    }
+    //
+    function getNextInteractionId() {
+        latestInteractionNumber.value++
+        const uiId = getCurrentInteractionId('Next')
+        console.log(`userdata/getNextInteractionId generated:`, uiId)
+        return uiId
+    }
+    //
     return { arrayMinedStatus,
         arrayMetadataTypes,
         authorisedUser,
@@ -342,6 +364,7 @@ export const useUserDataStore = defineStore('userData', () => {
         metadataTypeByMetadata,
         storyEventsForPersons,        
         savedSearches,
+        latestInteractionNumber,
         clearAuthUserStore,
         clearTroveUserStore,
         clearTroveUserCacheStore,
@@ -349,6 +372,9 @@ export const useUserDataStore = defineStore('userData', () => {
         updMetadataTypeArticleLinks,
         updateListItemStatusCount,
         updateListCounts,
-        reloadMetadataTypeByMetadata
+        reloadMetadataTypeByMetadata,
+        initializeInteractionCounter,
+        getCurrentInteractionId,
+        getNextInteractionId
 }
 })

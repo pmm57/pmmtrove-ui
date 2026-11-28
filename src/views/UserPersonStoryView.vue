@@ -64,6 +64,8 @@ for (let event of storyEvents.value) {
 }
 //  Post array of Story Events
 function updateStory() {
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserPersonStoryView/updateStory ${uiId}`)
     // userData.storyEventsForPersons[navStore.savedPerson.personStoryIdx] = storyEvents.value
     navStore.savedPerson.storyShowWhat = storyShowWhat.value
     const oldPersonData = {
@@ -74,7 +76,8 @@ function updateStory() {
         "storyShowWhat": navStore.savedPerson.storyShowWhat,
         "linkedListId": navStore.savedPerson.linkedListId,
         "arrayRelated": navStore.savedPerson.arrayRelated,
-        "personStoryIdx": navStore.savedPerson.personStoryIdx
+        "personStoryIdx": navStore.savedPerson.personStoryIdx,
+        "uiInteractionId": uiId
     }
     if (navStore.storyPersonNew) {
         oldPersonData.storyStatus = 'Create'
@@ -83,9 +86,11 @@ function updateStory() {
         "updatedEvents": storyEvents.value.map((el) => ({
             listId: el.listId, articleId: el.articleId, include: el.include
         })),
-        "chgPersonStoryShowWhat": storyShowWhat.value
+        "chgPersonStoryShowWhat": storyShowWhat.value,
+        "uiInteractionId": uiId
     }
-    useSavePersonData('Save Story', oldPersonData, updateEvents);
+    console.log(`UserPersonStoryView/updateStory ${uiId}`, JSON.stringify(updateEvents));
+    useSavePersonData('Save Story', oldPersonData, updateEvents, uiId);
     navStore.storyPersonNew = false
     updatesEnabled.value = false
     chgInclude = false
@@ -93,7 +98,8 @@ function updateStory() {
 }
 //  
 function reloadStory() {
-    console.log('UserPersonStoryView/reloadStory ', navStore.savedPerson.readName)
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserPersonStoryView/reloadStory ${uiId}`, navStore.savedPerson.readName)
     navStore.savedPerson.action = 'StoryReload'
     router.push({ name: 'userPersonList' });
 }
@@ -205,10 +211,12 @@ function getTroveUrlWithText (event, viewedArticle) {
 }
 //
 function updateInclude(action, index) {
+    const uiId = userData.getNextInteractionId()
     const storyIdx = storyEvents.value.findIndex(e =>
         e.articleId == filteredEvents.value[index].articleId &&
         e.listId == filteredEvents.value[index].listId)
-    console.log(`UserPersonStory/updateInclude index %s Filtered Line %s`, storyIdx, JSON.stringify(filteredEvents.value[index]))
+    console.log(`UserPersonStoryView/updateInclude ${uiId} action %s index %s`, action, storyIdx);
+    console.log(`UserPersonStoryView/updateInclude ${uiId}`, JSON.stringify(filteredEvents.value[index]));
     switch (action) {
         case 'Include':
             storyEvents.value[storyIdx].include = true
@@ -235,13 +243,16 @@ function updateInclude(action, index) {
 }
 //
 function openArticle(articleLink) {
-    console.log('UserPersonStory/openArticle ', JSON.stringify(articleLink))
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserPersonStoryView/openArticle ${uiId}`, JSON.stringify(articleLink))
     navStore.listId = articleLink.listId;
     navStore.articleId = articleLink.articleId;
     router.push({ name: 'editArticle' });
 }
 //
 function setShowWhat(btnIdx) {
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserPersonStoryView/setShowWhat ${uiId} btnIdx %s`, btnIdx);
     // console.log(`UserPersonStory/setShowWhat %s`, btnIdx, JSON.stringify(showWhat[btnIdx]))
     switch (btnIdx) {
         case 0: // Show All - Not FLiapable
@@ -294,6 +305,7 @@ function setShowWhat(btnIdx) {
         chgWhat = true
         updatesEnabled.value = true
     }
+    console.log(`UserPersonStoryView/setShowWhat ${uiId} storyShowWhat %s`, storyShowWhat.value);
     // console.log(`UserPersonStory/setShowWhat showWhat %s - %s`, JSON.stringify(showWhat), storyShowWhat.value)
 }
 //
@@ -406,6 +418,8 @@ function svgToPngBase64(svgUrl) {
  * Returns jsPDF doc (so caller can do extra things if needed)
  */
 async function createPdf(mode) {
+	const uiId = userData.getNextInteractionId()
+	console.log(`UserPersonStoryView/createPdf ${uiId} mode:${mode}`);
 	const personName = navStore.savedPerson.readName ?? "story";
 	const fileName = `${safePdfFileName(personName)}.pdf`;
 	// Pre-parse stories so we can reference underline ranges per row
@@ -591,12 +605,12 @@ async function createPdf(mode) {
         },
 	});
 	// Output mode
-    console.log(`createPdf mode:${mode}`);
+    console.log(`UserPersonStoryView/createPdf ${uiId} mode:${mode}`);
 	if (mode === "preview") {
 		// Open in new tab using blob URL 
 		window.open(doc.output("bloburl"), "_blank");
 	} else if (mode === "download") {
-        console.log(`createPdf mode:download`);
+        console.log(`UserPersonStoryView/createPdf ${uiId} download`);
 		// Download with a real filename 
 		doc.save(fileName);
 	}

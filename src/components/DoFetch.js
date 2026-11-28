@@ -12,12 +12,15 @@ function isOnRenderHost(fullUrl) {
 }
 // Async Do Fetch
 const serverUrl = import.meta.env.VITE_SERVER_URL
-export async function useDoFetch (calledFrom, inUrl, options) {
+export async function useDoFetch (calledFrom, inUrl, options, interactionId = null) {
     const errorsStore = useErrorsArrayStore()
     const navStore = useNavBarStore()
     if (useTabGuardStore().passive) {
         // Another tab is the active tab - make no server calls
-        console.log('useDoFetch ' + calledFrom + ' : skipped, tab is passive')
+        const msg = interactionId 
+            ? `useDoFetch ${interactionId} ${calledFrom} : skipped, tab is passive`
+            : `useDoFetch ${calledFrom} : skipped, tab is passive`;
+        console.log(msg)
         return false
     }
     const noJsonResponse = ["Search",  "Delete Search", "loadListArticles", "Manage Ignored Articles", "loadArticle", "saveArticle", "resetUser", "flipStoryPrimaryEvent"];
@@ -29,7 +32,10 @@ export async function useDoFetch (calledFrom, inUrl, options) {
     const response = await fetchPromise
         .catch (error => {
             errorsStore.arrayErrors.push({status: 999, msg : 'Server not available', param : ''});
-            console.log('useDoFetch ' + calledFrom + ' : Error in event handler::', error);
+            const msg = interactionId
+                ? `useDoFetch ${interactionId} ${calledFrom} : Error in event handler::`
+                : `useDoFetch ${calledFrom} : Error in event handler::`;
+            console.log(msg, error);
             return false
         });
     // console.log(calledFrom + ": response =", response);
@@ -37,12 +43,18 @@ export async function useDoFetch (calledFrom, inUrl, options) {
     // for (let [key, value] of response.headers) {
     // console.log(`${key} = ${value}`);
     // }
-    console.log('useDoFetch ' + calledFrom + ": response.status =", response.status);
+    const statusMsg = interactionId
+        ? `useDoFetch ${interactionId} ${calledFrom}: response.status =`
+        : `useDoFetch ${calledFrom}: response.status =`;
+    console.log(statusMsg, response.status);
     if (response.status == 200) {
         if (noJsonResponse.includes(calledFrom)) {
         } else {
             const data = await response.json();
-            console.log ('useDoFetch ' + calledFrom + ' response ', JSON.stringify(data))
+            const dataMsg = interactionId
+                ? `useDoFetch ${interactionId} ${calledFrom} response`
+                : `useDoFetch ${calledFrom} response`;
+            console.log(dataMsg, JSON.stringify(data))
             return data
         }
     } else {

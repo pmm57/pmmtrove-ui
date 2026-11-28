@@ -14,7 +14,7 @@ const loadingVisible = ref(true)
 var articleLink = ''
 //
 var idxList = userData.userLists.findIndex((item) => item.TroveListId == navStore.listId);
-if (userData.userLists[idxList].TroveListLinkedPerson) console.log('Linked Person ', userData.userLists[idxList].TroveListLinkedPerson)
+if (userData.userLists[idxList].TroveListLinkedPerson) console.log(`UserListView initialization: Linked Person`, userData.userLists[idxList].TroveListLinkedPerson)
 watch(
     [
         () => userData.userLists?.[idxList]?.TroveListItemCount ?? 0,
@@ -24,7 +24,8 @@ watch(
         () => userData.userLists?.[idxList]?.TroveListLoadState
     ],
     ([expected, lastLoadedStatus, loadState]) => {
-        console.log (`UserListView/watch expected:${expected} lastLoadedStatus:${lastLoadedStatus} loadState:${loadState}`)
+        const uiId = userData.getCurrentInteractionId()
+        console.log(`UserListView/watch ${uiId} expected:${expected} lastLoadedStatus:${lastLoadedStatus} loadState:${loadState}`)
         if (expected == 0 && loadState == 'Loaded') { // Empty list finished loading
             loadingVisible.value = false
         } else if (expected == 0 && lastLoadedStatus == 0) {
@@ -32,7 +33,7 @@ watch(
         }else {
             if (expected > 0 && lastLoadedStatus > 0) { // Finished Load
                 loadingVisible.value = false
-                console.log (`UserListView/watch visible:${loadingVisible.value}`)
+                console.log(`UserListView/watch ${uiId} visible:${loadingVisible.value}`)
             }
         }
     },
@@ -82,7 +83,8 @@ function statusColour(status) {
 // Async load of List Articles - they will be SSE'd to App.vue sseUserListWithArticles
 //
 async function loadListArticles(firstLoad) {
-    console.log('UserListView ', navStore.listId, firstLoad);
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserListView/loadListArticles ${uiId}`, navStore.listId, firstLoad);
     const expected = userData.userLists?.[idxList]?.TroveListItemCount
     if (firstLoad === 'false' &&
         userData.userListArticles &&
@@ -91,7 +93,7 @@ async function loadListArticles(firstLoad) {
         ) {userData.userListArticles[idxList][expected - 1].TroveListArticleMinedStatus = 0
     }
     if (firstLoad === 'false' || userData.userListArticles?.[idxList][expected - 1]?.TroveListArticleMinedStatus == 0) loadingVisible.value = true
-    const url = "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad;
+    const url = "/userListPage/list/" + userData.userLists[idxList].TroveListId + "/" + firstLoad + "?uiInteractionId=" + uiId;
     const options = {
         method: "get",
         mode: "cors",
@@ -101,7 +103,8 @@ async function loadListArticles(firstLoad) {
             'Content-Type': 'application/json'
         }
     };
-    useDoFetch('loadListArticles', url, options)
+    console.log(`UserListView/loadListArticles ${uiId} calling useDoFetch for listId:${userData.userLists[idxList].TroveListId}`)
+    useDoFetch('loadListArticles', url, options, uiId)
 }
 // Get best Article Title
 function getArticleTitle(article) {
@@ -130,7 +133,8 @@ function getArticleTitle(article) {
 }
 //
 function openPersonList(personName) {
-    console.log('UserListView openPersonList ', personName)
+    const uiId = userData.getNextInteractionId()
+    console.log(`UserListView/openPersonList ${uiId}`, personName)
     navStore.savedPerson = {
         action: "",
         personIndex: -1,
@@ -144,19 +148,21 @@ function openPersonList(personName) {
         navStore.savedPerson.readName = personName
         const idxMetadataPerson = userData.metadataTypeByMetadata.findIndex((el) => el.metadataType === "Person");
         if (idxMetadataPerson < 0) {
-            console.log(`UserListView/openPersonList Person Metaddata Type not found`)
+            console.log(`UserListView/openPersonList ${uiId} Person Metaddata Type not found`)
             return
         }
         navStore.savedPerson.personIndex = userData.metadataTypeByMetadata[idxMetadataPerson].arrayMetadata.findIndex((el) => el.metadataValue == personName)
         navStore.savedPerson.linkedListId = userData.userLists[idxList].TroveListId
     }
+    console.log(`UserListView/openPersonList ${uiId} navigating to userPersonList`)
     router.push({ name: 'userPersonList' });
 }
 //
 function openArticle(articleId) {
+    const uiId = userData.getNextInteractionId()
     navStore.listId = userData.userLists[idxList].TroveListId;
     navStore.articleId = articleId;
-    console.log(`UserListView/openArticle listId:${navStore.listId} articleId:${articleId}`)
+    console.log(`UserListView/openArticle ${uiId} listId:${navStore.listId} articleId:${articleId}`)
     router.push({ name: 'editArticle' });
 }
 //
